@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(openspec list:*)",
+      "Bash(grep:*)",
+      "Bash(npm run dev:*)",
+      "Bash(openspec show:*)",
+      "Bash(openspec validate:*)",
+      "Bash(npm run:*)",
+      "Bash(mkdir:*)"
+    ]
+  }
+}

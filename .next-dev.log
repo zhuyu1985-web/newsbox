@@ -1,0 +1,16 @@
+
+> dev
+> next dev --port 3000
+
+⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::3000
+    at <unknown> (Error: listen EADDRINUSE: address already in use :::3000)
+    at new Promise (<anonymous>) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+  Downloading swc package @next/swc-darwin-arm64... to /Users/zhuyu/Library/Caches/next-swc
+[?25h

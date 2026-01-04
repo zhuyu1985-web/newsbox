@@ -1,0 +1,8 @@
+# Supabase config (minimal)
+# Used for Scheduled Edge Functions configuration.
+
+[functions.smart-topics-nightly-refresh]
+verify_jwt = false
+# NOTE: schedule is interpreted as UTC by Supabase.
+# If you want 02:00 China Standard Time (UTC+8), use "0 18 * * *".
+schedule = "0 2 * * *"

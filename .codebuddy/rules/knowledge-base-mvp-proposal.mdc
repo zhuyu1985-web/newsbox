@@ -1,0 +1,9 @@
+---
+description: 
+alwaysApply: false
+enabled: true
+updatedAt: 2026-01-01T16:11:31.791Z
+provider: 
+---
+
+This project uses OpenSpec. For new capabilities like Knowledge Base, create an OpenSpec change under `openspec/changes/<change-id>/` with `proposal.md`, `tasks.md`, optional `design.md`, and spec deltas before implementing. Do not start implementation until the proposal is approved.

@@ -1,0 +1,10 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-01-01T07:59:44.915Z
+provider: 
+---
+
+- Dashboard 笔记列表卡片（`dashboard-content.tsx` 中 `renderNoteCard`）优先使用局部 `className` 覆盖，避免修改全局 `Card` 默认样式影响登录/弹窗。
+- 列表卡片圆角建议在 `12px~16px` 区间；边框使用 `border-slate-200/90` 或等价的细灰线；阴影保持轻量并在 hover 时稍增强。
