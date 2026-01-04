@@ -29,6 +29,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { MoveToFolderDialog } from "./MoveToFolderDialog";
 
 interface Note {
   id: string;
@@ -36,6 +37,7 @@ interface Note {
   source_url: string | null;
   content_type: "article" | "video" | "audio";
   is_starred?: boolean;
+  folder_id?: string | null;
 }
 
 interface ActionMenuProps {
@@ -46,6 +48,7 @@ interface ActionMenuProps {
 export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isStarred, setIsStarred] = useState(note.is_starred || false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
   const supabase = createClient();
 
   // 获取当前星标状态
@@ -227,8 +230,7 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
       }
 
       case "move": {
-        // TODO: 实现移动到文件夹功能
-        toast.info("移动功能即将上线");
+        setShowMoveDialog(true);
         break;
       }
 
@@ -381,6 +383,23 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
           删除
         </DropdownMenuItem>
       </DropdownMenuContent>
+
+      {/* 移动到文件夹对话框 */}
+      <MoveToFolderDialog
+        noteId={note.id}
+        currentFolderId={note.folder_id || null}
+        isOpen={showMoveDialog}
+        onClose={() => setShowMoveDialog(false)}
+        onSuccess={(newFolderId) => {
+          // 通知父组件 folder_id 已更新
+          onNoteChange?.({ folder_id: newFolderId });
+
+          // 派发自定义事件，通知 ReaderLayout 更新 folder 信息
+          window.dispatchEvent(new CustomEvent('reader:folder-changed', {
+            detail: { folderId: newFolderId }
+          }));
+        }}
+      />
     </DropdownMenu>
   );
 }

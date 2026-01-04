@@ -29,6 +29,7 @@ interface Note {
   content_type: "article" | "video" | "audio";
   source_url: string | null;
   is_starred?: boolean;
+  folder_id?: string | null;
 }
 
 interface Folder {
