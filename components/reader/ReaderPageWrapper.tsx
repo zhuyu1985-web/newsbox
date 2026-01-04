@@ -28,6 +28,7 @@ interface Note {
   reader_preferences?: any;
   folder_id?: string | null;
   deleted_at?: string | null;
+  is_starred?: boolean;
 }
 
 interface Folder {

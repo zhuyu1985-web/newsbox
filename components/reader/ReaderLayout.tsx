@@ -65,7 +65,9 @@ import { LeftSidebar } from "./LeftSidebar";
 import { ContentStage } from "./ContentStage";
 import { RightSidebar } from "./RightSidebar";
 import { cn } from "@/lib/utils";
-import { PanelRight, Tag, Folder } from "lucide-react";
+import { PanelRight, Tag, Folder, Star } from "lucide-react";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -117,6 +119,8 @@ interface Note {
   estimated_read_time?: number;
   /** 阅读器偏好设置（JSON）*/
   reader_preferences?: any;
+  /** 是否已星标 */
+  is_starred?: boolean;
 }
 
 /**
@@ -207,6 +211,51 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
 
   /** 阅读进度百分比 (0-100) */
   const [scrollProgress, setScrollProgress] = useState(0);
+
+  /** 星标状态 */
+  const [isStarred, setIsStarred] = useState(note.is_starred || false);
+
+  const supabase = createClient();
+
+  // 切换星标状态
+  const handleToggleStar = async () => {
+    const newStarredState = !isStarred;
+    const { error } = await supabase
+      .from("notes")
+      .update({ is_starred: newStarredState })
+      .eq("id", note.id);
+
+    if (error) {
+      console.error("星标更新失败:", error);
+      toast.error("操作失败，请重试");
+      return;
+    }
+
+    setIsStarred(newStarredState);
+    toast.success(newStarredState ? "已设为星标" : "已取消星标");
+
+    // 派发自定义事件，通知其他组件（如 ActionMenu）状态已更新
+    window.dispatchEvent(new CustomEvent('reader:star-changed', {
+      detail: { isStarred: newStarredState }
+    }));
+  };
+
+  // 同步 note 中的星标状态
+  useEffect(() => {
+    setIsStarred(note.is_starred || false);
+  }, [note.is_starred]);
+
+  // 监听来自 ActionMenu 的星标状态变化事件
+  useEffect(() => {
+    const handleStarChanged = (e: any) => {
+      if (e.detail?.isStarred !== undefined) {
+        setIsStarred(e.detail.isStarred);
+      }
+    };
+
+    window.addEventListener('reader:star-changed', handleStarChanged);
+    return () => window.removeEventListener('reader:star-changed', handleStarChanged);
+  }, []);
 
   // ========================================================================
   // 副作用：批注监听
@@ -514,6 +563,25 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
             {/* 左侧：快捷操作 */}
             <div className="flex-1 flex justify-center max-w-[680px] mx-auto">
               <div className="flex items-center gap-6">
+                {/* 星标按钮 */}
+                <button
+                  onClick={handleToggleStar}
+                  className={cn(
+                    "flex items-center gap-2 transition-colors",
+                    isStarred
+                      ? "text-yellow-500 hover:text-yellow-600"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Star className={cn("h-3.5 w-3.5", isStarred && "fill-yellow-500")} />
+                  <span className="text-[12px]">
+                    {isStarred ? "已星标" : "设为星标"}
+                  </span>
+                </button>
+
+                {/* 分隔线 */}
+                <div className="w-px h-3 bg-border" />
+
                 {/* 添加标签按钮 */}
                 <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                   <Tag className="h-3.5 w-3.5" />
