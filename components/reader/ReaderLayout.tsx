@@ -70,6 +70,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { MoveToFolderDialog } from "./GlobalHeader/MoveToFolderDialog";
 
 // ============================================================================
 // Type Definitions (类型定义)
@@ -121,6 +122,8 @@ interface Note {
   reader_preferences?: any;
   /** 是否已星标 */
   is_starred?: boolean;
+  /** 所属文件夹 ID */
+  folder_id?: string | null;
 }
 
 /**
@@ -215,7 +218,26 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
   /** 星标状态 */
   const [isStarred, setIsStarred] = useState(note.is_starred || false);
 
+  /** 移动到文件夹对话框状态 */
+  const [showMoveFolderDialog, setShowMoveFolderDialog] = useState(false);
+
+  /** 本地 folder 状态（用于动态更新）*/
+  const [localFolder, setLocalFolder] = useState<Folder | null>(folder);
+
+  /** 本地 note 状态（用于动态更新 folder_id）*/
+  const [localNote, setLocalNote] = useState(note);
+
   const supabase = createClient();
+
+  // 同步 props 中的 folder 到本地状态
+  useEffect(() => {
+    setLocalFolder(folder);
+  }, [folder]);
+
+  // 同步 props 中的 note 到本地状态
+  useEffect(() => {
+    setLocalNote(note);
+  }, [note]);
 
   // 切换星标状态
   const handleToggleStar = async () => {
@@ -256,6 +278,38 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
     window.addEventListener('reader:star-changed', handleStarChanged);
     return () => window.removeEventListener('reader:star-changed', handleStarChanged);
   }, []);
+
+  // 监听文件夹变化事件
+  useEffect(() => {
+    const handleFolderChanged = async (e: any) => {
+      const newFolderId = e.detail?.folderId;
+
+      if (newFolderId === undefined) return;
+
+      // 更新本地 note 的 folder_id
+      setLocalNote((prev) => ({ ...prev, folder_id: newFolderId }));
+
+      // 如果移到了未分类，清除 folder 状态
+      if (newFolderId === null) {
+        setLocalFolder(null);
+        return;
+      }
+
+      // 否则重新获取文件夹信息
+      const { data: folderData } = await supabase
+        .from("folders")
+        .select("*")
+        .eq("id", newFolderId)
+        .single();
+
+      if (folderData) {
+        setLocalFolder(folderData);
+      }
+    };
+
+    window.addEventListener('reader:folder-changed', handleFolderChanged);
+    return () => window.removeEventListener('reader:folder-changed', handleFolderChanged);
+  }, [supabase]);
 
   // ========================================================================
   // 副作用：批注监听
@@ -592,9 +646,13 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
                 <div className="w-px h-3 bg-border" />
 
                 {/* 当前文件夹 */}
-                <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <button
+                  onClick={() => setShowMoveFolderDialog(true)}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                  title={localFolder?.name || (localNote.folder_id ? "未知收藏夹" : "未分类")}
+                >
                   <Folder className="h-3.5 w-3.5" />
-                  <span className="text-[12px]">{folder?.name || "未分类"}</span>
+                  <span className="text-[12px]">{localFolder?.name || (localNote.folder_id ? "未知收藏夹" : "未分类")}</span>
                 </button>
               </div>
             </div>
@@ -642,6 +700,36 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 移动到文件夹对话框 */}
+        <MoveToFolderDialog
+          noteId={localNote.id}
+          currentFolderId={localNote.folder_id || null}
+          isOpen={showMoveFolderDialog}
+          onClose={() => setShowMoveFolderDialog(false)}
+          onSuccess={(newFolderId) => {
+            // 更新本地 note 的 folder_id
+            setLocalNote((prev) => ({ ...prev, folder_id: newFolderId }));
+
+            // 如果移到了未分类，清除 folder 状态
+            if (newFolderId === null) {
+              setLocalFolder(null);
+              return;
+            }
+
+            // 否则重新获取文件夹信息
+            supabase
+              .from("folders")
+              .select("*")
+              .eq("id", newFolderId)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  setLocalFolder(data);
+                }
+              });
+          }}
+        />
       </div>
     </div>
   );
