@@ -28,6 +28,7 @@ interface Note {
   title: string | null;
   content_type: "article" | "video" | "audio";
   source_url: string | null;
+  is_starred?: boolean;
 }
 
 interface Folder {
@@ -69,6 +70,17 @@ export function GlobalHeader({
   const router = useRouter();
   const [annotationCount, setAnnotationCount] = useState(0); // TODO: 从API获取
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentNote, setCurrentNote] = useState(note);
+
+  // 同步 note 数据更新
+  useEffect(() => {
+    setCurrentNote(note);
+  }, [note]);
+
+  // 处理笔记数据更新（如星标状态变化）
+  const handleNoteChange = (updates: Partial<Note>) => {
+    setCurrentNote((prev) => ({ ...prev, ...updates }));
+  };
 
   // 监听全屏状态变化
   useEffect(() => {
@@ -200,7 +212,7 @@ export function GlobalHeader({
           </Button>
 
           {/* 更多操作 */}
-          <ActionMenu note={note} />
+          <ActionMenu note={currentNote} onNoteChange={handleNoteChange} />
 
           {/* 分割线 */}
           <div className="h-6 w-px bg-border mx-1" />
