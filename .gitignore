@@ -40,3 +40,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Java工程示例
+target/
+.idea/
+*.iml
+.classpath
+.project
+
+# 通用过滤
+.DS_Store(Mac系统隐藏文件)
+node_modules/(前端Node工程)
+dist/(编译打包产物)
+logs/(日志文件)

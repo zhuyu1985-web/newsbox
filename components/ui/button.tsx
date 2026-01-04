@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -10,15 +12,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+          "bg-blue-600/80 text-white shadow-lg backdrop-blur-md border border-white/20 hover:bg-blue-600 transition-all active:scale-95",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "border border-blue-200/50 bg-white/30 backdrop-blur-sm shadow-sm hover:bg-blue-50/50 hover:text-blue-600 dark:border-blue-500/30 dark:bg-blue-950/30",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-blue-50/80 text-blue-600 shadow-sm backdrop-blur-sm hover:bg-blue-100/80 dark:bg-blue-900/40 dark:text-blue-300",
+        ghost: "text-blue-600/70 hover:bg-blue-50 hover:text-blue-600 dark:text-blue-400/70 dark:hover:bg-blue-900/50 dark:hover:text-blue-300",
+        link: "text-blue-600 underline-offset-4 hover:underline",
+        glass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 backdrop-blur-md hover:bg-blue-500/20 transition-all active:scale-95",
       },
       size: {
         default: "h-9 px-4 py-2",

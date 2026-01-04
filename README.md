@@ -33,6 +33,20 @@
 - Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
   - Environment variables automatically assigned to Vercel project
 
+## 我的收藏能力速览
+
+针对 Cubox 风格的“我的收藏”工作区，本项目在 Starter 的基础上新增了以下功能：
+
+- **分类导航**：支持未分类 / 所有 / 星标 / 今日 / 收藏夹 / 智能列表，切换会自动刷新数据并显示实时计数。
+- **智能列表**：基于标签热度及常见来源（如微信公众号）自动聚类，点击即可查看对应笔记。
+- **无限滚动**：列表采用分页 + IntersectionObserver，在滚动到底部时自动加载下一页。
+- **单条操作**：通过卡片菜单即可打开原文、复制链接或正文（纯文本/Markdown/HTML）、导出 TXT/Markdown/HTML、星标、移动、打标签、归档、删除。
+- **批量操作**：支持多选/全选，批量复制链接或内容、批量导出、批量星标/移动/标签/归档/删除，并在失败时弹出提示。
+- **多入口创建**：添加笔记弹窗内提供“添加网址”、“速记文本”、“上传文件（图片/视频/任意附件）”三个 Tab，上传内容保存到 Supabase Storage 的 `user-files` bucket。
+- **防盗链处理**：阅读页和列表统一为 `<img>` 增加 `referrerPolicy="no-referrer"`，解决微信公众号等站点的图片展示问题。
+
+详细用法请参考 `app/dashboard` 页面以及 `components/dashboard/dashboard-content.tsx` 内的实现注释。
+
 ## Demo
 
 You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
@@ -78,7 +92,16 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
   ```env
   NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
+
+  # Optional (for nightly Smart Topics refresh)
+  SUPABASE_SERVICE_ROLE_KEY=[INSERT SUPABASE SERVICE ROLE KEY]
+  KNOWLEDGE_CRON_SECRET=[INSERT A RANDOM SECRET]
   ```
+
+  If you want to enable the scheduled nightly refresh, deploy the app and configure:
+  - `app/api/knowledge/topics/nightly-refresh/route.ts` (protected by `KNOWLEDGE_CRON_SECRET`)
+  - Supabase Scheduled Edge Function at `supabase/functions/smart-topics-nightly-refresh` (set `SMART_TOPICS_REFRESH_URL` + `KNOWLEDGE_CRON_SECRET` as function secrets)
+  - Schedule config in `supabase/config.toml`
   > [!NOTE]
   > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
   > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
