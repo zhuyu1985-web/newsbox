@@ -219,39 +219,43 @@ export function GlobalHeader({
           <div className="h-6 w-px bg-border mx-1" />
 
           {/* 第二组：AI和批注 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAIAnalysis}
-            className="hidden md:flex text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-sm font-medium"
-            title="AI解读"
-          >
-            <Sparkles className="h-4 w-4 mr-1.5 text-blue-500" />
-            <span className="hidden lg:inline">AI解读</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAIAnalysis}
+              className="hidden md:flex items-center gap-1.5 border-violet-200 bg-violet-50/50 text-violet-700 hover:bg-violet-100 hover:text-violet-800 hover:border-violet-300 transition-all shadow-sm h-8 px-3 rounded-full"
+              title="AI解读"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+              <span className="hidden lg:inline font-medium text-xs">AI解读</span>
+            </Button>
 
-          {/* 内容批注 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAnnotations}
-            className={cn(
-              "hidden md:flex relative transition-colors duration-200 text-sm font-medium",
-              !isRightSidebarCollapsed && activeRightTab === "annotations" && !isSidebarCompact && "bg-slate-100 text-slate-900",
-              !isRightSidebarCollapsed && activeRightTab === "annotations" && isSidebarCompact && "bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
-            )}
-            title={isSidebarCompact ? "展开批注" : "收起批注"}
-          >
-            <MessageSquare className="h-4 w-4 mr-1.5" />
-            <span className="hidden lg:inline">
-              {!isRightSidebarCollapsed && activeRightTab === "annotations" && isSidebarCompact ? "展开" : "批注"}
-            </span>
-            {annotationCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {annotationCount}
+            {/* 内容批注 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAnnotations}
+              className={cn(
+                "hidden md:flex items-center gap-1.5 relative transition-all duration-200 h-8 px-3 rounded-full shadow-sm",
+                // 默认状态：轻量级边框 + 白色背景
+                "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300",
+                // 激活状态：深色背景或高亮
+                !isRightSidebarCollapsed && activeRightTab === "annotations" && "bg-slate-100 border-slate-300 text-slate-900 shadow-inner"
+              )}
+              title={isSidebarCompact ? "展开批注" : "收起批注"}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline font-medium text-xs">
+                {!isRightSidebarCollapsed && activeRightTab === "annotations" && isSidebarCompact ? "展开" : "批注"}
               </span>
-            )}
-          </Button>
+              {annotationCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                  {annotationCount}
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </header>

@@ -41,7 +41,7 @@ export function SelectionMenu({
 
   useEffect(() => {
     setMounted(true);
-    const savedColor = localStorage.getItem("cubox_reader_last_color");
+    const savedColor = localStorage.getItem("newsbox_reader_last_color");
     if (savedColor) setLastUsedColor(savedColor);
   }, []);
 
@@ -142,7 +142,7 @@ export function SelectionMenu({
 
   const handleHighlight = (color: string) => {
     setLastUsedColor(color);
-    localStorage.setItem("cubox_reader_last_color", color);
+    localStorage.setItem("newsbox_reader_last_color", color);
     
     if (editingHighlightId && onUpdateHighlight) {
       onUpdateHighlight(editingHighlightId, color);

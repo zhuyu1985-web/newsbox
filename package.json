@@ -1,4 +1,5 @@
 {
+  "name": "newsbox",
   "private": true,
   "scripts": {
     "dev": "env -u OPENAI_API_KEY -u OPENAI_API_BASE_URL -u OPENAI_MODEL next dev",

@@ -22,11 +22,11 @@ export function AboutSection() {
               right={
                 <a
                   className="text-slate-500 hover:text-slate-900 inline-flex items-center gap-2"
-                  href="https://help.cubox.pro"
+                  href="https://help.newsbox.pro"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  help.cubox.pro <ExternalLink className="h-4 w-4" />
+                  help.newsbox.pro <ExternalLink className="h-4 w-4" />
                 </a>
               }
             />
@@ -35,11 +35,11 @@ export function AboutSection() {
               right={
                 <a
                   className="text-slate-500 hover:text-slate-900 inline-flex items-center gap-2"
-                  href="https://help.cubox.pro"
+                  href="https://help.newsbox.pro"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  help.cubox.pro <ExternalLink className="h-4 w-4" />
+                  help.newsbox.pro <ExternalLink className="h-4 w-4" />
                 </a>
               }
             />
@@ -48,11 +48,11 @@ export function AboutSection() {
               right={
                 <a
                   className="text-slate-500 hover:text-slate-900 inline-flex items-center gap-2"
-                  href="https://cubox.canny.io"
+                  href="https://newsbox.canny.io"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  cubox.canny.io <ExternalLink className="h-4 w-4" />
+                  newsbox.canny.io <ExternalLink className="h-4 w-4" />
                 </a>
               }
             />
@@ -60,8 +60,8 @@ export function AboutSection() {
               label="联系邮箱"
               right={
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500">hi@cubox.pro</span>
-                  <Button variant="outline" size="sm" onClick={() => copy("hi@cubox.pro")}>
+                  <span className="text-slate-500">hi@newsbox.pro</span>
+                  <Button variant="outline" size="sm" onClick={() => copy("hi@newsbox.pro")}>
                     <Copy className="h-4 w-4 mr-2" />
                     复制
                   </Button>

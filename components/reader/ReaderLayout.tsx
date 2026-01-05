@@ -65,12 +65,13 @@ import { LeftSidebar } from "./LeftSidebar";
 import { ContentStage } from "./ContentStage";
 import { RightSidebar } from "./RightSidebar";
 import { cn } from "@/lib/utils";
-import { PanelRight, Tag, Folder, Star } from "lucide-react";
+import { PanelRight, Tag, Folder, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoveToFolderDialog } from "./GlobalHeader/MoveToFolderDialog";
+import { TagPopup } from "./GlobalHeader/TagPopup";
 
 // ============================================================================
 // Type Definitions (类型定义)
@@ -221,11 +222,17 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
   /** 移动到文件夹对话框状态 */
   const [showMoveFolderDialog, setShowMoveFolderDialog] = useState(false);
 
+  /** 标签弹出层状态 */
+  const [showTagPopup, setShowTagPopup] = useState(false);
+
   /** 本地 folder 状态（用于动态更新）*/
   const [localFolder, setLocalFolder] = useState<Folder | null>(folder);
 
   /** 本地 note 状态（用于动态更新 folder_id）*/
   const [localNote, setLocalNote] = useState(note);
+
+  /** 标签列表状态 */
+  const [noteTags, setNoteTags] = useState<Array<{ id: string; name: string; color: string | null }>>([]);
 
   const supabase = createClient();
 
@@ -238,6 +245,25 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
   useEffect(() => {
     setLocalNote(note);
   }, [note]);
+
+  // 加载笔记的标签
+  useEffect(() => {
+    const fetchNoteTags = async () => {
+      const { data, error } = await supabase
+        .from("note_tags")
+        .select("tag_id, tags(id, name, color)")
+        .eq("note_id", note.id);
+
+      if (!error && data) {
+        const tags = data
+          .map((nt: any) => nt.tags)
+          .filter((tag: any) => tag);
+        setNoteTags(tags);
+      }
+    };
+
+    fetchNoteTags();
+  }, [note.id, supabase]);
 
   // 切换星标状态
   const handleToggleStar = async () => {
@@ -260,6 +286,25 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
     window.dispatchEvent(new CustomEvent('reader:star-changed', {
       detail: { isStarred: newStarredState }
     }));
+  };
+
+  // 移除标签
+  const handleRemoveTag = async (tagId: string) => {
+    const { error } = await supabase
+      .from("note_tags")
+      .delete()
+      .eq("note_id", localNote.id)
+      .eq("tag_id", tagId);
+
+    if (error) {
+      console.error("移除标签失败:", error);
+      toast.error("操作失败，请重试");
+      return;
+    }
+
+    // 更新本地状态
+    setNoteTags((prev) => prev.filter((tag) => tag.id !== tagId));
+    toast.success("标签已移除");
   };
 
   // 同步 note 中的星标状态
@@ -310,6 +355,53 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
     window.addEventListener('reader:folder-changed', handleFolderChanged);
     return () => window.removeEventListener('reader:folder-changed', handleFolderChanged);
   }, [supabase]);
+
+  // 监听标签变化事件
+  useEffect(() => {
+    const handleTagsChanged = async (e: any) => {
+      const updatedTagIds = e.detail?.tagIds;
+
+      if (updatedTagIds === undefined) return;
+
+      // 重新加载标签
+      if (updatedTagIds.length === 0) {
+        setNoteTags([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("tags")
+        .select("id, name, color")
+        .in("id", updatedTagIds);
+
+      if (!error && data) {
+        setNoteTags(data);
+      }
+    };
+
+    window.addEventListener('reader:tags-changed', handleTagsChanged);
+    return () => window.removeEventListener('reader:tags-changed', handleTagsChanged);
+  }, [supabase]);
+
+  // 实时删除标签
+  const handleDeleteTag = async (tagId: string) => {
+    // 从数据库删除标签关联
+    const { error } = await supabase
+      .from("note_tags")
+      .delete()
+      .eq("note_id", localNote.id)
+      .eq("tag_id", tagId);
+
+    if (error) {
+      console.error("删除标签失败:", error);
+      toast.error("删除标签失败，请重试");
+      return;
+    }
+
+    // 更新本地状态
+    setNoteTags((prev) => prev.filter((tag) => tag.id !== tagId));
+    toast.success("标签已删除");
+  };
 
   // ========================================================================
   // 副作用：批注监听
@@ -615,46 +707,98 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
         {!isZenMode && (
           <div className="fixed bottom-0 left-0 right-0 h-[48px] bg-background/80 backdrop-blur-md border-t border-border z-[60] flex items-center justify-center">
             {/* 左侧：快捷操作 */}
-            <div className="flex-1 flex justify-center max-w-[680px] mx-auto">
-              <div className="flex items-center gap-6">
-                {/* 星标按钮 */}
-                <button
-                  onClick={handleToggleStar}
-                  className={cn(
-                    "flex items-center gap-2 transition-colors",
-                    isStarred
-                      ? "text-yellow-500 hover:text-yellow-600"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+            <div className="flex-1 flex items-center justify-center gap-6">
+              {/* 标签区域 */}
+              <div className="relative flex items-center gap-2 min-w-0">
+                <div
+                  onClick={() => setShowTagPopup(!showTagPopup)}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors min-w-0 cursor-pointer"
                 >
-                  <Star className={cn("h-3.5 w-3.5", isStarred && "fill-yellow-500")} />
-                  <span className="text-[12px]">
-                    {isStarred ? "已星标" : "设为星标"}
+                  <Tag className="h-3.5 w-3.5 flex-shrink-0" />
+                  {/* 显示标签列表 */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {noteTags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all bg-sky-400/15 text-sky-600 border border-sky-400/25 backdrop-blur-sm shadow-sm hover:bg-sky-400/25"
+                        title={tag.name}
+                      >
+                        {tag.name}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveTag(tag.id);
+                          }}
+                          className="ml-0.5 hover:text-sky-800 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  {/* 始终显示添加提示 */}
+                  <span className="text-[12px] text-muted-foreground hover:text-primary transition-colors font-medium">
+                    {noteTags.length > 0 ? "+ 添加" : "添加标签..."}
                   </span>
-                </button>
+                </div>
 
-                {/* 分隔线 */}
-                <div className="w-px h-3 bg-border" />
-
-                {/* 添加标签按钮 */}
-                <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-                  <Tag className="h-3.5 w-3.5" />
-                  <span className="text-[12px]">添加标签...</span>
-                </button>
-
-                {/* 分隔线 */}
-                <div className="w-px h-3 bg-border" />
-
-                {/* 当前文件夹 */}
-                <button
-                  onClick={() => setShowMoveFolderDialog(true)}
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                  title={localFolder?.name || (localNote.folder_id ? "未知收藏夹" : "未分类")}
-                >
-                  <Folder className="h-3.5 w-3.5" />
-                  <span className="text-[12px]">{localFolder?.name || (localNote.folder_id ? "未知收藏夹" : "未分类")}</span>
-                </button>
+                {/* 标签弹出层 */}
+                {showTagPopup && (
+                  <TagPopup
+                    noteId={localNote.id}
+                    currentTagIds={noteTags.map((t) => t.id)}
+                    isOpen={showTagPopup}
+                    onClose={() => setShowTagPopup(false)}
+                    onSuccess={() => {
+                      // 重新加载标签
+                      supabase
+                        .from("note_tags")
+                        .select("tag_id, tags(id, name, color)")
+                        .eq("note_id", localNote.id)
+                        .then(({ data }) => {
+                          if (data) {
+                            const tags = data
+                              .map((nt: any) => nt.tags)
+                              .filter((tag: any) => tag);
+                            setNoteTags(tags);
+                          }
+                        });
+                    }}
+                  />
+                )}
               </div>
+
+              {/* 分隔线 */}
+              <div className="w-px h-3 bg-border flex-shrink-0" />
+
+              {/* 星标按钮 */}
+              <button
+                onClick={handleToggleStar}
+                className={cn(
+                  "flex items-center gap-2 transition-colors flex-shrink-0",
+                  isStarred
+                    ? "text-yellow-500 hover:text-yellow-600"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Star className={cn("h-3.5 w-3.5", isStarred && "fill-yellow-500")} />
+                <span className="text-[12px]">
+                  {isStarred ? "已星标" : "设为星标"}
+                </span>
+              </button>
+
+              {/* 分隔线 */}
+              <div className="w-px h-3 bg-border flex-shrink-0" />
+
+              {/* 当前文件夹 */}
+              <button
+                onClick={() => setShowMoveFolderDialog(true)}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                title={localFolder?.name || (localNote.folder_id ? "未知收藏夹" : "未分类")}
+              >
+                <Folder className="h-3.5 w-3.5" />
+                <span className="text-[12px]">{localFolder?.name || (localNote.folder_id ? "未知收藏夹" : "未分类")}</span>
+              </button>
             </div>
 
             {/* 右侧：右侧栏切换按钮 */}
