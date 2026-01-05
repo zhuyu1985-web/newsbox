@@ -2,7 +2,7 @@
 
 ## MODIFIED Requirements
 ### Requirement: Highlight text in note content
-The system SHALL provide a refined floating toolbar for text selection actions that matches the modern Cubox-style aesthetic.
+The system SHALL provide a refined floating toolbar for text selection actions that matches the modern NewsBox-style aesthetic.
 
 #### Scenario: Selection toolbar appearance
 - **WHEN** the user selects text in the reader

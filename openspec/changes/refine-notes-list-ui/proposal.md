@@ -1,6 +1,6 @@
 # Proposal: Refine Notes List UI
 
-This proposal outlines the refinement of the news notes list UI to match a more modern, compact card style as seen in Cubox.
+This proposal outlines the refinement of the news notes list UI to match a more modern, compact card style as seen in NewsBox.
 
 ## Problem Statement
 The current compact card view is too tall, wasting vertical space and displaying cover images prominently at the top, which differs from the desired compact "title + snippet + right thumbnail" layout.

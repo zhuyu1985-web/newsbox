@@ -17,9 +17,9 @@ type Notification = {
 const MOCK_NOTIFICATIONS: Notification[] = [
   {
     id: "1",
-    title: "Newsbox AI 1.0 更新",
+    title: "NewsBox AI 1.0 更新",
     summary: "全新 AI 引擎，更精准的摘要与问答...",
-    content: "我们很高兴地宣布 Newsbox AI 1.0 正式上线！\n\n本次更新包含：\n1. 升级的 LLM 模型，解析速度提升 30%。\n2. 支持对视频内容的深度问答。\n3. 优化了自动标签生成的准确率。\n\n快去体验吧！",
+    content: "我们很高兴地宣布 NewsBox AI 1.0 正式上线！\n\n本次更新包含：\n1. 升级的 LLM 模型，解析速度提升 30%。\n2. 支持对视频内容的深度问答。\n3. 优化了自动标签生成的准确率。\n\n快去体验吧！",
     date: "2025-01-03",
     read: false,
   },
@@ -33,9 +33,9 @@ const MOCK_NOTIFICATIONS: Notification[] = [
   },
   {
     id: "3",
-    title: "欢迎使用 Cubox",
+    title: "欢迎使用 NewsBox",
     summary: "新手指南：如何高效管理你的知识库...",
-    content: "欢迎来到 xNewsbox\n\n这里有一些入门建议：\n1. 安装浏览器扩展，一键收藏网页。\n2. 绑定微信，转发文章即可收藏。\n3. 尝试使用 AI 解读功能，快速获取文章要点。\n\n祝你使用愉快！",
+    content: "欢迎来到 NewsBox\n\n这里有一些入门建议：\n1. 安装浏览器扩展，一键收藏网页。\n2. 绑定微信，转发文章即可收藏。\n3. 尝试使用 AI 解读功能，快速获取文章要点。\n\n祝你使用愉快！",
     date: "2025-01-03",
     read: true,
   },

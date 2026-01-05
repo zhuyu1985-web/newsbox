@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { MoveToFolderDialog } from "./MoveToFolderDialog";
+import { EditMetaDialog } from "@/components/reader/EditMetaDialog";
 
 interface Note {
   id: string;
@@ -49,6 +50,7 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isStarred, setIsStarred] = useState(note.is_starred || false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showEditMetaDialog, setShowEditMetaDialog] = useState(false);
   const supabase = createClient();
 
   // 获取当前星标状态
@@ -235,8 +237,7 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
       }
 
       case "edit": {
-        // TODO: 实现编辑元信息功能
-        toast.info("编辑功能即将上线");
+        setShowEditMetaDialog(true);
         break;
       }
 
@@ -260,6 +261,7 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
   };
 
   return (
+    <>
     <DropdownMenu modal={false} open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" title="更多操作" className="focus-visible:outline-none focus-visible:ring-0">
@@ -401,6 +403,17 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
         }}
       />
     </DropdownMenu>
+
+    <EditMetaDialog 
+      noteId={note.id}
+      isOpen={showEditMetaDialog}
+      onOpenChange={setShowEditMetaDialog}
+      onSuccess={() => {
+        // Dispatch event to refresh data if needed
+        window.dispatchEvent(new CustomEvent('reader:refresh-required'));
+      }}
+    />
+    </>
   );
 }
 

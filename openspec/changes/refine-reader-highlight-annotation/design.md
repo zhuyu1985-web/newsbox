@@ -42,7 +42,7 @@ Highlights and Annotations will be treated as a single "Knowledge Fragment":
 We will continue using the `globalStart` and `globalEnd` offsets implemented in `ArticleReader.tsx` to ensure highlights don't "shift" when the content is re-rendered or scrolled.
 
 ### Last Used Color
-Store the hex code or color name in `localStorage` under `cubox_reader_last_color`.
+Store the hex code or color name in `localStorage` under `newsbox_reader_last_color`.
 
 ## 4. UI/UX Styles
 - **Toolbar**: Border radius `12px`, subtle shadow `0 4px 20px rgba(0,0,0,0.1)`, translucent background if possible.

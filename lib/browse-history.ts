@@ -7,7 +7,7 @@ export type BrowseHistoryEntry = {
   visitedAt: string; // ISO string
 };
 
-const KEY_PREFIX = "cubox:browseHistory:";
+const KEY_PREFIX = "newsbox:browseHistory:";
 const MAX_ENTRIES = 500;
 
 function getKey(userId: string) {

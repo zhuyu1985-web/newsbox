@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Project Overview
 
-This is an **AI News Reading Assistant** (AI 稍后阅读助手) - a Cubox-style "Read It Later" application that supports multi-modal content collection (articles, videos, audio), AI-powered summaries, and custom tagging/categorization. Built with Next.js 15 and Supabase.
+This is an **AI News Reading Assistant** (AI 稍后阅读助手) - a NewsBox-style "Read It Later" application that supports multi-modal content collection (articles, videos, audio), AI-powered summaries, and custom tagging/categorization. Built with Next.js 15 and Supabase.
 
 **Key Features:**
 - Multi-modal content collection (URLs, manual text entries, file uploads)
