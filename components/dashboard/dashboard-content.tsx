@@ -79,6 +79,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KnowledgeView } from "@/components/dashboard/knowledge-view";
+import { EditAnnotationDialog } from "./edit-annotation-dialog";
 import { BrowseHistoryPopover } from "@/components/dashboard/BrowseHistoryPopover";
 import { NotificationsPopover } from "@/components/dashboard/NotificationsPopover";
 import { useRouter } from "next/navigation";
@@ -90,6 +91,7 @@ import { TrashSection } from "@/components/settings/sections/TrashSection";
 import { AboutSection } from "@/components/settings/sections/AboutSection";
 
 const PAGE_SIZE = 10;
+const ANNOTATIONS_PAGE_SIZE = 48;
 const STORAGE_BUCKET =
   process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "zhuyu";
 
@@ -722,6 +724,12 @@ export function DashboardContent() {
   // Annotations view states
   const [annotationNotes, setAnnotationNotes] = useState<AnnotatedNoteItem[]>([]);
   const [annotations, setAnnotations] = useState<AnnotationRecord[]>([]);
+  const [annotationsPage, setAnnotationsPage] = useState(0);
+  const [hasMoreAnnotations, setHasMoreAnnotations] = useState(true);
+  const [loadingMoreAnnotations, setLoadingMoreAnnotations] = useState(false);
+  const [editingAnnotation, setEditingAnnotation] = useState<AnnotationRecord | null>(null);
+  const loadMoreAnnotationsRef = useRef<HTMLDivElement>(null);
+
   const [selectedAnnotationNoteId, setSelectedAnnotationNoteId] = useState<string | null>(null);
   const [annotationNoteSearch, setAnnotationNoteSearch] = useState("");
   const [annotationRecordSearch, setAnnotationRecordSearch] = useState("");
@@ -1170,82 +1178,120 @@ export function DashboardContent() {
     }
   }, [user]);
 
-  const loadAnnotationsView = useCallback(async () => {
+  const loadAnnotationsView = useCallback(async (pageToLoad = 0, append = false) => {
     if (!user) return;
 
-    setAnnotationsLoading(true);
-    setAnnotationsError(null);
+    if (append) {
+      setLoadingMoreAnnotations(true);
+    } else {
+      setAnnotationsLoading(true);
+      setAnnotationsError(null);
+    }
 
     try {
-      const { data: annotationRows, error: annotationsFetchError } = await supabase
+      const from = pageToLoad * ANNOTATIONS_PAGE_SIZE;
+      const to = from + ANNOTATIONS_PAGE_SIZE - 1;
+
+      const { data: annotationRows, error: annotationsFetchError, count } = await supabase
         .from("annotations")
         .select(
           "id, note_id, highlight_id, content, created_at, updated_at, timecode, screenshot_url, is_floating, highlights(quote, color)",
+          { count: "exact" }
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(500);
+        .range(from, to);
 
       if (annotationsFetchError) throw annotationsFetchError;
 
       const rows = (annotationRows ?? []) as unknown as AnnotationRecord[];
-      setAnnotations(rows);
+      
+      setAnnotations(prev => append ? [...prev, ...rows] : rows);
+      setAnnotationsPage(pageToLoad);
+
+      if (count !== null) {
+        setHasMoreAnnotations(to + 1 < count);
+      } else {
+        setHasMoreAnnotations(rows.length === ANNOTATIONS_PAGE_SIZE);
+      }
 
       const noteIds = Array.from(new Set(rows.map((r) => r.note_id).filter(Boolean)));
-      if (noteIds.length === 0) {
-        setAnnotationNotes([]);
-        setSelectedAnnotationNoteId(null);
-        return;
-      }
+      if (noteIds.length > 0) {
+        const { data: noteRows, error: notesFetchError } = await supabase
+          .from("notes")
+          .select(noteSelect)
+          .in("id", noteIds)
+          .eq("user_id", user.id)
+          .is("deleted_at", null);
 
-      const { data: noteRows, error: notesFetchError } = await supabase
-        .from("notes")
-        .select(noteSelect)
-        .in("id", noteIds)
-        .eq("user_id", user.id)
-        .is("deleted_at", null);
+        if (notesFetchError) throw notesFetchError;
 
-      if (notesFetchError) throw notesFetchError;
+        const normalized = ((noteRows ?? []) as unknown as RawNote[]).map(normalizeNote);
 
-      const normalized = ((noteRows ?? []) as unknown as RawNote[]).map(normalizeNote);
+        // Simple mapping for current batch
+        const lastByNote = new Map<string, string>();
+        for (const r of rows) {
+          if (!lastByNote.has(r.note_id)) lastByNote.set(r.note_id, r.created_at);
+        }
 
-      const lastByNote = new Map<string, string>();
-      for (const r of rows) {
-        if (!lastByNote.has(r.note_id)) lastByNote.set(r.note_id, r.created_at);
-      }
-
-      const enriched: AnnotatedNoteItem[] = normalized
-        .map((n) => ({
+        const enrichedNew: AnnotatedNoteItem[] = normalized.map((n) => ({
           ...n,
           last_annotated_at: lastByNote.get(n.id) ?? n.created_at,
-        }))
-        .sort(
-          (a, b) =>
-            new Date(b.last_annotated_at).getTime() -
-            new Date(a.last_annotated_at).getTime(),
-        );
+        }));
 
-      setAnnotationNotes(enriched);
-      setSelectedAnnotationNoteId((prev) => {
-        if (prev && enriched.some((n) => n.id === prev)) return prev;
-        return enriched[0]?.id ?? null;
-      });
+        setAnnotationNotes(prev => {
+          const combined = append ? [...prev, ...enrichedNew] : enrichedNew;
+          // Deduplicate by ID
+          const map = new Map();
+          combined.forEach(item => map.set(item.id, item));
+          return Array.from(map.values()).sort(
+            (a, b) => new Date(b.last_annotated_at).getTime() - new Date(a.last_annotated_at).getTime()
+          );
+        });
+      } else if (!append) {
+        setAnnotationNotes([]);
+      }
+      
+      // Removed forced selection of first note to support "All Annotations" default
+
     } catch (e: any) {
       console.error("load annotations error", e);
       setAnnotationsError(e?.message ?? "加载批注失败");
-      setAnnotations([]);
-      setAnnotationNotes([]);
-      setSelectedAnnotationNoteId(null);
+      if (!append) {
+        setAnnotations([]);
+        setAnnotationNotes([]);
+      }
     } finally {
       setAnnotationsLoading(false);
+      setLoadingMoreAnnotations(false);
     }
   }, [supabase, user]);
 
   useEffect(() => {
     if (!user) return;
     if (activePrimary !== "annotations") return;
-    loadAnnotationsView();
+    setAnnotationsPage(0);
+    setHasMoreAnnotations(true);
+    loadAnnotationsView(0, false);
   }, [activePrimary, loadAnnotationsView, user]);
+
+  useEffect(() => {
+    const target = loadMoreAnnotationsRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting && hasMoreAnnotations && !loadingMoreAnnotations && !annotationsLoading) {
+        loadAnnotationsView(annotationsPage + 1, true);
+      }
+    });
+
+    observer.observe(target);
+
+    return () => {
+      observer.unobserve(target);
+    };
+  }, [loadAnnotationsView, hasMoreAnnotations, loadingMoreAnnotations, annotationsLoading, annotationsPage]);
 
   const fetchNotes = useCallback(
     async (pageToLoad = 0, append = false) => {
@@ -4503,73 +4549,98 @@ export function DashboardContent() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
-                {filteredAnnotationRecords.map((a) => {
-                  const highlightColor = a.highlights?.color || "#FFD700";
-                  const note = annotationNotes.find(n => n.id === a.note_id);
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
+                  {filteredAnnotationRecords.map((a) => {
+                    const highlightColor = a.highlights?.color || "#FFD700";
+                    const note = annotationNotes.find(n => n.id === a.note_id);
 
-                  return (
-                    <Card
-                      key={a.id}
-                      className="group bg-white ring-0 border border-slate-200/90 shadow-none hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-slate-300 transition-all duration-300 rounded-xl overflow-hidden flex flex-col border-l-4 aspect-[4/3]"
-                      style={{ borderLeftColor: highlightColor }}
-                    >
-                      <div className="p-3 flex flex-col h-full min-h-0">
-                        <div className="flex-1 min-h-0 overflow-hidden">
-                          {a.highlights?.quote ? (
-                            <div className="mb-2">
-                              <div className="text-slate-500 text-[12px] leading-relaxed line-clamp-2 bg-slate-50/80 rounded-lg px-3 py-2 border border-slate-100/50">
-                                {a.highlights.quote}
+                    return (
+                      <Card
+                        key={a.id}
+                        className="group bg-white ring-0 border border-slate-200/90 shadow-none hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-slate-300 transition-all duration-300 rounded-xl overflow-hidden flex flex-col border-l-4 aspect-[4/3] cursor-pointer"
+                        style={{ borderLeftColor: highlightColor }}
+                        onClick={() => setEditingAnnotation(a)}
+                      >
+                        <div className="p-3 flex flex-col h-full min-h-0">
+                          <div className="flex-1 min-h-0 overflow-hidden">
+                            {a.highlights?.quote ? (
+                              <div className="mb-2">
+                                <div className="text-slate-500 text-[12px] leading-relaxed line-clamp-2 bg-slate-50/80 rounded-lg px-3 py-2 border border-slate-100/50">
+                                  {a.highlights.quote}
+                                </div>
                               </div>
-                            </div>
-                          ) : null}
+                            ) : null}
 
-                          <div className="text-slate-800 text-[13px] leading-relaxed font-medium break-words whitespace-pre-line line-clamp-5">
-                            {a.content}
+                            <div className="text-slate-800 text-[13px] leading-relaxed font-medium break-words whitespace-pre-line line-clamp-5">
+                              {a.content}
+                            </div>
+
+                            {a.screenshot_url ? (
+                              <div className="mt-2 rounded-lg overflow-hidden border border-slate-100 shadow-sm group-hover:border-slate-200 transition-colors">
+                                <img
+                                  src={a.screenshot_url}
+                                  alt=""
+                                  className="w-full h-auto max-h-20 object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            ) : null}
                           </div>
 
-                          {a.screenshot_url ? (
-                            <div className="mt-2 rounded-lg overflow-hidden border border-slate-100 shadow-sm group-hover:border-slate-200 transition-colors">
-                              <img
-                                src={a.screenshot_url}
-                                alt=""
-                                className="w-full h-auto max-h-20 object-cover"
-                                referrerPolicy="no-referrer"
-                              />
+                          <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between gap-2">
+                            <div
+                              className="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer group/note"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAnnotationNoteId(a.note_id);
+                              }}
+                            >
+                              <div className="shrink-0 w-4 h-4 rounded bg-slate-100 flex items-center justify-center group-hover/note:bg-blue-50 transition-colors">
+                                {note?.content_type === "article" ? (
+                                  <FileText className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
+                                ) : note?.content_type === "video" ? (
+                                  <Video className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
+                                ) : (
+                                  <Music className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
+                                )}
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-medium truncate group-hover/note:text-blue-500 transition-colors">
+                                {note?.title || "未知来源"}
+                              </span>
                             </div>
-                          ) : null}
+                            <div className="shrink-0 text-[10px] text-slate-300 font-medium tabular-nums">
+                              {new Date(a.created_at).toLocaleDateString("zh-CN", {
+                                month: "numeric",
+                                day: "numeric"
+                              })}
+                            </div>
+                          </div>
                         </div>
+                      </Card>
+                    );
+                  })}
+                </div>
 
-                        <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between gap-2">
-                          <div
-                            className="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer group/note"
-                            onClick={() => setSelectedAnnotationNoteId(a.note_id)}
-                          >
-                            <div className="shrink-0 w-4 h-4 rounded bg-slate-100 flex items-center justify-center group-hover/note:bg-blue-50 transition-colors">
-                              {note?.content_type === "article" ? (
-                                <FileText className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
-                              ) : note?.content_type === "video" ? (
-                                <Video className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
-                              ) : (
-                                <Music className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
-                              )}
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-medium truncate group-hover/note:text-blue-500 transition-colors">
-                              {note?.title || "未知来源"}
-                            </span>
-                          </div>
-                          <div className="shrink-0 text-[10px] text-slate-300 font-medium tabular-nums">
-                            {new Date(a.created_at).toLocaleDateString("zh-CN", {
-                              month: "numeric",
-                              day: "numeric"
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
+                <div ref={loadMoreAnnotationsRef} className="py-4 text-center text-xs text-gray-400">
+                  {loadingMoreAnnotations ? "加载更多批注..." : hasMoreAnnotations ? "下拉加载更多" : "没有更多批注"}
+                </div>
+
+                <EditAnnotationDialog
+                  open={!!editingAnnotation}
+                  onOpenChange={(open) => !open && setEditingAnnotation(null)}
+                  annotation={editingAnnotation}
+                  onSuccess={(newContent) => {
+                    if (newContent && editingAnnotation) {
+                      setAnnotations(prev => prev.map(a =>
+                        a.id === editingAnnotation.id
+                          ? { ...a, content: newContent, updated_at: new Date().toISOString() }
+                          : a
+                      ));
+                    }
+                  }}
+                />
+              </>
             )}
           </div>
         ) : activePrimary === "knowledge" ? (
