@@ -111,7 +111,9 @@ lib/
 │   ├── server.ts          # Server-side Supabase client
 │   └── proxy.ts           # Middleware for auth and protected routes
 └── services/
-    ├── jina.ts            # Jina Reader API integration
+    ├── platform-crawlers.ts # Platform-specific crawlers (Tencent, Weixin, Toutiao)
+    ├── jina-reader.ts     # Jina Reader API integration for web content extraction
+    ├── html-sanitizer.ts  # HTML sanitization and news content formatting
     ├── openai.ts          # OpenAI API integration
     ├── tencent-asr.ts     # Tencent Cloud ASR for audio transcription
     ├── knowledge-topics.ts # Smart topics clustering
@@ -129,6 +131,12 @@ supabase/
 - **notes**: Core content items (articles/videos/audio)
   - Unique constraint: `(user_id, source_url)`
   - Supports: `content_type` (article/video/audio), `status` (unread/reading/archived)
+  - **Timestamp fields**:
+    - `published_at`: Original publication time from source article (extracted by crawler)
+    - `captured_at`: When content was captured/scraped by the system
+    - `created_at`: When the note record was created in database
+    - `updated_at`: Last modification time (auto-updated by trigger)
+  - Display priority: `published_at` (source time) > `captured_at` > `created_at`
 - **tags**: User-defined tags with color/icon support (supports parent-child hierarchy)
 - **note_tags**: Many-to-many relationship between notes and tags
 - **annotations**: Text highlights and annotations on notes
@@ -199,7 +207,13 @@ supabase/
 
 Services in `lib/services/` encapsulate external API integrations:
 
-- **jina.ts**: Uses Jina Reader API for premium content extraction (fallback when basic scraper fails)
+- **platform-crawlers.ts**: Platform-specific crawlers for mainstream Chinese news sites
+  - **Tencent News** (news.qq.com): Extracts from `#article-title`, `#article-content`, `#article-author`
+  - **Weixin Official Accounts** (mp.weixin.qq.com): Handles anti-hotlinking with `referrerpolicy="no-referrer"`
+  - **Toutiao** (toutiao.com): Parses `<h1>`, `.article-meta`, `<article>` elements
+  - Priority: Platform crawler → Jina Reader → Basic scraper
+- **jina-reader.ts**: Jina Reader API integration for high-quality web content extraction (95%+ success rate for general sites)
+- **html-sanitizer.ts**: HTML sanitization, XSS prevention, and news content formatting (Markdown → HTML with responsive styling)
 - **openai.ts**: OpenAI-compatible API for AI features (summaries, topic naming, embeddings)
 - **tencent-asr.ts**: Audio/video transcription using Tencent Cloud ASR
 - **knowledge-topics.ts**: Clustering algorithm for smart topic generation
@@ -246,7 +260,9 @@ KNOWLEDGE_TOPIC_MATCH_THRESHOLD=0.85
 TENCENT_SECRET_ID=your_tencent_secret_id
 TENCENT_SECRET_KEY=your_tencent_secret_key
 
-# Jina Reader (for premium content extraction)
+# Jina Reader (primary web content scraper for articles)
+# Official site: https://jina.ai/reader/
+# Free tier: 1000 requests/month, Paid: $20/month (10000 requests)
 JINA_API_KEY=your_jina_api_key
 
 # Supabase Storage (default bucket name)

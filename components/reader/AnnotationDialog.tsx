@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AnnotationDialogProps {
   open: boolean;
@@ -80,7 +81,7 @@ export function AnnotationDialog({
       }
     } catch (error) {
       console.error("Failed to save annotation:", error);
-      alert("保存批注失败，请重试");
+      toast.error("保存批注失败，请重试");
     } finally {
       setSaving(false);
     }

@@ -10,10 +10,7 @@ import { SelectionMenu } from "../SelectionMenu";
 import { ImageLightbox } from "../ImageLightbox";
 import { TagManager } from "../TagManager";
 import { AnnotationDialog } from "../AnnotationDialog";
-
-// import { CONTENT_STYLING_CLASSES } from "@/lib/services/html-sanitizer";
-// 改用全局 CSS 类 .article-content，优先级更高，支持 CSS 变量
-const ARTICLE_CONTENT_CLASS = "article-content prose prose-slate max-w-none dark:prose-invert prose-a:no-underline hover:prose-a:underline";
+import { NEWS_STYLING_CLASSES } from "@/lib/services/html-sanitizer";
 import { useReaderPreferences } from "@/components/reader/ReaderPreferencesProvider";
 
 interface Note {
@@ -629,8 +626,8 @@ export function ArticleReader({ note }: { note: Note }) {
             data-article-content="true"
             data-selectable="true"
             className={cn(
-              "select-text",
-              ARTICLE_CONTENT_CLASS,
+              "select-text article-content",
+              NEWS_STYLING_CLASSES,
             )}
             dangerouslySetInnerHTML={{
               __html: htmlForRender,

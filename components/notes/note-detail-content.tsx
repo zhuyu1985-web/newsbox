@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Note {
   id: string;
@@ -103,11 +104,11 @@ export function NoteDetailContent({
       if (response.ok) {
         await loadNote();
       } else {
-        alert("刷新内容失败");
+        toast.error("刷新内容失败");
       }
     } catch (error) {
       console.error("Refresh error:", error);
-      alert("刷新内容失败");
+      toast.error("刷新内容失败");
     } finally {
       setIsRefreshing(false);
     }

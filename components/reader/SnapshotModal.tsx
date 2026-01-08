@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Share2, X, Loader2, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { toast } from "sonner";
+
 interface SnapshotModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -130,7 +132,7 @@ export function SnapshotModal({ isOpen, onClose, noteId, title, content }: Snaps
       } else {
         // 浏览器不支持 Web Share API，复制链接
         await navigator.clipboard.writeText(window.location.origin + imageUrl);
-        alert("图片链接已复制到剪贴板");
+        toast.success("图片链接已复制到剪贴板");
       }
     } catch (err) {
       console.error("Share error:", err);

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Chapter {
   id: string;
@@ -56,11 +57,11 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
       if (response.ok) {
         await loadChapters();
       } else {
-        alert("生成章节失败");
+        toast.error("生成章节失败");
       }
     } catch (error) {
       console.error("Generate chapters error:", error);
-      alert("生成章节失败");
+      toast.error("生成章节失败");
     } finally {
       setGenerating(false);
     }

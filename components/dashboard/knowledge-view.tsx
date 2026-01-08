@@ -56,6 +56,9 @@ import {
 } from "lucide-react";
 import { TopicManagementView } from "./smart-topics/TopicManagementView";
 import { KnowledgeGraphView } from "./knowledge-graph/KnowledgeGraphView";
+import { motion, AnimatePresence } from "framer-motion";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 type SubView = "chat" | "topics" | "graph" | "quotes";
 
@@ -232,6 +235,8 @@ export function KnowledgeView({
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [showDeleteConfirmId, setShowDeleteConfirmId] = useState<string | null>(null);
+  const [showRegenerateConfirmId, setShowRegenerateConfirmId] = useState<string | null>(null);
 
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -2207,46 +2212,20 @@ export function KnowledgeView({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Conversation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onOpenChange={(open) => {
-          setDeleteDialogOpen(open);
-          if (!open) setDeleteConversationId(null);
+      {/* Delete Conversation Confirm */}
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDeleteConversationId(null);
         }}
-      >
-        <DialogContent className="sm:max-w-[420px]">
-          <DialogHeader>
-            <DialogTitle>删除对话</DialogTitle>
-            <DialogDescription>
-              将彻底删除该对话以及其所有消息记录，此操作不可撤销。
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-xl border border-slate-200/90 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            {deletingConversation?.title?.trim() || "新对话"}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={conversationActionBusyId === deleteConversationId}
-            >
-              取消
-            </Button>
-            <Button
-              type="button"
-              className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={() => void confirmDeleteConversation()}
-              disabled={conversationActionBusyId === deleteConversationId}
-            >
-              确认删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onConfirm={confirmDeleteConversation}
+        title="删除对话"
+        description={`将彻底删除该对话“${deletingConversation?.title?.trim() || "新对话"}”及其所有消息记录，此操作不可撤销。`}
+        confirmText="确认删除"
+        variant="destructive"
+        loading={conversationActionBusyId === deleteConversationId}
+      />
 
       {/* Merge Topic Dialog */}
       <Dialog
@@ -2742,14 +2721,24 @@ export function KnowledgeView({
                                           className="h-7 w-7 rounded-lg text-slate-500 hover:text-slate-800"
                                           disabled={sending || messageActionBusyId === m.id || m.id === "temp"}
                                           onClick={() => {
-                                            const ok = window.confirm("重新回答将覆盖这条回答内容，是否继续？");
-                                            if (!ok) return;
-                                            void regenerateAssistantMessage(m.id);
+                                            setShowRegenerateConfirmId(m.id);
                                           }}
                                           title="重新回答"
                                         >
                                           <RotateCcw className="h-4 w-4" />
                                         </Button>
+
+                                        <ConfirmDialog
+                                          isOpen={showRegenerateConfirmId === m.id}
+                                          onClose={() => setShowRegenerateConfirmId(null)}
+                                          onConfirm={() => {
+                                            void regenerateAssistantMessage(m.id);
+                                            setShowRegenerateConfirmId(null);
+                                          }}
+                                          title="确认重新回答"
+                                          description="重新回答将覆盖这条回答内容，是否继续？"
+                                          confirmText="确认"
+                                        />
 
                                         <Button
                                           type="button"
@@ -2797,14 +2786,25 @@ export function KnowledgeView({
                                     className="h-7 w-7 rounded-lg text-slate-500 hover:text-red-700 hover:bg-red-50"
                                     disabled={sending || messageActionBusyId === m.id || m.id === "temp"}
                                     onClick={() => {
-                                      const ok = window.confirm("确定删除这条消息吗？");
-                                      if (!ok) return;
-                                      void deleteMessage(m.id);
+                                      setShowDeleteConfirmId(m.id);
                                     }}
                                     title="删除"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
+
+                                  <ConfirmDialog
+                                    isOpen={showDeleteConfirmId === m.id}
+                                    onClose={() => setShowDeleteConfirmId(null)}
+                                    onConfirm={() => {
+                                      void deleteMessage(m.id);
+                                      setShowDeleteConfirmId(null);
+                                    }}
+                                    title="确认删除"
+                                    description="确定删除这条消息吗？"
+                                    confirmText="删除"
+                                    variant="destructive"
+                                  />
                                 </div>
                               </div>
                             </Card>

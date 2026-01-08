@@ -6,6 +6,8 @@ import { Download, Share2, Loader2, Camera, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+import { toast } from "sonner";
+
 interface AISnapshotViewProps {
   noteId: string;
   title?: string | null;
@@ -230,7 +232,7 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
           files: [file],
         });
       } else {
-        alert("图片已准备好，请右键保存分享");
+        toast.success("图片已准备好，请右键保存分享");
       }
     } catch (err) {
       console.error("Share error:", err);

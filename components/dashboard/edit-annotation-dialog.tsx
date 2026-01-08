@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface EditAnnotationDialogProps {
   open: boolean;
@@ -66,7 +67,7 @@ export function EditAnnotationDialog({
       }
     } catch (error) {
       console.error("Failed to update annotation:", error);
-      alert("更新批注失败，请重试");
+      toast.error("更新批注失败，请重试");
     } finally {
       setSaving(false);
     }

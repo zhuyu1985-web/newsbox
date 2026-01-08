@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogPortal,
+  DialogOverlay
+} from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,50 +30,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Custom Dialog components with light blue overlay
-const Dialog = DialogPrimitive.Root;
-const DialogPortal = DialogPrimitive.Portal;
-
-const DialogOverlay = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn(
-      "fixed inset-0 z-50 bg-blue-100/40 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-  />
-));
-DialogOverlay.displayName = "DialogOverlay";
-
-const DialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-0 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-2xl border-gray-200",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute right-4 top-3 rounded-full p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none hover:bg-gray-100">
-        <X className="h-4 w-4" />
-        <span className="sr-only">关闭</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
-DialogContent.displayName = "DialogContent";
-
-const DialogTitle = DialogPrimitive.Title;
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Tag {
   id: string;
@@ -115,6 +81,9 @@ export function EditMetaDialog({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (isOpen && noteId) {
@@ -244,7 +213,11 @@ export function EditMetaDialog({
   const handleArchive = () => setIsArchived(!isArchived);
   const handleStar = () => setIsStarred(!isStarred);
   const handleDelete = async () => {
-    if (!confirm("确定要将此笔记移入回收站吗？")) return;
+    setShowConfirmDelete(true);
+  };
+
+  const actualDelete = async () => {
+    setIsDeleting(true);
     try {
       const { error } = await supabase
         .from("notes")
@@ -256,6 +229,9 @@ export function EditMetaDialog({
       onSuccess?.();
     } catch (e) {
       toast.error("删除失败");
+    } finally {
+      setIsDeleting(false);
+      setShowConfirmDelete(false);
     }
   };
 
@@ -587,6 +563,16 @@ export function EditMetaDialog({
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "保存"}
           </Button>
         </div>
+        <ConfirmDialog
+          isOpen={showConfirmDelete}
+          onClose={() => setShowConfirmDelete(false)}
+          onConfirm={actualDelete}
+          title="确认删除"
+          description="确定要将此笔记移入回收站吗？"
+          confirmText="删除"
+          variant="destructive"
+          loading={isDeleting}
+        />
       </DialogContent>
     </Dialog>
   );
