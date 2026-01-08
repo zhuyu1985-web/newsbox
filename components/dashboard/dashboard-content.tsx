@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from "jszip";
 import TurndownService from "turndown";
+import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,7 @@ import {
   Sparkles,
   FolderPlus,
   Pencil,
+  Inbox,
   LayoutGrid,
   Upload,
   StickyNote,
@@ -76,10 +78,12 @@ import {
   Quote,
   BookOpen,
   Bell,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KnowledgeView } from "@/components/dashboard/knowledge-view";
 import { EditAnnotationDialog } from "./edit-annotation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BrowseHistoryPopover } from "@/components/dashboard/BrowseHistoryPopover";
 import { NotificationsPopover } from "@/components/dashboard/NotificationsPopover";
 import { useRouter } from "next/navigation";
@@ -90,7 +94,7 @@ import { AppearanceSection } from "@/components/settings/sections/AppearanceSect
 import { TrashSection } from "@/components/settings/sections/TrashSection";
 import { AboutSection } from "@/components/settings/sections/AboutSection";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 16;
 const ANNOTATIONS_PAGE_SIZE = 48;
 const STORAGE_BUCKET =
   process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "zhuyu";
@@ -730,6 +734,19 @@ export function DashboardContent() {
   const [editingAnnotation, setEditingAnnotation] = useState<AnnotationRecord | null>(null);
   const loadMoreAnnotationsRef = useRef<HTMLDivElement>(null);
 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description?: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: "",
+    onConfirm: () => {},
+  });
+
   const [selectedAnnotationNoteId, setSelectedAnnotationNoteId] = useState<string | null>(null);
   const [annotationNoteSearch, setAnnotationNoteSearch] = useState("");
   const [annotationRecordSearch, setAnnotationRecordSearch] = useState("");
@@ -741,6 +758,7 @@ export function DashboardContent() {
   // Tag management states
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tags, setTags] = useState<TagWithCount[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
   const [tagTree, setTagTree] = useState<TagTreeNode[]>([]);
   const tagTreeRef = useRef<TagTreeNode[]>([]);
   
@@ -812,6 +830,7 @@ export function DashboardContent() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState("");
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [isUpsertingTags, setIsUpsertingTags] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
   const [tagDialogSelection, setTagDialogSelection] = useState<string[]>([]);
@@ -841,6 +860,11 @@ export function DashboardContent() {
   const [tagDialogColor, setTagDialogColor] = useState("");
   const [tagDialogTargetId, setTagDialogTargetId] = useState<string | null>(null);
   const [tagActionLoading, setTagActionLoading] = useState(false);
+  
+  // Loading states for individual note operations (star/archive)
+  const [starringNotes, setStarringNotes] = useState<Set<string>>(new Set());
+  const [archivingNotes, setArchivingNotes] = useState<Set<string>>(new Set());
+  
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const turndown = useMemo(() => new TurndownService(), []);
   const folderTree = useMemo(() => buildFolderTree(folders), [folders]);
@@ -857,10 +881,25 @@ export function DashboardContent() {
     const tree = buildTagTree(tags, tagSortMode, expandedTags);
     setTagTree(tree);
   }, [tags, tagSortMode, expandedTags]);
-  const flattenedFolderOptions = useMemo(
-    () => flattenFolderTree(folderTree),
-    [folderTree],
-  );
+
+  // Handle Escape key to close all dialogs
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowAddNoteDialog(false);
+        setShowMoveDialog(false);
+        setShowTagDialog(false);
+        setShowFolderDialog(false);
+        setShowTagDialog2(false);
+        setEditingAnnotation(null);
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  const flattenedFolderOptions = useMemo(() => flattenFolderTree(folderTree), [folderTree]);
   const selectedFolderChain = useMemo(() => {
     if (!selectedFolder) return new Set<string>();
     const chain = new Set<string>();
@@ -1150,9 +1189,27 @@ export function DashboardContent() {
     setSmartLists([...topTagSmartLists, ...domainSmartLists]);
   }, [supabase, user]);
 
+  const showConfirm = (options: {
+    title: string;
+    description?: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => Promise<void> | void;
+  }) => {
+    setConfirmDialog({
+      isOpen: true,
+      ...options,
+    });
+  };
+
+  const closeConfirm = () => {
+    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+  };
+
   const loadTags = useCallback(async () => {
     if (!user) return;
     
+    setTagsLoading(true);
     try {
       const response = await fetch("/api/tags?include_counts=true");
       if (!response.ok) {
@@ -1175,6 +1232,8 @@ export function DashboardContent() {
       console.error("Error loading tags:", error);
       // Set empty array on error so UI doesn't break
       setTags([]);
+    } finally {
+      setTagsLoading(false);
     }
   }, [user]);
 
@@ -1279,12 +1338,19 @@ export function DashboardContent() {
     const target = loadMoreAnnotationsRef.current;
     if (!target) return;
 
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (entry.isIntersecting && hasMoreAnnotations && !loadingMoreAnnotations && !annotationsLoading) {
-        loadAnnotationsView(annotationsPage + 1, true);
+    // Use rootMargin to trigger loading 200px before reaching the bottom
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && hasMoreAnnotations && !loadingMoreAnnotations && !annotationsLoading) {
+          loadAnnotationsView(annotationsPage + 1, true);
+        }
+      },
+      {
+        rootMargin: "200px",
+        threshold: 0,
       }
-    });
+    );
 
     observer.observe(target);
 
@@ -1487,12 +1553,20 @@ export function DashboardContent() {
     const target = loadMoreRef.current;
     if (!target) return;
 
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (entry.isIntersecting && hasMore && !loadingMore && !initialLoading) {
-        fetchNotes(page + 1, true);
+    // Use rootMargin to trigger loading 200px before reaching the bottom
+    // This creates a smoother infinite scroll experience
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && hasMore && !loadingMore && !initialLoading) {
+          fetchNotes(page + 1, true);
+        }
+      },
+      {
+        rootMargin: "200px",
+        threshold: 0,
       }
-    });
+    );
 
     observer.observe(target);
 
@@ -1522,7 +1596,7 @@ export function DashboardContent() {
       return ids;
     }
     if (selectedNotes.size === 0) {
-      alert("请选择至少一条笔记");
+      toast.warning("请选择至少一条笔记");
       return null;
     }
     return Array.from(selectedNotes);
@@ -1600,7 +1674,7 @@ export function DashboardContent() {
     if (!user) return;
     const name = folderDialogName.trim();
     if (!name) {
-      alert("请输入收藏夹名称");
+      toast.error("请输入收藏夹名称");
       return;
     }
     if (
@@ -1614,7 +1688,7 @@ export function DashboardContent() {
       );
       invalidParents.add(folderDialogTargetId);
       if (invalidParents.has(folderDialogParent)) {
-        alert("不能将收藏夹移动到自身或其子级下");
+        toast.error("不能将收藏夹移动到自身或其子级下");
         return;
       }
     }
@@ -1644,58 +1718,66 @@ export function DashboardContent() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "未知错误";
-      alert(`保存收藏夹失败: ${message}`);
+      toast.error(`保存收藏夹失败: ${message}`);
     } finally {
       setFolderActionLoading(false);
     }
   };
 
   const handleArchiveFolder = async (folder: FolderWithCount) => {
-    if (
-      !window.confirm(
-        `确认将“${folder.name}”归档？归档后将从侧边栏隐藏，可在后续版本中恢复。`,
-      )
-    ) {
-      return;
-    }
-    const { error } = await supabase
-      .from("folders")
-      .update({ archived_at: new Date().toISOString() })
-      .eq("id", folder.id);
-    if (error) {
-      alert(`归档失败: ${error.message}`);
-      return;
-    }
-    if (selectedFolder === folder.id) {
-      setCategory("uncategorized");
-      setSelectedFolder(null);
-    }
-    await loadMetadata();
+    showConfirm({
+      title: "确认归档",
+      description: `确认将“${folder.name}”归档？归档后将从侧边栏隐藏，可在后续版本中恢复。`,
+      confirmText: "归档",
+      onConfirm: async () => {
+        const { error } = await supabase
+          .from("folders")
+          .update({ archived_at: new Date().toISOString() })
+          .eq("id", folder.id);
+        if (error) {
+          toast.error(`归档失败: ${error.message}`);
+          return;
+        }
+        if (selectedFolder === folder.id) {
+          setCategory("uncategorized");
+          setSelectedFolder(null);
+        }
+        await loadMetadata();
+        closeConfirm();
+      },
+    });
   };
 
   const handleDeleteFolder = async (folder: FolderWithCount) => {
     const hasChildren = folders.some((item) => item.parent_id === folder.id);
     if (hasChildren) {
-      alert("请先删除或移动子收藏夹，再删除该收藏夹");
+      toast.error("请先删除或移动子收藏夹，再删除该收藏夹");
       return;
     }
     if (folder.note_count > 0) {
-      alert("该收藏夹仍有笔记，请先移动或删除笔记后再尝试");
+      toast.error("该收藏夹仍有笔记，请先移动或删除笔记后再尝试");
       return;
     }
-    if (!window.confirm(`确认删除“${folder.name}”？该操作不可恢复。`)) {
-      return;
-    }
-    const { error } = await supabase.from("folders").delete().eq("id", folder.id);
-    if (error) {
-      alert(`删除失败: ${error.message}`);
-      return;
-    }
-    if (selectedFolder === folder.id) {
-      setCategory("uncategorized");
-      setSelectedFolder(null);
-    }
-    await loadMetadata();
+    
+    showConfirm({
+      title: "确认删除",
+      description: `确认删除“${folder.name}”？该操作不可恢复。`,
+      confirmText: "删除",
+      variant: "destructive",
+      onConfirm: async () => {
+        const { error } = await supabase.from("folders").delete().eq("id", folder.id);
+        if (error) {
+          toast.error(`删除失败: ${error.message}`);
+          return;
+        }
+        if (selectedFolder === folder.id) {
+          setCategory("uncategorized");
+          setSelectedFolder(null);
+        }
+        await loadMetadata();
+        closeConfirm();
+      },
+    });
   };
 
   // Tag management functions
@@ -1732,7 +1814,7 @@ export function DashboardContent() {
   const handleTagDialogSubmit = async () => {
     const name = tagDialogName.trim();
     if (!name) {
-      alert("请输入标签名称");
+      toast.error("请输入标签名称");
       return;
     }
 
@@ -1776,76 +1858,91 @@ export function DashboardContent() {
       await loadTags();
     } catch (error) {
       const message = error instanceof Error ? error.message : "未知错误";
-      alert(`操作失败: ${message}`);
+      toast.error(`操作失败: ${message}`);
     } finally {
       setTagActionLoading(false);
     }
   };
 
   const handleArchiveTag = async (tag: TagTreeNode) => {
-    if (!window.confirm(`确认将"${tag.name}"归档？归档后将从列表隐藏。`)) {
-      return;
-    }
+    showConfirm({
+      title: "确认归档",
+      description: `确认将"${tag.name}"归档？归档后将从列表隐藏。`,
+      confirmText: "归档",
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/tags/${tag.id}/archive`, {
+            method: "POST",
+          });
 
-    try {
-      const response = await fetch(`/api/tags/${tag.id}/archive`, {
-        method: "POST",
-      });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || "归档失败");
+          }
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "归档失败");
-      }
-
-      if (selectedTag === tag.id) {
-        setSelectedTag(null);
-      }
-      await loadTags();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "未知错误";
-      alert(`归档失败: ${message}`);
-    }
+          if (selectedTag === tag.id) {
+            setSelectedTag(null);
+          }
+          await loadTags();
+          closeConfirm();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "未知错误";
+          toast.error(`归档失败: ${message}`);
+        }
+      },
+    });
   };
 
   const handleDeleteTag = async (tag: TagTreeNode) => {
     const hasChildren = tag.children.length > 0;
     if (hasChildren) {
-      alert("请先删除或移动子标签");
+      toast.error("请先删除或移动子标签");
       return;
     }
 
+    const deleteLogic = async () => {
+      try {
+        const response = await fetch(`/api/tags/${tag.id}?force=true`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "删除失败");
+        }
+
+        if (selectedTag === tag.id) {
+          setSelectedTag(null);
+        }
+        await loadTags();
+        closeConfirm();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "未知错误";
+        toast.error(`删除失败: ${message}`);
+      }
+    };
+
     if (tag.note_count > 0) {
-      if (!window.confirm(`标签"${tag.name}"下有 ${tag.note_count} 条笔记。确认删除？笔记关联将被移除。`)) {
-        return;
-      }
-    } else {
-      if (!window.confirm(`确认删除"${tag.name}"？该操作不可恢复。`)) {
-        return;
-      }
-    }
-
-    try {
-      const response = await fetch(`/api/tags/${tag.id}?force=true`, {
-        method: "DELETE",
+      showConfirm({
+        title: "确认删除",
+        description: `标签"${tag.name}"下有 ${tag.note_count} 条笔记。确认删除？笔记关联将被移除。`,
+        confirmText: "删除",
+        variant: "destructive",
+        onConfirm: deleteLogic,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "删除失败");
-      }
-
-      if (selectedTag === tag.id) {
-        setSelectedTag(null);
-      }
-      await loadTags();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "未知错误";
-      alert(`删除失败: ${message}`);
+    } else {
+      showConfirm({
+        title: "确认删除",
+        description: `确认删除"${tag.name}"？该操作不可恢复。`,
+        confirmText: "删除",
+        variant: "destructive",
+        onConfirm: deleteLogic,
+      });
     }
   };
 
   /**
-   * 切换笔记星标状态（智能批量操作）
+   * 切换笔记星标状态（智能批量操作 + 乐观更新）
    *
    * @param noteIds - 笔记 ID 数组（未传入时使用已选中的笔记）
    *
@@ -1857,36 +1954,84 @@ export function DashboardContent() {
    * 实现原理：
    * - `anyUnstarred`: 使用 `Array.some()` 快速判断是否存在未星标项
    * - 优势：一次数据库调用完成批量操作（原子性）
+   * - 乐观更新：先更新 UI，再同步数据库，失败时回滚
    *
    * 性能考量：
    * - 本地扫描（内存）：O(n)，n 为笔记数
    * - 数据库更新：单次 UPDATE ... IN (...) 语句
    * - 网络延迟：通常 < 100ms
+   * - UI 响应：即时（< 50ms）
    *
    * UI 行为：
    * - 批量选中时：按"多数原则"切换（类似 iOS 批量操作）
    * - 例如：3 条选中，2 条已星标 → 结果：全部星标
+   * - 操作期间显示加载状态，防止重复点击
    */
   const toggleStar = async (noteIds?: string[]) => {
     const ids = ensureSelection(noteIds);
     if (!ids) return;
+    
+    // Prevent duplicate operations
+    if (ids.some(id => starringNotes.has(id))) return;
+    
+    // Calculate new star state
     const anyUnstarred = ids.some((id) => {
       const note = notes.find((n) => n.id === id);
       return note && !note.is_starred;
     });
+    
+    // Store previous state for rollback
+    const previousNotes = notes.filter(n => ids.includes(n.id)).map(n => ({ id: n.id, is_starred: n.is_starred }));
+    const previousStarredCount = counts.starred;
+    
+    // Set loading state
+    setStarringNotes(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => next.add(id));
+      return next;
+    });
+    
+    // Optimistic update - update UI immediately
+    setNotes(prev => prev.map(note => 
+      ids.includes(note.id) ? { ...note, is_starred: anyUnstarred } : note
+    ));
+    
+    // Update counts optimistically
+    const starDelta = anyUnstarred 
+      ? ids.filter(id => !previousNotes.find(n => n.id === id)?.is_starred).length
+      : -ids.filter(id => previousNotes.find(n => n.id === id)?.is_starred).length;
+    setCounts(prev => ({ ...prev, starred: Math.max(0, prev.starred + starDelta) }));
+    
+    // Sync with database
     const { error } = await supabase
       .from("notes")
       .update({ is_starred: anyUnstarred })
       .in("id", ids);
+    
+    // Clear loading state
+    setStarringNotes(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => next.delete(id));
+      return next;
+    });
+    
     if (error) {
-      alert(`星标操作失败: ${error.message}`);
+      // Rollback on error
+      setNotes(prev => prev.map(note => {
+        const original = previousNotes.find(n => n.id === note.id);
+        return original ? { ...note, is_starred: original.is_starred } : note;
+      }));
+      setCounts(prev => ({ ...prev, starred: previousStarredCount }));
+      toast.error(`星标操作失败: ${error.message}`);
     } else {
-      refreshAll();
+      // Show success feedback
+      toast.success(anyUnstarred ? "已添加星标" : "已取消星标");
+      clearSelections();
     }
   };
 
   /**
-   * 归档笔记（软删除，可恢复）
+   * 归档笔记（软删除，可恢复，乐观更新）
    *
    * @param noteIds - 笔记 ID 数组（未传入时使用已选中的笔记）
    *
@@ -1897,7 +2042,7 @@ export function DashboardContent() {
    *
    * 数据一致性保证：
    * 1. 数据库层：直接 UPDATE，无级联操作
-   * 2. UI 缓存：refreshAll() 重新加载当前列表
+   * 2. UI 缓存：乐观更新，失败时回滚
    * 3. 全局状态：可触发自定义事件（如需跨组件同步）
    *
    * 与物理删除的区别：
@@ -1905,14 +2050,15 @@ export function DashboardContent() {
    * - 删除：设置 deleted_at，定期清理任务会物理删除
    *
    * 用户体验：
-   * - 无二次确认（轻量操作）
+   * - 确认对话框防止误操作
+   * - 乐观更新：确认后立即从列表移除
    * - 可通过"显示已归档"开关恢复
-   * - 错误时显示 alert（考虑替换为 toast）
+   * - 操作期间显示加载状态
    *
    * 性能考量：
    * - 单条操作：< 50ms
    * - 批量归档（1000 条）：~200ms（数据库索引优化）
-   * - 大批量操作（> 5000 条）建议分批更新
+   * - UI 响应：即时（< 50ms）
    *
    * 未来改进：
    * - 添加撤销功能（通过清除 archived_at）
@@ -1922,18 +2068,96 @@ export function DashboardContent() {
   const archiveNotes = async (noteIds?: string[]) => {
     const ids = ensureSelection(noteIds);
     if (!ids) return;
+    
+    // Prevent duplicate operations
+    if (ids.some(id => archivingNotes.has(id))) return;
 
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from("notes")
-      .update({ status: "archived", archived_at: now })
-      .in("id", ids);
+    showConfirm({
+      title: "确认归档",
+      description: `确定要归档选中的 ${ids.length} 条笔记吗？`,
+      confirmText: "归档",
+      onConfirm: async () => {
+        // Store previous state for rollback
+        const previousNotes = notes.filter(n => ids.includes(n.id));
+        const previousCounts = { ...counts };
+        
+        // Set loading state
+        setArchivingNotes(prev => {
+          const next = new Set(prev);
+          ids.forEach(id => next.add(id));
+          return next;
+        });
+        
+        // Close dialog immediately for better UX
+        closeConfirm();
+        
+        // Optimistic update - remove from list immediately (unless viewing archived)
+        if (!showArchived && activePrimary !== "archive") {
+          setNotes(prev => prev.filter(note => !ids.includes(note.id)));
+        } else {
+          // If viewing archived, update the status in place
+          const now = new Date().toISOString();
+          setNotes(prev => prev.map(note => 
+            ids.includes(note.id) 
+              ? { ...note, status: "archived" as const, archived_at: now } 
+              : note
+          ));
+        }
+        
+        // Update counts optimistically
+        const starredCount = previousNotes.filter(n => n.is_starred).length;
+        setCounts(prev => ({
+          ...prev,
+          all: Math.max(0, prev.all - ids.length),
+          starred: Math.max(0, prev.starred - starredCount),
+        }));
+        
+        try {
+          const now = new Date().toISOString();
+          const { error } = await supabase
+            .from("notes")
+            .update({ status: "archived", archived_at: now })
+            .in("id", ids);
 
-    if (error) {
-      alert(`归档失败: ${error.message}`);
-    } else {
-      refreshAll();
-    }
+          if (error) throw error;
+          
+          // Clear loading state
+          setArchivingNotes(prev => {
+            const next = new Set(prev);
+            ids.forEach(id => next.delete(id));
+            return next;
+          });
+          
+          // Show success feedback
+          toast.success(`已归档 ${ids.length} 条笔记`);
+          clearSelections();
+          
+          // Refresh folder counts in background (non-blocking)
+          loadMetadata();
+        } catch (error) {
+          // Clear loading state
+          setArchivingNotes(prev => {
+            const next = new Set(prev);
+            ids.forEach(id => next.delete(id));
+            return next;
+          });
+          
+          // Rollback on error
+          setNotes(prev => {
+            // Re-insert the archived notes
+            const existingIds = new Set(prev.map(n => n.id));
+            const notesToRestore = previousNotes.filter(n => !existingIds.has(n.id));
+            return [...notesToRestore, ...prev].sort((a, b) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          });
+          setCounts(previousCounts);
+          
+          const message = error instanceof Error ? error.message : "未知错误";
+          toast.error(`归档失败: ${message}`);
+        }
+      },
+    });
   };
 
   /**
@@ -1988,37 +2212,55 @@ export function DashboardContent() {
   const deleteNotes = async (noteIds?: string[]) => {
     const ids = ensureSelection(noteIds);
     if (!ids) return;
-    if (!confirm("确定要删除选中的笔记吗？")) return;
-    const { error } = await supabase
-      .from("notes")
-      .update({ deleted_at: new Date().toISOString() })
-      .in("id", ids);
-    if (error) {
-      alert(`删除失败: ${error.message}`);
-    } else {
-      refreshAll();
-    }
+
+    showConfirm({
+      title: "确认删除",
+      description: `确定要删除选中的 ${ids.length} 条笔记吗？删除后可在回收站找回。`,
+      confirmText: "删除",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from("notes")
+            .update({ deleted_at: new Date().toISOString() })
+            .in("id", ids);
+
+          if (error) throw error;
+
+          refreshAll();
+          closeConfirm();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "未知错误";
+          toast.error(`删除失败: ${message}`);
+        }
+      },
+    });
   };
 
   const moveNotes = async () => {
     const ids = ensureSelection(actionTargetIds);
     if (!ids) return;
-    const { error } = await supabase
-      .from("notes")
-      .update({ folder_id: moveTargetFolder })
-      .in("id", ids);
-    if (error) {
-      alert(`移动失败: ${error.message}`);
-    } else {
+    
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .update({ folder_id: moveTargetFolder })
+        .in("id", ids);
+      if (error) throw error;
+      
       setShowMoveDialog(false);
       setActionTargetIds([]);
+      toast.success("移动成功");
       refreshAll();
+    } catch (error: any) {
+      toast.error(`移动失败: ${error.message}`);
     }
   };
 
   const upsertTagsForNotes = async () => {
     const ids = ensureSelection(actionTargetIds);
     if (!ids) return;
+    setIsUpsertingTags(true);
     try {
       const { error: deleteError } = await supabase
         .from("note_tags")
@@ -2045,13 +2287,20 @@ export function DashboardContent() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "未知错误";
-      alert(`设置标签失败: ${message}`);
+      toast.error(`设置标签失败: ${message}`);
+    } finally {
+      setIsUpsertingTags(false);
     }
   };
 
   const ensureTagSelection = (noteIds?: string[]) => {
     const ids = ensureSelection(noteIds);
     if (!ids) return;
+    
+    if (tags.length === 0) {
+      loadTags();
+    }
+
     const firstNote = notes.find((n) => ids?.includes(n.id));
     const currentTags = firstNote?.tags.map((tag) => tag.id) ?? [];
     setTagDialogSelection(currentTags);
@@ -2077,11 +2326,11 @@ export function DashboardContent() {
       .filter(Boolean)
       .join("\n");
     if (!links) {
-      alert("没有可复制的原文链接");
+      toast.warning("没有可复制的原文链接");
       return;
     }
     await navigator.clipboard.writeText(links);
-    alert("链接复制成功");
+    toast.success("链接复制成功");
   };
 
   const fetchNotesByIds = async (ids: string[]) => {
@@ -2092,7 +2341,7 @@ export function DashboardContent() {
       )
       .in("id", ids);
     if (error) {
-      alert(`获取笔记内容失败: ${error.message}`);
+      toast.error(`获取笔记内容失败: ${error.message}`);
       return [];
     }
     return data ?? [];
@@ -2204,7 +2453,7 @@ export function DashboardContent() {
       .map((note) => buildContentByFormat(note, format))
       .join("\n\n---\n\n");
     await navigator.clipboard.writeText(allText);
-    alert("内容已复制到剪贴板");
+    toast.success("内容已复制到剪贴板");
   };
 
   /**
@@ -2285,7 +2534,7 @@ export function DashboardContent() {
     try {
       if (creationMode === "url") {
         if (!newNoteUrl.trim()) {
-          alert("请输入有效的 URL");
+          toast.error("请输入有效的 URL");
           setIsAddingNote(false);
           return;
         }
@@ -2334,7 +2583,7 @@ export function DashboardContent() {
         return; 
       } else if (creationMode === "quick") {
         if (!quickContent.trim()) {
-          alert("请输入速记内容");
+          toast.error("请输入速记内容");
           setIsAddingNote(false);
           return;
         }
@@ -2367,7 +2616,7 @@ export function DashboardContent() {
         if (error) throw error;
       } else if (creationMode === "upload") {
         if (!uploadFile) {
-          alert("请选择文件");
+          toast.error("请选择文件");
           setIsAddingNote(false);
           return;
         }
@@ -2530,7 +2779,7 @@ export function DashboardContent() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "未知错误";
-      alert(`添加失败: ${message}`);
+      toast.error(`添加失败: ${message}`);
     } finally {
       setIsAddingNote(false);
     }
@@ -2568,8 +2817,14 @@ export function DashboardContent() {
         <DropdownMenuItem onClick={() => exportNotes("html", [note.id])}>
           <FileDown className="h-4 w-4 mr-2" /> 导出 HTML
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => toggleStar([note.id])}>
-          {note.is_starred ? (
+        <DropdownMenuItem 
+          onClick={() => toggleStar([note.id])}
+          disabled={starringNotes.has(note.id)}
+          className={cn(starringNotes.has(note.id) && "opacity-50 pointer-events-none")}
+        >
+          {starringNotes.has(note.id) ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : note.is_starred ? (
             <BookmarkCheck className="h-4 w-4 mr-2" />
           ) : (
             <Bookmark className="h-4 w-4 mr-2" />
@@ -2582,8 +2837,17 @@ export function DashboardContent() {
         <DropdownMenuItem onClick={() => ensureTagSelection([note.id])}>
           <Tag className="h-4 w-4 mr-2" /> 设置标签
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => archiveNotes([note.id])}>
-          <Archive className="h-4 w-4 mr-2" /> 归档
+        <DropdownMenuItem 
+          onClick={() => archiveNotes([note.id])}
+          disabled={archivingNotes.has(note.id)}
+          className={cn(archivingNotes.has(note.id) && "opacity-50 pointer-events-none")}
+        >
+          {archivingNotes.has(note.id) ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Archive className="h-4 w-4 mr-2" />
+          )}
+          归档
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => deleteNotes([note.id])}>
           <Trash2 className="h-4 w-4 mr-2 text-red-500" /> 删除
@@ -2825,15 +3089,21 @@ export function DashboardContent() {
             variant="ghost"
             size="icon"
             className={cn(
-              "h-6 w-6 rounded-md bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white",
-              note.is_starred ? "text-yellow-500" : "text-slate-400 hover:text-yellow-500"
+              "h-6 w-6 rounded-md bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all duration-200",
+              note.is_starred ? "text-yellow-500" : "text-slate-400 hover:text-yellow-500",
+              starringNotes.has(note.id) && "opacity-70 pointer-events-none"
             )}
             onClick={(e) => {
               e.stopPropagation();
               toggleStar([note.id]);
             }}
+            disabled={starringNotes.has(note.id)}
           >
-            <Star className="h-3.5 w-3.5" fill={note.is_starred ? "currentColor" : "none"} />
+            {starringNotes.has(note.id) ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Star className="h-3.5 w-3.5" fill={note.is_starred ? "currentColor" : "none"} />
+            )}
           </Button>
           {renderNoteActions(note)}
         </div>
@@ -2904,6 +3174,10 @@ export function DashboardContent() {
 
   const renderBulkSelectionControls = () => {
     if (selectedNotes.size === 0) return null;
+    // Check if any selected notes are being starred/archived
+    const isStarringSelected = Array.from(selectedNotes).some(id => starringNotes.has(id));
+    const isArchivingSelected = Array.from(selectedNotes).some(id => archivingNotes.has(id));
+    
     return (
       <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
         <span className="font-medium text-gray-600">
@@ -2914,8 +3188,14 @@ export function DashboardContent() {
           size="sm"
           className={bulkActionButtonClass}
           onClick={() => toggleStar()}
+          disabled={isStarringSelected}
         >
-          <Star className="h-3 w-3 mr-1.5" /> 星标
+          {isStarringSelected ? (
+            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+          ) : (
+            <Star className="h-3 w-3 mr-1.5" />
+          )}
+          星标
         </Button>
         <Button
           variant="outline"
@@ -2938,8 +3218,14 @@ export function DashboardContent() {
           size="sm"
           className={bulkActionButtonClass}
           onClick={() => archiveNotes()}
+          disabled={isArchivingSelected}
         >
-          <Archive className="h-3 w-3 mr-1.5" /> 归档
+          {isArchivingSelected ? (
+            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+          ) : (
+            <Archive className="h-3 w-3 mr-1.5" />
+          )}
+          归档
         </Button>
         <Button
           variant="outline"
@@ -3014,155 +3300,217 @@ export function DashboardContent() {
   };
 
   const renderAddNoteDialog = () => {
-    if (!showAddNoteDialog) return null;
     return (
-      <div
-        className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-        onClick={() => setShowAddNoteDialog(false)}
-      >
-        <Card
-          className="w-full max-w-2xl p-6 space-y-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">添加笔记</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAddNoteDialog(false)}
+      <AnimatePresence>
+        {showAddNoteDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-50 pb-[10vh]"
+            onClick={() => setShowAddNoteDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl"
             >
-              关闭
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            {creationTabs.map((tab) => (
-              <Button
-                key={tab.id}
-                variant={creationMode === tab.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCreationMode(tab.id)}
+              <Card
+                className="w-full p-6 space-y-4 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl"
               >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
-          {creationMode === "url" && (
-            <div className="space-y-2">
-              <Label>网址</Label>
-              <Input
-                placeholder="https://example.com/article"
-                value={newNoteUrl}
-                onChange={(e) => setNewNoteUrl(e.target.value)}
-              />
-            </div>
-          )}
-          {creationMode === "quick" && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>标题（可选）</Label>
-                <Input
-                  value={quickTitle}
-                  onChange={(e) => setQuickTitle(e.target.value)}
-                  placeholder="我的速记"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>内容</Label>
-                <textarea
-                  className="w-full border rounded-md p-3 min-h-[160px] text-sm"
-                  value={quickContent}
-                  onChange={(e) => setQuickContent(e.target.value)}
-                  placeholder="输入文本或 Markdown"
-                />
-              </div>
-            </div>
-          )}
-          {creationMode === "upload" && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>文件</Label>
-                <Input
-                  type="file"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>标题（可选）</Label>
-                <Input
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowAddNoteDialog(false)}
-              disabled={isAddingNote}
-            >
-              取消
-            </Button>
-            <Button onClick={handleAddNote} disabled={isAddingNote}>
-              {isAddingNote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              添加
-            </Button>
-          </div>
-        </Card>
-      </div>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">添加笔记</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    onClick={() => setShowAddNoteDialog(false)}
+                  >
+                    <X className="h-4 w-4 text-slate-500" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  {creationTabs.map((tab) => (
+                    <Button
+                      key={tab.id}
+                      variant={creationMode === tab.id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCreationMode(tab.id)}
+                    >
+                      {tab.label}
+                    </Button>
+                  ))}
+                </div>
+                {creationMode === "url" && (
+                  <div className="space-y-2">
+                    <Label>网址</Label>
+                    <Input
+                      placeholder="https://example.com/article"
+                      value={newNoteUrl}
+                      onChange={(e) => setNewNoteUrl(e.target.value)}
+                    />
+                  </div>
+                )}
+                {creationMode === "quick" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>标题（可选）</Label>
+                      <Input
+                        value={quickTitle}
+                        onChange={(e) => setQuickTitle(e.target.value)}
+                        placeholder="我的速记"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>内容</Label>
+                      <textarea
+                        className="w-full border rounded-md p-3 min-h-[160px] text-sm"
+                        value={quickContent}
+                        onChange={(e) => setQuickContent(e.target.value)}
+                        placeholder="输入文本或 Markdown"
+                      />
+                    </div>
+                  </div>
+                )}
+                {creationMode === "upload" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>文件</Label>
+                      <Input
+                        type="file"
+                        onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>标题（可选）</Label>
+                      <Input
+                        value={uploadTitle}
+                        onChange={(e) => setUploadTitle(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAddNoteDialog(false)}
+                    disabled={isAddingNote}
+                  >
+                    取消
+                  </Button>
+                  <Button onClick={handleAddNote} disabled={isAddingNote}>
+                    {isAddingNote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                    添加
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   };
 
   const renderMoveDialog = () => {
-    if (!showMoveDialog) return null;
     return (
-      <div
-        className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]"
-        onClick={() => setShowMoveDialog(false)}
-      >
-        <Card className="w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-lg font-semibold mb-4">移动到收藏夹</h3>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            <Button
-              variant={moveTargetFolder === null ? "default" : "outline"}
-              className="w-full justify-start"
-              onClick={() => setMoveTargetFolder(null)}
+      <AnimatePresence>
+        {showMoveDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[60] pb-[10vh]"
+            onClick={() => setShowMoveDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md"
             >
-              未分类
-            </Button>
-            {flattenedFolderOptions.map((folder) => (
-              <Button
-                key={folder.id}
-                variant={moveTargetFolder === folder.id ? "default" : "outline"}
-                className="w-full justify-start gap-2"
-                style={{ paddingLeft: folder.depth * 12 + 12 }}
-                onClick={() => setMoveTargetFolder(folder.id)}
-              >
-                <span className="text-base leading-none">
-                  {folder.icon || "📁"}
-                </span>
-                <span className="truncate">{folder.name}</span>
-                <span className="ml-auto text-xs text-gray-400">
-                  {folder.note_count}
-                </span>
-              </Button>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
-              取消
-            </Button>
-            <Button onClick={moveNotes}>确定</Button>
-          </div>
-        </Card>
-      </div>
+              <Card className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800">移动到收藏夹</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    onClick={() => setShowMoveDialog(false)}
+                  >
+                    <X className="h-4 w-4 text-slate-500" />
+                  </Button>
+                </div>
+                {/* Fixed height container to prevent jitter */}
+                <div className="h-[320px] overflow-y-auto pr-2 custom-scrollbar space-y-1">
+                  <Button
+                    variant={moveTargetFolder === null ? "default" : "outline"}
+                    className={cn(
+                      "w-full justify-start h-11 px-4 rounded-xl transition-all duration-200 border-transparent",
+                      moveTargetFolder === null ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-50 text-slate-700 hover:border-slate-100"
+                    )}
+                    onClick={() => setMoveTargetFolder(null)}
+                  >
+                    <span className="text-base leading-none mr-3">📄</span>
+                    <span className="font-medium text-sm">未分类</span>
+                  </Button>
+                  {flattenedFolderOptions.map((folder) => (
+                    <Button
+                      key={folder.id}
+                      variant={moveTargetFolder === folder.id ? "default" : "outline"}
+                      className={cn(
+                        "w-full justify-start h-11 px-4 gap-3 rounded-xl transition-all duration-200 border-transparent",
+                        moveTargetFolder === folder.id ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-50 text-slate-700 hover:border-slate-100"
+                      )}
+                      style={{ paddingLeft: folder.depth * 16 + 16 }}
+                      onClick={() => setMoveTargetFolder(folder.id)}
+                    >
+                      <span className="text-base leading-none">
+                        {folder.icon || "📁"}
+                      </span>
+                      <span className="truncate font-medium text-sm">{folder.name}</span>
+                      <span className={cn(
+                        "ml-auto text-[10px] px-1.5 py-0.5 rounded-md border opacity-60",
+                        moveTargetFolder === folder.id ? "bg-blue-500/20 border-white/20" : "bg-white/50 border-slate-100"
+                      )}>
+                        {folder.note_count}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowMoveDialog(false)}
+                    className="rounded-xl px-6"
+                  >
+                    取消
+                  </Button>
+                  <Button 
+                    onClick={moveNotes}
+                    className="rounded-xl px-6 bg-blue-600 hover:bg-blue-700"
+                  >
+                    确认移动
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   };
 
   const createTagIfNeeded = async () => {
     if (!tagDialogNewName.trim()) return;
     if (!user) {
-      alert("请先登录后再创建标签");
+      toast.error("请先登录后再创建标签");
       return;
     }
     const name = tagDialogNewName.trim();
@@ -3172,7 +3520,7 @@ export function DashboardContent() {
       .select()
       .single();
     if (error) {
-      alert(`创建标签失败: ${error.message}`);
+      toast.error(`创建标签失败: ${error.message}`);
       return;
     }
     setTags((prev) => [...prev, data]);
@@ -3181,58 +3529,144 @@ export function DashboardContent() {
   };
 
   const renderTagDialog = () => {
-    if (!showTagDialog) return null;
     return (
-      <div
-        className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]"
-        onClick={() => setShowTagDialog(false)}
-      >
-        <Card className="w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-lg font-semibold mb-4">设置标签</h3>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {tags.map((tag) => (
-              <label
-                key={tag.id}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <Checkbox
-                  checked={tagDialogSelection.includes(tag.id)}
-                  onCheckedChange={() =>
-                    setTagDialogSelection((prev) => {
-                      if (prev.includes(tag.id)) {
-                        return prev.filter((id) => id !== tag.id);
+      <AnimatePresence>
+        {showTagDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[60] pb-[10vh]"
+            onClick={() => setShowTagDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md"
+            >
+              <Card className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800">设置标签</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    onClick={() => setShowTagDialog(false)}
+                  >
+                    <X className="h-4 w-4 text-slate-500" />
+                  </Button>
+                </div>
+                
+                {/* Fixed height container to prevent jitter */}
+                <div className="h-[280px] overflow-y-auto pr-2 custom-scrollbar relative flex flex-col">
+                  {tagsLoading ? (
+                    <div className="space-y-1 py-1">
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-transparent">
+                          <div className="h-4 w-4 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-4 w-32 rounded bg-slate-100 animate-pulse" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-1 py-1 flex-1"
+                    >
+                      {tags.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 min-h-[260px]">
+                          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                            <Tag className="h-8 w-8 opacity-20" />
+                          </div>
+                          <p className="text-sm font-medium">暂无标签</p>
+                          <p className="text-xs opacity-60 mt-1">在下方输入名称即可创建新标签</p>
+                        </div>
+                      ) : (
+                        tags.map((tag) => (
+                          <label
+                            key={tag.id}
+                            className={cn(
+                              "flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all duration-200 border border-transparent",
+                              tagDialogSelection.includes(tag.id) 
+                                ? "bg-blue-50/50 border-blue-100/50 text-blue-700" 
+                                : "hover:bg-slate-50 text-slate-700 hover:border-slate-100"
+                            )}
+                          >
+                            <Checkbox
+                              checked={tagDialogSelection.includes(tag.id)}
+                              onCheckedChange={() =>
+                                setTagDialogSelection((prev) => {
+                                  if (prev.includes(tag.id)) {
+                                    return prev.filter((id) => id !== tag.id);
+                                  }
+                                  return [...prev, tag.id];
+                                })
+                              }
+                              className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                            />
+                            <span className="text-sm font-medium">{tag.name}</span>
+                            {tag.note_count !== undefined && (
+                              <span className="ml-auto text-[10px] bg-white/50 px-1.5 py-0.5 rounded-md border border-slate-100 opacity-60">
+                                {tag.note_count}
+                              </span>
+                            )}
+                          </label>
+                        ))
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
+                  <Input
+                    placeholder="新标签名称"
+                    value={tagDialogNewName}
+                    onChange={(e) => setTagDialogNewName(e.target.value)}
+                    className="h-10 rounded-xl text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        createTagIfNeeded();
                       }
-                      return [...prev, tag.id];
-                    })
-                  }
-                />
-                <span>{tag.name}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-4">
-            <Input
-              placeholder="新标签名称"
-              value={tagDialogNewName}
-              onChange={(e) => setTagDialogNewName(e.target.value)}
-            />
-            <Button variant="outline" onClick={createTagIfNeeded}>
-              新建
-            </Button>
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setShowTagDialog(false)}>
-              取消
-            </Button>
-            <Button onClick={upsertTagsForNotes}>确定</Button>
-          </div>
-        </Card>
-      </div>
+                    }}
+                  />
+                  <Button variant="outline" size="sm" onClick={createTagIfNeeded} className="h-10 rounded-xl px-4">
+                    新建
+                  </Button>
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowTagDialog(false)}
+                    className="rounded-xl px-6"
+                    disabled={isUpsertingTags}
+                  >
+                    取消
+                  </Button>
+                  <Button 
+                    onClick={upsertTagsForNotes}
+                    className="rounded-xl px-6 bg-blue-600 hover:bg-blue-700"
+                    disabled={isUpsertingTags}
+                  >
+                    {isUpsertingTags && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    保存设置
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   };
 
   const renderFolderDialog = () => {
-    if (!showFolderDialog) return null;
     const blockedParents =
       folderDialogMode === "edit" && folderDialogTargetId
         ? (() => {
@@ -3241,112 +3675,139 @@ export function DashboardContent() {
             return set;
           })()
         : new Set<string>();
+
     return (
-      <div
-        className="fixed inset-0 bg-black/40 flex items-center justify-center z-[70]"
-        onClick={closeFolderDialog}
-      >
-        <Card
-          className="w-full max-w-md p-6 space-y-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">
-              {folderDialogMode === "create" ? "新建收藏夹" : "编辑收藏夹"}
-            </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={closeFolderDialog}
-              disabled={folderActionLoading}
+      <AnimatePresence>
+        {showFolderDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[70] pb-[10vh]"
+            onClick={closeFolderDialog}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md"
             >
-              关闭
-            </Button>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>名称</Label>
-              <Input
-                value={folderDialogName}
-                onChange={(e) => setFolderDialogName(e.target.value)}
-                placeholder="例如：行业资讯"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>图标</Label>
-              <div className="flex flex-wrap gap-2">
-                {folderIconOptions.map((icon) => (
-                  <Button
-                    key={icon}
-                    type="button"
-                    variant={
-                      folderDialogIcon === icon ? "default" : "outline"
-                    }
-                    size="sm"
-                    className="h-9 w-10 text-base"
-                    onClick={() => setFolderDialogIcon(icon)}
-                  >
-                    {icon}
-                  </Button>
-                ))}
-                <Button
-                  type="button"
-                  variant={folderDialogIcon ? "outline" : "default"}
-                  size="sm"
-                  className="h-9"
-                  onClick={() => setFolderDialogIcon("")}
-                >
-                  默认
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>父级（可选）</Label>
-              <select
-                className="w-full border rounded-md px-3 py-2 text-sm bg-white"
-                value={folderDialogParent ?? ""}
-                onChange={(e) =>
-                  setFolderDialogParent(e.target.value || null)
-                }
+              <Card
+                className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl"
               >
-                <option value="">顶层收藏夹</option>
-                {flattenedFolderOptions.map((folder) => (
-                  <option
-                    key={folder.id}
-                    value={folder.id}
-                    disabled={blockedParents.has(folder.id)}
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    {folderDialogMode === "create" ? "新建收藏夹" : "编辑收藏夹"}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    onClick={closeFolderDialog}
+                    disabled={folderActionLoading}
                   >
-                    {`${"— ".repeat(folder.depth)}${folder.name}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={closeFolderDialog}
-              disabled={folderActionLoading}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleFolderDialogSubmit}
-              disabled={folderActionLoading}
-            >
-              {folderActionLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              保存
-            </Button>
-          </div>
-        </Card>
-      </div>
+                    <X className="h-4 w-4 text-slate-500" />
+                  </Button>
+                </div>
+                {/* Fixed height container to prevent jitter */}
+                <div className="h-[380px] overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-slate-500 text-xs font-medium uppercase tracking-wider ml-1">名称</Label>
+                    <Input
+                      value={folderDialogName}
+                      onChange={(e) => setFolderDialogName(e.target.value)}
+                      placeholder="例如：行业资讯"
+                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-slate-500 text-xs font-medium uppercase tracking-wider ml-1">图标</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {folderIconOptions.map((icon) => (
+                        <Button
+                          key={icon}
+                          type="button"
+                          variant={
+                            folderDialogIcon === icon ? "default" : "outline"
+                          }
+                          size="sm"
+                          className={cn(
+                            "h-10 w-11 text-lg rounded-xl transition-all duration-200",
+                            folderDialogIcon === icon ? "bg-blue-600 border-blue-600 shadow-md scale-110" : "hover:bg-slate-50 hover:scale-105"
+                          )}
+                          onClick={() => setFolderDialogIcon(icon)}
+                        >
+                          {icon}
+                        </Button>
+                      ))}
+                      <Button
+                        type="button"
+                        variant={folderDialogIcon ? "outline" : "default"}
+                        size="sm"
+                        className={cn(
+                          "h-10 px-4 rounded-xl transition-all",
+                          !folderDialogIcon ? "bg-blue-600 border-blue-600" : "hover:bg-slate-50"
+                        )}
+                        onClick={() => setFolderDialogIcon("")}
+                      >
+                        默认
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-500 text-xs font-medium uppercase tracking-wider ml-1">父级（可选）</Label>
+                    <select
+                      className="w-full h-11 border border-slate-200 rounded-xl px-4 text-sm bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                      value={folderDialogParent ?? ""}
+                      onChange={(e) =>
+                        setFolderDialogParent(e.target.value || null)
+                      }
+                    >
+                      <option value="">顶层收藏夹</option>
+                      {flattenedFolderOptions.map((folder) => (
+                        <option
+                          key={folder.id}
+                          value={folder.id}
+                          disabled={blockedParents.has(folder.id)}
+                        >
+                          {`${"— ".repeat(folder.depth)}${folder.name}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-6 mt-4 border-t border-slate-100">
+                  <Button
+                    variant="outline"
+                    onClick={closeFolderDialog}
+                    disabled={folderActionLoading}
+                    className="rounded-xl px-6"
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    onClick={handleFolderDialogSubmit}
+                    disabled={folderActionLoading}
+                    className="rounded-xl px-6 bg-blue-600 hover:bg-blue-700"
+                  >
+                    {folderActionLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    保存
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   };
 
   const renderTagDialog2 = () => {
-    if (!showTagDialog2) return null;
     const blockedParents =
       tagDialogMode === "edit" && tagDialogTargetId
         ? (() => {
@@ -3388,115 +3849,132 @@ export function DashboardContent() {
     ];
 
     return (
-      <div
-        className="fixed inset-0 bg-black/40 flex items-center justify-center z-[70]"
-        onClick={closeTagDialog2}
-      >
-        <Card
-          className="w-full max-w-md p-6 space-y-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">
-              {tagDialogMode === "create" ? "新建标签" : "编辑标签"}
-            </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={closeTagDialog2}
-              disabled={tagActionLoading}
+      <AnimatePresence>
+        {showTagDialog2 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[70] pb-[10vh]"
+            onClick={closeTagDialog2}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md"
             >
-              关闭
-            </Button>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>名称</Label>
-              <Input
-                value={tagDialogName}
-                onChange={(e) => setTagDialogName(e.target.value)}
-                placeholder="例如：技术文章"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>颜色</Label>
-              <div className="flex flex-wrap gap-2">
-                {colorOptions.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={cn(
-                      "h-8 w-8 rounded-full border-2 transition-all",
-                      tagDialogColor === color
-                        ? "border-black scale-110"
-                        : "border-transparent hover:scale-105"
-                    )}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setTagDialogColor(color)}
-                  />
-                ))}
-                <Button
-                  type="button"
-                  variant={tagDialogColor ? "outline" : "default"}
-                  size="sm"
-                  className="h-8"
-                  onClick={() => setTagDialogColor("")}
-                >
-                  默认
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>图标（可选）</Label>
-              <Input
-                value={tagDialogIcon}
-                onChange={(e) => setTagDialogIcon(e.target.value)}
-                placeholder="输入 emoji，例如：📚"
-                maxLength={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>父级（可选）</Label>
-              <select
-                className="w-full border rounded-md px-3 py-2 text-sm bg-white"
-                value={tagDialogParent ?? ""}
-                onChange={(e) =>
-                  setTagDialogParent(e.target.value || null)
-                }
+              <Card
+                className="w-full p-6 space-y-4 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl"
               >
-                <option value="">顶层标签</option>
-                {flattenedTagOptions.map((tag) => (
-                  <option
-                    key={tag.id}
-                    value={tag.id}
-                    disabled={blockedParents.has(tag.id)}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    {tagDialogMode === "create" ? "新建标签" : "编辑标签"}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    onClick={closeTagDialog2}
+                    disabled={tagActionLoading}
                   >
-                    {`${"— ".repeat(tag.depth)}${tag.name}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={closeTagDialog2}
-              disabled={tagActionLoading}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleTagDialogSubmit}
-              disabled={tagActionLoading}
-            >
-              {tagActionLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              保存
-            </Button>
-          </div>
-        </Card>
-      </div>
+                    <X className="h-4 w-4 text-slate-500" />
+                  </Button>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>名称</Label>
+                    <Input
+                      value={tagDialogName}
+                      onChange={(e) => setTagDialogName(e.target.value)}
+                      placeholder="例如：技术文章"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>颜色</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {colorOptions.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          className={cn(
+                            "h-8 w-8 rounded-full border-2 transition-all",
+                            tagDialogColor === color
+                              ? "border-black scale-110"
+                              : "border-transparent hover:scale-105"
+                          )}
+                          style={{ backgroundColor: color }}
+                          onClick={() => setTagDialogColor(color)}
+                        />
+                      ))}
+                      <Button
+                        type="button"
+                        variant={tagDialogColor ? "outline" : "default"}
+                        size="sm"
+                        className="h-8"
+                        onClick={() => setTagDialogColor("")}
+                      >
+                        默认
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>图标（可选）</Label>
+                    <Input
+                      value={tagDialogIcon}
+                      onChange={(e) => setTagDialogIcon(e.target.value)}
+                      placeholder="输入 emoji，例如：📚"
+                      maxLength={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>父级（可选）</Label>
+                    <select
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                      value={tagDialogParent ?? ""}
+                      onChange={(e) =>
+                        setTagDialogParent(e.target.value || null)
+                      }
+                    >
+                      <option value="">顶层标签</option>
+                      {flattenedTagOptions.map((tag) => (
+                        <option
+                          key={tag.id}
+                          value={tag.id}
+                          disabled={blockedParents.has(tag.id)}
+                        >
+                          {`${"— ".repeat(tag.depth)}${tag.name}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                  <Button
+                    variant="outline"
+                    onClick={closeTagDialog2}
+                    disabled={tagActionLoading}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    onClick={handleTagDialogSubmit}
+                    disabled={tagActionLoading}
+                  >
+                    {tagActionLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    保存
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   };
 
@@ -3965,9 +4443,20 @@ export function DashboardContent() {
                 </div>
 
                 {annotationsLoading ? (
-                  <div className="px-3 py-6 text-xs text-gray-400 flex items-center gap-2">
-                    <div className="h-3 w-3 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
-                    加载批注中...
+                  <div className="space-y-2 px-1">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="flex gap-3 px-3 py-2.5 rounded-xl border border-transparent">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
+                          <div className="h-3 bg-slate-100 rounded animate-pulse w-1/2" />
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="h-4 w-12 bg-slate-100 rounded animate-pulse" />
+                            <div className="h-3 w-3 bg-slate-100 rounded animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="w-14 h-14 rounded-lg bg-slate-100 animate-pulse shrink-0" />
+                      </div>
+                    ))}
                   </div>
                 ) : filteredAnnotationNotes.length === 0 ? (
                   <div className="px-3 py-8 text-center">
@@ -4135,6 +4624,17 @@ export function DashboardContent() {
 
       {/* Main Content */}
       <main className="flex-1 h-screen flex flex-col overflow-hidden">
+        {confirmDialog.isOpen && (
+          <ConfirmDialog
+            isOpen={confirmDialog.isOpen}
+            onClose={closeConfirm}
+            onConfirm={confirmDialog.onConfirm}
+            title={confirmDialog.title}
+            description={confirmDialog.description}
+            confirmText={confirmDialog.confirmText}
+            variant={confirmDialog.variant}
+          />
+        )}
         <div className="h-14 bg-white/80 backdrop-blur-md z-40 border-b border-black/[0.03] flex items-center px-6 justify-between flex-shrink-0">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
             {activePrimary === "settings" ? (
@@ -4162,6 +4662,26 @@ export function DashboardContent() {
                 }}
                 onFocus={() => {
                   if (activePrimary !== "annotations") setIsSearchFocused(true);
+                }}
+                onKeyDown={(e) => {
+                  // 按 Enter 或 ESC 键关闭搜索下拉面板
+                  if (e.key === "Enter" || e.key === "Escape") {
+                    setIsSearchFocused(false);
+                    // 如果是 ESC 键，同时清空搜索输入
+                    if (e.key === "Escape") {
+                      if (activePrimary === "annotations") {
+                        setAnnotationRecordSearch("");
+                      } else {
+                        setSearchInput("");
+                      }
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  // 延迟关闭，让点击下拉面板中的项目有时间触发
+                  setTimeout(() => {
+                    setIsSearchFocused(false);
+                  }, 200);
                 }}
                 className="pl-10 h-10 rounded-xl border-none bg-black/[0.04] focus:bg-white focus:ring-0 focus-visible:ring-0 shadow-none focus:shadow-[0_8px_20px_rgba(0,0,0,0.04)] transition-all duration-300 placeholder:text-gray-400 text-sm"
               />
@@ -4525,21 +5045,24 @@ export function DashboardContent() {
                 <p className="text-slate-400 text-sm font-medium tracking-wide">同步云端批注中...</p>
               </div>
             ) : annotations.length === 0 ? (
-              <div className="text-center py-32 bg-white rounded-3xl border border-dashed border-slate-200 shadow-sm">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">📝</span>
+              <div className="flex flex-col items-center justify-center py-32 space-y-4">
+                <div className="w-20 h-20 bg-slate-50/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
+                  <PenLine className="h-9 w-9 text-slate-300" />
                 </div>
-                <h3 className="text-slate-900 font-semibold">暂无批注</h3>
-                <p className="text-sm text-slate-400 mt-2 max-w-xs mx-auto leading-relaxed">
+                <h3 className="text-slate-900 font-semibold text-lg">暂无批注</h3>
+                <p className="text-slate-400 text-sm max-w-sm text-center leading-relaxed px-4">
                   阅读文章时，选中文字即可添加高亮和批注。所有记录将在这里自动聚合。
                 </p>
               </div>
             ) : filteredAnnotationRecords.length === 0 ? (
-              <div className="text-center py-32">
-                <p className="text-slate-400 font-medium">没有找到匹配的批注记录</p>
+              <div className="flex flex-col items-center justify-center py-32 space-y-4">
+                <div className="w-20 h-20 bg-slate-50/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
+                  <Search className="h-9 w-9 text-slate-300" />
+                </div>
+                <h3 className="text-slate-900 font-semibold text-lg">没有找到匹配的批注</h3>
                 <Button 
-                  variant="link" 
-                  className="mt-2 text-blue-500"
+                  variant="outline" 
+                  className="mt-2 rounded-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 px-6"
                   onClick={() => {
                     setAnnotationRecordSearch("");
                     setAnnotationTypeFilter("all");
@@ -4622,8 +5145,22 @@ export function DashboardContent() {
                   })}
                 </div>
 
-                <div ref={loadMoreAnnotationsRef} className="py-4 text-center text-xs text-gray-400">
-                  {loadingMoreAnnotations ? "加载更多批注..." : hasMoreAnnotations ? "下拉加载更多" : "没有更多批注"}
+                <div ref={loadMoreAnnotationsRef} className="py-6 flex flex-col items-center justify-center gap-2">
+                  {loadingMoreAnnotations ? (
+                    <div className="flex items-center gap-2 text-sm text-blue-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>加载更多批注...</span>
+                    </div>
+                  ) : hasMoreAnnotations ? (
+                    <div className="flex items-center gap-2 text-xs text-slate-400 opacity-60">
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      <span>继续滚动加载更多</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-300">
+                      — 已加载全部 {annotations.length} 条批注 —
+                    </div>
+                  )}
                 </div>
 
                 <EditAnnotationDialog
@@ -4689,12 +5226,95 @@ export function DashboardContent() {
           )}
 
           {initialLoading ? (
-            <div className="flex items-center justify-center py-20 text-muted-foreground">
-              加载中...
+            <div className="space-y-4">
+              {viewMode === "compact-card" ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-[14px] border border-slate-200/90 overflow-hidden">
+                      <div className="aspect-[1.91/1] w-full bg-slate-100 animate-pulse" />
+                      <div className="p-3 space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-3 w-3 bg-slate-100 rounded-full animate-pulse" />
+                          <div className="h-3 bg-slate-100 rounded animate-pulse w-1/3" />
+                        </div>
+                        <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
+                        <div className="h-4 bg-slate-100 rounded animate-pulse w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className={cn("flex items-center gap-4 bg-white rounded-lg border border-slate-200/90", viewMode === "title-list" ? "p-3" : "p-4")}>
+                      <div className="h-4 w-4 bg-slate-100 rounded animate-pulse" />
+                      {viewMode !== "title-list" && (
+                        <div className={cn("bg-slate-100 rounded animate-pulse shrink-0", viewMode === "detail-list" ? "w-24 h-24" : "w-14 h-14")} />
+                      )}
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="h-4 bg-slate-100 rounded animate-pulse w-2/3" />
+                        {viewMode !== "title-list" && (
+                          <div className="h-3 bg-slate-100 rounded animate-pulse w-1/2" />
+                        )}
+                        {viewMode === "detail-list" && (
+                          <div className="flex gap-1 mt-2">
+                            <div className="h-5 w-12 bg-slate-100 rounded-full animate-pulse" />
+                            <div className="h-5 w-16 bg-slate-100 rounded-full animate-pulse" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="h-8 w-8 bg-slate-100 rounded animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : notes.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-muted-foreground">暂无数据</p>
+            <div className="flex flex-col items-center justify-center py-32 space-y-4">
+              <div className="w-20 h-20 bg-slate-50/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
+                {searchQuery.trim() ? (
+                  <Search className="h-9 w-9 text-slate-300" />
+                ) : activePrimary === "archive" ? (
+                  <Archive className="h-9 w-9 text-slate-300" />
+                ) : activePrimary === "tags" ? (
+                  <Tag className="h-9 w-9 text-slate-300" />
+                ) : category === "starred" ? (
+                  <Star className="h-9 w-9 text-slate-300" />
+                ) : (
+                  <Inbox className="h-9 w-9 text-slate-300" />
+                )}
+              </div>
+              <h3 className="text-slate-900 font-semibold text-lg">
+                {searchQuery.trim()
+                  ? "没有找到相关内容"
+                  : activePrimary === "archive"
+                  ? "暂无归档内容"
+                  : activePrimary === "tags"
+                  ? "暂无标签笔记"
+                  : category === "starred"
+                  ? "暂无星标笔记"
+                  : "暂无内容"}
+              </h3>
+              <p className="text-slate-400 text-sm max-w-sm text-center leading-relaxed px-4">
+                {searchQuery.trim()
+                  ? `未找到与 "${searchQuery}" 相关的笔记，请尝试更换关键词`
+                  : activePrimary === "archive"
+                  ? "归档的笔记将显示在这里，您可以将不再需要的笔记归档以保持收件箱整洁"
+                  : activePrimary === "tags"
+                  ? "该标签下暂无关联笔记，您可以为笔记添加标签以便分类管理"
+                  : category === "starred"
+                  ? "为您重要的笔记添加星标，它们将在这里集中显示"
+                  : "点击右上角 + 开始添加第一条笔记，或者从浏览器插件快速保存"}
+              </p>
+              {!searchQuery.trim() && activePrimary !== "archive" && activePrimary !== "tags" && category !== "starred" && (
+                <Button
+                  onClick={() => setShowAddNoteDialog(true)}
+                  className="mt-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 shadow-lg shadow-blue-600/20 h-11 transition-all hover:scale-105 active:scale-95"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  新建笔记
+                </Button>
+              )}
             </div>
           ) : viewMode === "compact-card" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
@@ -4782,8 +5402,22 @@ export function DashboardContent() {
             </div>
           )}
 
-          <div ref={loadMoreRef} className="py-4 text-center text-xs text-gray-400">
-            {loadingMore ? "加载中..." : hasMore ? "下拉加载更多" : "没有更多内容"}
+          <div ref={loadMoreRef} className="py-6 flex flex-col items-center justify-center gap-2">
+            {loadingMore ? (
+              <div className="flex items-center gap-2 text-sm text-blue-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>加载更多...</span>
+              </div>
+            ) : hasMore ? (
+              <div className="flex items-center gap-2 text-xs text-slate-400 opacity-60">
+                <ChevronDown className="h-3.5 w-3.5" />
+                <span>继续滚动加载更多</span>
+              </div>
+            ) : (
+              <div className="text-xs text-slate-300">
+                — 已加载全部 {notes.length} 条内容 —
+              </div>
+            )}
           </div>
         </div>
         )}
@@ -4797,3 +5431,4 @@ export function DashboardContent() {
     </div>
   );
 }
+

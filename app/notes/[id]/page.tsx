@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ReaderPageWrapper } from "@/components/reader/ReaderPageWrapper";
+import { ReaderSkeleton } from "@/components/reader/ReaderSkeleton";
 import { NoteDetailAuthCheck } from "@/components/notes/note-detail-auth-check";
 
 export default function NoteDetailPage({
@@ -9,13 +10,7 @@ export default function NoteDetailPage({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-screen bg-background">
-          <div className="text-muted-foreground">加载中...</div>
-        </div>
-      }
-    >
+    <Suspense fallback={<ReaderSkeleton />}>
       <NoteDetailAuthCheck params={params}>
         <ReaderPageWrapper params={params} />
       </NoteDetailAuthCheck>

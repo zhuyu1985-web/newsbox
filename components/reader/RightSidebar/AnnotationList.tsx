@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 interface HighlightWithAnnotation {
   id: string;
@@ -62,6 +64,8 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
   const zIndexCounter = useRef<number>(10000); // 起始 z-index 值，确保足够大
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const lastAddedHighlightId = useRef<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // 滚动到指定高亮的辅助函数
   const scrollToHighlight = useCallback((highlightId: string) => {
@@ -112,6 +116,20 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
       }
     }
   }, [pendingScrollId, items, scrollToHighlight]);
+
+  // Handle Escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFloatingIds(new Set());
+        setFloatingPositions(new Map());
+        setFloatingZIndex(new Map());
+        setShowDeleteConfirm(null);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
@@ -243,7 +261,13 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
   };
 
   const handleDelete = async (highlightId: string) => {
-    if (!confirm("确定要删除这条高亮及关联批注吗？")) return;
+    setShowDeleteConfirm(highlightId);
+  };
+
+  const actualDelete = async () => {
+    if (!showDeleteConfirm) return;
+    const highlightId = showDeleteConfirm;
+    setIsDeleting(true);
     
     const supabase = createClient();
     const { error } = await supabase.from("highlights").delete().eq("id", highlightId);
@@ -256,7 +280,13 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
         return next;
       });
       window.dispatchEvent(new CustomEvent("reader:refresh-highlights"));
+      toast.success("已删除");
+    } else {
+      toast.error("删除失败");
     }
+    
+    setIsDeleting(false);
+    setShowDeleteConfirm(null);
   };
 
   const handleColorChange = async (highlightId: string, newColor: string) => {
@@ -573,6 +603,17 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
         </AnimatePresence>,
         document.body
       )}
+
+      <ConfirmDialog
+        isOpen={!!showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(null)}
+        onConfirm={actualDelete}
+        title="确认删除"
+        description="确定要删除这条高亮及关联批注吗？"
+        confirmText="删除"
+        variant="destructive"
+        loading={isDeleting}
+      />
     </>
   );
 }

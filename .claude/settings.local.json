@@ -12,7 +12,10 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(cat:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 30 npm run dev:*)"
     ]
   }
 }

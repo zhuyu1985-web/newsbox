@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
+import { toast } from "sonner";
 
 interface Transcript {
   id: string;
@@ -79,7 +80,7 @@ export function TranscriptView({ noteId }: { noteId: string }) {
       }
     } catch (error: any) {
       console.error("Generate transcript error:", error);
-      alert(error.message);
+      toast.error(error.message);
     } finally {
       setGenerating(false);
     }

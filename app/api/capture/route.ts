@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import * as cheerio from "cheerio";
-import { sanitizeHtmlContent } from "@/lib/services/html-sanitizer";
+import { sanitizeHtmlContent, formatNewsContent } from "@/lib/services/html-sanitizer";
+import { extractWithJinaReader } from "@/lib/services/jina-reader";
+import {
+  crawlPlatformContent,
+  isSupportedPlatform,
+  detectPlatform
+} from "@/lib/services/platform-crawlers";
 
 export async function POST(request: NextRequest) {
   try {
@@ -119,27 +125,148 @@ export async function POST(request: NextRequest) {
       let siteName: string | null = null;
       let contentText = "";
       let contentHtml = "";
+      let author: string | null = null;
+      let publishedAt: string | null = null;
 
-      // 尝试抓取HTML内容
-      try {
-        const response = await fetch(targetUrl, {
-          headers,
-          signal: AbortSignal.timeout(15000),
-        });
+      // 如果是文章类型，按优先级选择爬虫策略
+      if (detectedContentType === "article") {
+        const platform = detectPlatform(targetUrl);
+        const isPlatformSupported = isSupportedPlatform(targetUrl);
 
-        if (!response.ok) {
-          if (mediaUrl) {
-            console.log(`HTML fetch failed (${response.status}) but video embed URL exists, continuing...`);
-          } else {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // 策略1: 优先使用平台特定爬虫（腾讯新闻、微信公众号、今日头条）
+        if (isPlatformSupported) {
+          try {
+            console.log(`Using platform-specific crawler for ${platform}: ${targetUrl}`);
+
+            // 先获取 HTML
+            const response = await fetch(targetUrl, {
+              headers,
+              signal: AbortSignal.timeout(15000),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            html = await response.text();
+
+            // 使用平台爬虫解析
+            const platformResult = crawlPlatformContent(targetUrl, html);
+
+            if (platformResult) {
+              title = platformResult.title;
+              excerpt = platformResult.description || null;
+              contentHtml = sanitizeHtmlContent(platformResult.contentHtml);
+              contentText = platformResult.contentText.substring(0, 5000);
+              siteName = platformResult.siteName;
+              author = platformResult.author || null;
+              publishedAt = platformResult.publishedAt || null;
+              coverImageUrl = platformResult.coverImageUrl || null;
+
+              console.log(`Platform crawler (${platform}) extraction successful for: ${targetUrl}`);
+            } else {
+              throw new Error("Platform crawler returned null");
+            }
+          } catch (platformError: any) {
+            console.error(`Platform crawler (${platform}) failed, falling back to Jina Reader:`, platformError);
+
+            // 平台爬虫失败，回退到 Jina Reader
+            try {
+              const jinaResult = await extractWithJinaReader(targetUrl);
+              title = jinaResult.title || null;
+              excerpt = jinaResult.description ? jinaResult.description.substring(0, 200) : null;
+              siteName = jinaResult.siteName || urlObj.hostname;
+              author = jinaResult.author || null;
+              publishedAt = jinaResult.publishedTime || null;
+
+              if (jinaResult.content) {
+                contentHtml = formatNewsContent(jinaResult.content);
+                const $clean = cheerio.load(contentHtml);
+                contentText = $clean.root().text().replace(/\s+/g, " ").trim().substring(0, 5000);
+                if (!excerpt && contentText) {
+                  excerpt = contentText.substring(0, 200);
+                }
+              }
+
+              console.log(`Jina Reader fallback successful for: ${targetUrl}`);
+            } catch (jinaError: any) {
+              console.error("Jina Reader fallback also failed, using basic scraper:", jinaError);
+              // html 已经在上面 fetch 过了，直接继续用基础解析
+            }
           }
         } else {
-          html = await response.text();
+          // 策略2: 非平台网站，直接使用 Jina Reader
+          try {
+            console.log(`Using Jina Reader to extract content from: ${targetUrl}`);
+            const jinaResult = await extractWithJinaReader(targetUrl);
+
+            // 使用 Jina Reader 返回的数据
+            title = jinaResult.title || null;
+            excerpt = jinaResult.description ? jinaResult.description.substring(0, 200) : null;
+            siteName = jinaResult.siteName || urlObj.hostname;
+            author = jinaResult.author || null;
+            publishedAt = jinaResult.publishedTime || null;
+
+            // 将 Markdown 内容转换为格式化的 HTML
+            if (jinaResult.content) {
+              contentHtml = formatNewsContent(jinaResult.content);
+
+              // 生成纯文本内容
+              const $clean = cheerio.load(contentHtml);
+              contentText = $clean.root().text().replace(/\s+/g, " ").trim().substring(0, 5000);
+
+              // 如果没有摘要，从纯文本中提取
+              if (!excerpt && contentText) {
+                excerpt = contentText.substring(0, 200);
+              }
+            }
+
+            console.log(`Jina Reader extraction successful for: ${targetUrl}`);
+          } catch (jinaError: any) {
+            console.error("Jina Reader extraction failed, falling back to basic scraper:", jinaError);
+
+            // Jina Reader 失败时，回退到基础爬虫
+            try {
+              const response = await fetch(targetUrl, {
+                headers,
+                signal: AbortSignal.timeout(15000),
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+
+              html = await response.text();
+            } catch (fetchError: any) {
+              console.error("Fallback HTML fetch error:", fetchError);
+              throw fetchError;
+            }
+          }
         }
-      } catch (fetchError: any) {
-        console.error("HTML fetch error:", fetchError);
-        if (!mediaUrl) {
-          throw fetchError;
+      }
+
+      // 尝试抓取HTML内容（仅用于视频平台或 Jina Reader 失败的情况）
+      if (detectedContentType === "video" || !contentHtml) {
+        try {
+          const response = await fetch(targetUrl, {
+            headers,
+            signal: AbortSignal.timeout(15000),
+          });
+
+          if (!response.ok) {
+            if (mediaUrl) {
+              console.log(`HTML fetch failed (${response.status}) but video embed URL exists, continuing...`);
+            } else {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+          } else {
+            html = await response.text();
+          }
+        } catch (fetchError: any) {
+          console.error("HTML fetch error:", fetchError);
+          if (!mediaUrl) {
+            throw fetchError;
+          }
         }
       }
 
@@ -205,6 +332,8 @@ export async function POST(request: NextRequest) {
         site_name: siteName,
         content_text: contentText || null,
         content_html: contentHtml || null,
+        author: author || null,
+        published_at: publishedAt || null,
         captured_at: new Date().toISOString(),
       };
 

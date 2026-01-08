@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { marked } from 'marked';
 
 /**
  * 清洗和格式化爬取的 HTML 内容，确保一致的阅读体验
@@ -198,3 +199,144 @@ export const CONTENT_STYLING_CLASSES =
   "prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:py-3 prose-blockquote:px-4 prose-blockquote:italic prose-blockquote:bg-blue-50/50 prose-blockquote:my-[24px] " +
   "prose-ul:list-disc prose-ol:list-decimal prose-li:mb-[8px] prose-li:leading-[var(--reader-line-height)] " +
   "prose-strong:font-semibold prose-em:italic";
+
+/**
+ * 新闻详情页样式类（基于 docs/tec-news-reader-style.md 规范）
+ *
+ * 设计目标：
+ * - 统一新闻文章的展现格式
+ * - 符合主流新闻平台的阅读体验（腾讯新闻、今日头条等）
+ * - 响应式适配（桌面/平板/移动端）
+ *
+ * 样式规范：
+ * - 标题 H1: 28px bold, line-height 1.3, margin-bottom 16px
+ * - 标题 H2: 20px semibold, line-height 1.4, margin-bottom 12px
+ * - 正文段落: 18px, line-height 1.8, margin-bottom 24px
+ * - 图片: 居中 + 圆角 + 阴影, margin 32px
+ * - 引用: 左侧蓝色边框 4px + 浅蓝背景
+ * - 列表: line-height 1.7, margin-bottom 12px
+ *
+ * 响应式断点：
+ * - 移动端 (<768px): 16px 字号, line-height 1.6
+ * - 平板端 (768-1024px): 17px 字号, line-height 1.7
+ * - 桌面端 (>1024px): 18px 字号, line-height 1.8
+ *
+ * @example
+ * ```tsx
+ * <div className={NEWS_STYLING_CLASSES}>
+ *   <div dangerouslySetInnerHTML={{ __html: formattedContent }} />
+ * </div>
+ * ```
+ */
+export const NEWS_STYLING_CLASSES =
+  "prose prose-slate max-w-none dark:prose-invert " +
+  // 标题样式（符合新闻规范）
+  "prose-h1:text-[28px] prose-h1:font-bold prose-h1:leading-[1.3] prose-h1:mb-4 prose-h1:text-gray-900 dark:prose-h1:text-gray-100 " +
+  "prose-h2:text-[20px] prose-h2:font-semibold prose-h2:leading-[1.4] prose-h2:mb-3 prose-h2:text-gray-800 dark:prose-h2:text-gray-200 " +
+  "prose-h3:text-[18px] prose-h3:font-semibold prose-h3:leading-[1.5] prose-h3:mb-2 prose-h3:text-gray-800 dark:prose-h3:text-gray-200 " +
+  "prose-h4:text-[16px] prose-h4:font-medium prose-h4:leading-[1.5] prose-h4:mb-2 prose-h4:text-gray-700 dark:prose-h4:text-gray-300 " +
+  // 正文样式
+  "prose-p:text-[18px] prose-p:leading-[1.8] prose-p:mb-6 prose-p:text-gray-700 dark:prose-p:text-gray-300 " +
+  "md:prose-p:text-[17px] md:prose-p:leading-[1.7] " +
+  "sm:prose-p:text-[16px] sm:prose-p:leading-[1.6] " +
+  // 图片样式
+  "prose-img:rounded prose-img:shadow-md prose-img:mx-auto prose-img:my-8 prose-img:block prose-img:max-w-full " +
+  // 引用样式
+  "prose-blockquote:border-l-4 prose-blockquote:border-blue-500 " +
+  "prose-blockquote:bg-blue-50/50 dark:prose-blockquote:bg-blue-900/20 " +
+  "prose-blockquote:py-3 prose-blockquote:px-4 prose-blockquote:my-6 " +
+  "prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400 " +
+  // 列表样式
+  "prose-ul:list-disc prose-ul:ml-6 prose-ul:my-6 " +
+  "prose-ol:list-decimal prose-ol:ml-6 prose-ol:my-6 " +
+  "prose-li:mb-3 prose-li:leading-[1.7] prose-li:text-gray-700 dark:prose-li:text-gray-300 " +
+  // 链接样式
+  "prose-a:text-blue-600 prose-a:underline prose-a:underline-offset-2 " +
+  "hover:prose-a:text-blue-700 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300 " +
+  // 强调样式
+  "prose-strong:font-semibold prose-strong:text-gray-900 dark:prose-strong:text-gray-100 " +
+  "prose-em:italic prose-em:text-gray-600 dark:prose-em:text-gray-400";
+
+/**
+ * 将 Markdown 转换为 HTML 并应用新闻样式格式化
+ *
+ * 功能说明：
+ * ---------
+ * 1. 使用 marked 库将 Markdown 转换为 HTML
+ * 2. 使用 sanitizeHtmlContent 清洗 HTML（移除危险标签和属性）
+ * 3. 返回干净的、适合展示的 HTML
+ *
+ * 处理流程：
+ * ---------
+ * Markdown (from Jina Reader)
+ *   ↓
+ * marked.parse() → 原始 HTML
+ *   ↓
+ * sanitizeHtmlContent() → 清洗后的 HTML
+ *   ↓
+ * 前端使用 NEWS_STYLING_CLASSES 应用样式
+ *
+ * 安全性：
+ * ---------
+ * - marked 默认配置禁用 HTML（防 XSS）
+ * - sanitizeHtmlContent 进一步清洗输出
+ * - 所有脚本和事件属性都被移除
+ *
+ * @param markdown - Markdown 格式的内容（来自 Jina Reader）
+ * @returns 清洗后的 HTML 字符串
+ *
+ * @example
+ * ```typescript
+ * const markdown = "# Hello\n\nThis is **bold** text.";
+ * const html = formatNewsContent(markdown);
+ * // 返回: "<h1>Hello</h1><p>This is <strong>bold</strong> text.</p>"
+ * ```
+ */
+export function formatNewsContent(markdown: string): string {
+  if (!markdown) return '';
+
+  try {
+    // 配置 marked 选项
+    marked.setOptions({
+      gfm: true, // GitHub Flavored Markdown
+      breaks: true, // 将换行符转换为 <br>
+    });
+
+    // 1. Markdown → HTML
+    const rawHtml = marked.parse(markdown) as string;
+
+    // 2. 清洗 HTML（复用现有函数）
+    const cleanHtml = sanitizeHtmlContent(rawHtml);
+
+    // 3. 返回清洗后的 HTML
+    return cleanHtml;
+  } catch (error) {
+    console.error('Failed to format news content:', error);
+    return '';
+  }
+}
+
+/**
+ * 从 HTML 中提取纯文本内容
+ *
+ * 用途：
+ * -----
+ * 生成用于搜索、摘要的纯文本版本
+ *
+ * @param html - HTML 字符串
+ * @returns 纯文本字符串
+ */
+export function extractTextFromHtml(html: string): string {
+  if (!html) return '';
+
+  try {
+    const $ = cheerio.load(html);
+    // 移除所有标签，只保留文本
+    const text = $.root().text();
+    // 清理多余空白
+    return text.replace(/\s+/g, ' ').trim();
+  } catch (error) {
+    console.error('Failed to extract text from HTML:', error);
+    return '';
+  }
+}

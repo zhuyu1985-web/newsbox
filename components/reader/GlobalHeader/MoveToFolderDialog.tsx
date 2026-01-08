@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Folder {
   id: string;
@@ -85,6 +86,17 @@ export function MoveToFolderDialog({
     setMounted(true);
   }, []);
 
+  // Handle Escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onClose]);
+
   // 加载文件夹列表
   useEffect(() => {
     const fetchFolders = async () => {
@@ -163,62 +175,79 @@ export function MoveToFolderDialog({
   const flattenedOptions = flattenFolderTree(folderTree);
 
   const content = (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
-      onClick={onClose}
-    >
-      <Card className="w-full max-w-md p-6 mx-4" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold mb-4">移动到收藏夹</h3>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[9999] pb-[10vh]"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Card className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl">
+              <h3 className="text-lg font-semibold mb-4 text-slate-800">移动到收藏夹</h3>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">加载中...</div>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {/* 未分类选项 */}
-              <Button
-                variant={selectedFolderId === null ? "default" : "outline"}
-                className="w-full justify-start"
-                onClick={() => setSelectedFolderId(null)}
-              >
-                <span className="text-base leading-none mr-2">📄</span>
-                未分类
-              </Button>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-muted-foreground">加载中...</div>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                    {/* 未分类选项 */}
+                    <Button
+                      variant={selectedFolderId === null ? "default" : "outline"}
+                      className="w-full justify-start hover:bg-slate-50 border-slate-200"
+                      onClick={() => setSelectedFolderId(null)}
+                    >
+                      <span className="text-base leading-none mr-2">📄</span>
+                      未分类
+                    </Button>
 
-              {/* 文件夹列表 */}
-              {flattenedOptions.map((folder) => (
-                <Button
-                  key={folder.id}
-                  variant={selectedFolderId === folder.id ? "default" : "outline"}
-                  className="w-full justify-start gap-2"
-                  style={{ paddingLeft: folder.depth * 12 + 12 }}
-                  onClick={() => setSelectedFolderId(folder.id)}
-                >
-                  <span className="text-base leading-none">
-                    {folder.icon || "📁"}
-                  </span>
-                  <span className="truncate">{folder.name}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {folder.note_count || 0}
-                  </span>
-                </Button>
-              ))}
-            </div>
+                    {/* 文件夹列表 */}
+                    {flattenedOptions.map((folder) => (
+                      <Button
+                        key={folder.id}
+                        variant={selectedFolderId === folder.id ? "default" : "outline"}
+                        className="w-full justify-start gap-2 hover:bg-slate-50 border-slate-200"
+                        style={{ paddingLeft: folder.depth * 12 + 12 }}
+                        onClick={() => setSelectedFolderId(folder.id)}
+                      >
+                        <span className="text-base leading-none">
+                          {folder.icon || "📁"}
+                        </span>
+                        <span className="truncate">{folder.name}</span>
+                        <span className="ml-auto text-xs text-gray-400">
+                          {folder.note_count || 0}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
 
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={onClose} disabled={moving}>
-                取消
-              </Button>
-              <Button onClick={handleMove} disabled={moving}>
-                {moving ? "移动中..." : "确定"}
-              </Button>
-            </div>
-          </>
-        )}
-      </Card>
-    </div>
+                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+                    <Button variant="outline" onClick={onClose} disabled={moving}>
+                      取消
+                    </Button>
+                    <Button onClick={handleMove} disabled={moving}>
+                      {moving ? "移动中..." : "确定"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 
   return createPortal(content, document.body);

@@ -12,11 +12,15 @@ type DeletedNote = {
   deleted_at: string;
 };
 
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
+
 export function TrashSection() {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<DeletedNote[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -43,26 +47,36 @@ export function TrashSection() {
       const res = await fetch(`/api/settings/trash/${id}/restore`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "恢复失败");
+      toast.success("已恢复笔记");
       await load();
     } catch (e: any) {
       setError(e?.message ?? "恢复失败");
+      toast.error(e?.message ?? "恢复失败");
     } finally {
       setBusyId(null);
     }
   };
 
   const permanentDelete = async (id: string) => {
-    if (!confirm("确认永久删除？该操作不可恢复。")) return;
+    setShowConfirmDelete(id);
+  };
+
+  const actualDelete = async () => {
+    if (!showConfirmDelete) return;
+    const id = showConfirmDelete;
     setBusyId(id);
     try {
       const res = await fetch(`/api/settings/trash/${id}/delete`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "删除失败");
+      toast.success("已永久删除");
       await load();
     } catch (e: any) {
       setError(e?.message ?? "删除失败");
+      toast.error(e?.message ?? "删除失败");
     } finally {
       setBusyId(null);
+      setShowConfirmDelete(null);
     }
   };
 
@@ -131,6 +145,16 @@ export function TrashSection() {
           )}
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={!!showConfirmDelete}
+        onClose={() => setShowConfirmDelete(null)}
+        onConfirm={actualDelete}
+        title="确认永久删除"
+        description="确定要永久删除这条笔记吗？该操作不可恢复。"
+        confirmText="永久删除"
+        variant="destructive"
+        loading={busyId === showConfirmDelete}
+      />
     </div>
   );
 }
