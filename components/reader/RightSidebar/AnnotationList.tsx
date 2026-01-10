@@ -3,7 +3,21 @@
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { StickyNote, Trash2, MoreHorizontal, Pin, PinOff, Copy, Link2, Download, Share2, MessageSquare, X } from "lucide-react";
+import {
+  StickyNote,
+  Trash2,
+  MoreHorizontal,
+  Pin,
+  PinOff,
+  Copy,
+  Link2,
+  Download,
+  Share2,
+  MessageSquare,
+  X,
+  Quote,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -51,13 +65,19 @@ interface AnnotationListProps {
 
 export function AnnotationList({ noteId, isCompact = false, onExpand }: AnnotationListProps) {
   const [items, setItems] = useState<HighlightWithAnnotation[]>([]);
+  const itemsRef = useRef<HighlightWithAnnotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [floatingIds, setFloatingIds] = useState<Set<string>>(new Set());
+  const [quoteMaterialIdByAnnotationId, setQuoteMaterialIdByAnnotationId] = useState<Map<string, string>>(new Map());
+  const [quoteMaterialBusyAnnotationIds, setQuoteMaterialBusyAnnotationIds] = useState<Set<string>>(new Set());
+  const [extractingQuotes, setExtractingQuotes] = useState(false);
   // 笔记草稿：始终在卡片内用 textarea 编辑，不再弹出“保存/取消”
   const [noteDrafts, setNoteDrafts] = useState<Map<string, string>>(new Map());
+  const noteDraftsRef = useRef<Map<string, string>>(new Map());
   const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
   const focusedNoteIdRef = useRef<string | null>(null);
   const [savingNoteIds, setSavingNoteIds] = useState<Set<string>>(new Set());
+  const autoSaveTimersRef = useRef<Map<string, number>>(new Map());
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [floatingPositions, setFloatingPositions] = useState<Map<string, { x: number; y: number }>>(new Map());
   const [floatingZIndex, setFloatingZIndex] = useState<Map<string, number>>(new Map());
@@ -66,6 +86,10 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
   const lastAddedHighlightId = useRef<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   // 滚动到指定高亮的辅助函数
   const scrollToHighlight = useCallback((highlightId: string) => {
@@ -130,6 +154,24 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
+
+  const loadQuoteMaterials = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/quote-materials?note_id=${encodeURIComponent(noteId)}&limit=200`, { method: "GET" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) return;
+
+      const next = new Map<string, string>();
+      for (const it of Array.isArray(json.items) ? json.items : []) {
+        if (typeof it?.annotation_id === "string" && typeof it?.id === "string") {
+          next.set(it.annotation_id, it.id);
+        }
+      }
+      setQuoteMaterialIdByAnnotationId(next);
+    } catch {
+      // ignore
+    }
+  }, [noteId]);
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
@@ -234,14 +276,84 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
 
   useEffect(() => {
     loadData();
+    void loadQuoteMaterials();
     
     // 监听刷新事件（包括新建高亮）
     const handleRefresh = () => {
       loadData();
+      void loadQuoteMaterials();
     };
     window.addEventListener("reader:refresh-highlights", handleRefresh);
     return () => window.removeEventListener("reader:refresh-highlights", handleRefresh);
-  }, [noteId, loadData]);
+  }, [noteId, loadData, loadQuoteMaterials]);
+
+  const toggleQuoteMaterialForAnnotation = useCallback(
+    async (annotationId: string) => {
+      if (!annotationId) return;
+      setQuoteMaterialBusyAnnotationIds((prev) => new Set(prev).add(annotationId));
+      try {
+        const existingId = quoteMaterialIdByAnnotationId.get(annotationId);
+        if (existingId) {
+          const res = await fetch(`/api/quote-materials?id=${encodeURIComponent(existingId)}`, { method: "DELETE" });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || !json?.success) {
+            toast.error(json?.error || "取消金句素材失败");
+            return;
+          }
+          setQuoteMaterialIdByAnnotationId((prev) => {
+            const next = new Map(prev);
+            next.delete(annotationId);
+            return next;
+          });
+          toast.success("已取消金句素材");
+          return;
+        }
+
+        const res = await fetch("/api/quote-materials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ annotation_id: annotationId }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json?.success) {
+          toast.error(json?.error || "设为金句素材失败");
+          return;
+        }
+        const id = String(json?.item?.id || "");
+        if (id) {
+          setQuoteMaterialIdByAnnotationId((prev) => new Map(prev).set(annotationId, id));
+        }
+        toast.success("已设为金句素材");
+      } finally {
+        setQuoteMaterialBusyAnnotationIds((prev) => {
+          const next = new Set(prev);
+          next.delete(annotationId);
+          return next;
+        });
+      }
+    },
+    [quoteMaterialIdByAnnotationId],
+  );
+
+  const extractQuotesForNote = useCallback(async () => {
+    if (!noteId) return;
+    setExtractingQuotes(true);
+    try {
+      const res = await fetch("/api/quote-materials/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note_id: noteId }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || "自动提取失败");
+        return;
+      }
+      toast.success(`已提取并入库 ${json?.inserted ?? 0} 条金句`);
+    } finally {
+      setExtractingQuotes(false);
+    }
+  }, [noteId]);
 
   const handleJump = (highlightId: string) => {
     if (floatingIds.has(highlightId)) return;
@@ -393,11 +505,17 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
     });
   };
 
-  const saveNote = async (highlightId: string, content: string) => {
+  const saveNote = useCallback(async (highlightId: string, content: string) => {
     const supabase = createClient();
-    const item = items.find(i => i.id === highlightId);
+    const item = itemsRef.current.find((i) => i.id === highlightId);
     const annotation = item?.annotations?.[0];
     const trimmed = content.trim();
+
+    try {
+      localStorage.setItem("newsbox:annotations_updated_at", String(Date.now()));
+    } catch {
+      // ignore
+    }
 
     setSavingNoteIds((prev) => new Set(prev).add(highlightId));
 
@@ -408,6 +526,11 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
           .update({ content: trimmed })
           .eq("id", annotation.id);
         if (!error) {
+          try {
+            localStorage.setItem("newsbox:annotations_updated_at", String(Date.now()));
+          } catch {
+            // ignore
+          }
           // 乐观更新
           setItems((prev) =>
             prev.map((it) =>
@@ -440,6 +563,11 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
           .single();
 
         if (!error && data) {
+          try {
+            localStorage.setItem("newsbox:annotations_updated_at", String(Date.now()));
+          } catch {
+            // ignore
+          }
           setItems((prev) =>
             prev.map((it) =>
               it.id === highlightId ? { ...it, annotations: [data] } : it
@@ -454,7 +582,55 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
         return next;
       });
     }
-  };
+  }, [noteId]);
+
+  const scheduleAutoSave = useCallback(
+    (highlightId: string, content: string) => {
+      // Clear previous timer
+      const prev = autoSaveTimersRef.current.get(highlightId);
+      if (typeof prev === "number") {
+        window.clearTimeout(prev);
+        autoSaveTimersRef.current.delete(highlightId);
+      }
+
+      const timer = window.setTimeout(() => {
+        autoSaveTimersRef.current.delete(highlightId);
+        void saveNote(highlightId, content);
+      }, 800);
+      autoSaveTimersRef.current.set(highlightId, timer);
+    },
+    [saveNote],
+  );
+
+  const flushPendingSaves = useCallback(() => {
+    // Clear timers and do a best-effort save for the latest drafts
+    for (const [highlightId, timer] of autoSaveTimersRef.current.entries()) {
+      window.clearTimeout(timer);
+      autoSaveTimersRef.current.delete(highlightId);
+      const content = noteDraftsRef.current.get(highlightId) ?? "";
+      void saveNote(highlightId, content);
+    }
+
+    const focused = focusedNoteIdRef.current;
+    if (focused) {
+      const content = noteDraftsRef.current.get(focused) ?? "";
+      void saveNote(focused, content);
+    }
+  }, [saveNote]);
+
+  useEffect(() => {
+    noteDraftsRef.current = noteDrafts;
+  }, [noteDrafts]);
+
+  useEffect(() => {
+    // Flush drafts when navigating away (prevents count mismatch due to unsaved notes)
+    const onPageHide = () => flushPendingSaves();
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      flushPendingSaves();
+    };
+  }, [flushPendingSaves]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -532,6 +708,23 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
         </div>
       ) : (
         <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs text-slate-400">共 {items.length} 条</div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl"
+              disabled={extractingQuotes}
+              onClick={(e) => {
+                e.stopPropagation();
+                void extractQuotesForNote();
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-2" />
+              自动提取金句
+            </Button>
+          </div>
           {items.map((item) => (
             <div
               key={item.id}
@@ -550,6 +743,11 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
                 onDelete={handleDelete}
                 onColorChange={handleColorChange}
                 onTogglePin={handleTogglePin}
+                quoteMaterialId={
+                  item.annotations?.[0]?.id ? quoteMaterialIdByAnnotationId.get(item.annotations[0].id) || null : null
+                }
+                quoteMaterialBusy={item.annotations?.[0]?.id ? quoteMaterialBusyAnnotationIds.has(item.annotations[0].id) : false}
+                onToggleQuoteMaterial={(annotationId: string) => void toggleQuoteMaterialForAnnotation(annotationId)}
                 noteValue={noteDrafts.get(item.id) ?? item.annotations?.[0]?.content ?? ""}
                 isNoteSaving={savingNoteIds.has(item.id)}
                 onNoteFocus={() => {
@@ -562,11 +760,17 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
                     next.set(item.id, val);
                     return next;
                   });
+                  scheduleAutoSave(item.id, val);
                 }}
                 onNoteBlur={() => {
                   const content = noteDrafts.get(item.id) ?? item.annotations?.[0]?.content ?? "";
                   focusedNoteIdRef.current = null;
                   setFocusedNoteId((cur) => (cur === item.id ? null : cur));
+                  const pending = autoSaveTimersRef.current.get(item.id);
+                  if (typeof pending === "number") {
+                    window.clearTimeout(pending);
+                    autoSaveTimersRef.current.delete(item.id);
+                  }
                   void saveNote(item.id, content);
                 }}
                 onCopy={copyToClipboard}
@@ -621,10 +825,13 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
 function AnnotationCard({ 
   item, isFloating,
   onJump, onDelete, onColorChange, onTogglePin, 
+  quoteMaterialId, quoteMaterialBusy, onToggleQuoteMaterial,
   noteValue, isNoteSaving, onNoteFocus, onNoteChange, onNoteBlur, onCopy
 }: any) {
   const annotation = item.annotations?.[0];
   const hexColor = COLOR_MAP[item.color] || item.color || '#fef08a';
+  const annotationId = annotation?.id || "";
+  const isQuoteMaterial = !!quoteMaterialId;
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
@@ -697,13 +904,13 @@ function AnnotationCard({
   return (
     <div
       className={cn(
-        "group relative bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgb(0,0,0,0.02)] transition-all duration-300 overflow-hidden",
+        "group relative bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] transition-all duration-300 overflow-hidden",
         isFloating ? "opacity-40 grayscale pointer-events-none" : "hover:shadow-[0_12px_24px_rgb(0,0,0,0.04)] cursor-pointer"
       )}
       onClick={() => !isFloating && onJump(item.id)}
     >
       {/* 头部：操作按钮 */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-50/50">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-50/50 dark:border-slate-800/50">
         <div className="flex items-center gap-2">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
@@ -717,7 +924,7 @@ function AnnotationCard({
               {Object.entries(COLOR_MAP).map(([name, hex]) => (
                 <button
                   key={name}
-                  className="w-5 h-5 rounded-full border border-slate-100"
+                  className="w-5 h-5 rounded-full border border-slate-100 dark:border-slate-700"
                   style={{ backgroundColor: hex }}
                   onClick={() => onColorChange(item.id, name)}
                 />
@@ -736,13 +943,18 @@ function AnnotationCard({
           </Button>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-700" onClick={e => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" onClick={e => e.stopPropagation()}>
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onCopy(item.quote)}><Copy className="mr-2 h-4 w-4" /> 复制内容</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onCopy(window.location.href)}><Link2 className="mr-2 h-4 w-4" /> 复制链接</DropdownMenuItem>
+              {annotationId ? (
+                <DropdownMenuItem disabled={quoteMaterialBusy} onClick={() => onToggleQuoteMaterial(annotationId)}>
+                  <Quote className="mr-2 h-4 w-4" /> {isQuoteMaterial ? "取消金句素材" : "设为金句素材"}
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem><Download className="mr-2 h-4 w-4" /> 导出 TXT</DropdownMenuItem>
               <DropdownMenuItem><Share2 className="mr-2 h-4 w-4" /> 分享</DropdownMenuItem>
             </DropdownMenuContent>
@@ -764,7 +976,7 @@ function AnnotationCard({
         {(item.timecode !== null || item.screenshot_url) && (
           <div className="mb-3 flex items-start gap-2">
             {item.screenshot_url && (
-              <div className="w-20 h-12 rounded bg-slate-100 overflow-hidden shrink-0 border border-slate-100">
+              <div className="w-20 h-12 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 border border-slate-100 dark:border-slate-700">
                 <img src={item.screenshot_url} alt="Screenshot" className="w-full h-full object-cover" />
               </div>
             )}
@@ -775,7 +987,7 @@ function AnnotationCard({
                     e.stopPropagation();
                     window.dispatchEvent(new CustomEvent("video:seek", { detail: { time: item.timecode } }));
                   }}
-                  className="text-[10px] font-mono bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded w-fit hover:bg-blue-100 transition-colors"
+                  className="text-[10px] font-mono bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded w-fit hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                 >
                   {Math.floor(item.timecode / 60).toString().padStart(2, "0")}:
                   {Math.floor(item.timecode % 60).toString().padStart(2, "0")}
@@ -786,10 +998,10 @@ function AnnotationCard({
         )}
 
         <div 
-          className="bg-slate-50/80 rounded-lg p-3 border-l-[3px] mb-4"
+          className="bg-slate-50/80 dark:bg-slate-800/80 rounded-lg p-3 border-l-[3px] mb-4"
           style={{ borderLeftColor: hexColor }}
         >
-          <blockquote className="text-[13px] text-slate-700 leading-relaxed line-clamp-6">
+          <blockquote className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-6">
             {item.quote}
           </blockquote>
         </div>
@@ -820,7 +1032,7 @@ function AnnotationCard({
             className={cn(
               // 默认只展示一行高度 + 无边框（更像 inline note）
               // 用 leading-6 + py-1 让一行时高度更紧凑，同时 autosize 会根据 scrollHeight 增长
-              "w-full text-[14px] leading-6 min-h-0 py-1 px-1 border-0 shadow-none bg-transparent resize-none overflow-hidden outline-none focus:outline-none",
+              "w-full text-[14px] leading-6 min-h-0 py-1 px-1 border-0 shadow-none bg-transparent resize-none overflow-hidden outline-none focus:outline-none dark:text-slate-200 dark:placeholder-slate-500",
               isNoteSaving ? "opacity-70" : ""
             )}
           />
@@ -910,13 +1122,13 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
           onClick();
         }
       }}
-      className="fixed w-[320px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden cursor-move relative"
+      className="fixed w-[320px] bg-white dark:bg-slate-900 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 overflow-hidden cursor-move relative"
     >
       {/* 关闭按钮 - 右上角 */}
       <Button 
         variant="ghost" 
         size="icon" 
-        className="absolute top-2 right-2 h-7 w-7 text-slate-400 hover:text-slate-900 z-10" 
+        className="absolute top-2 right-2 h-7 w-7 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 z-10" 
         onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -925,7 +1137,7 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
         <X className="h-4 w-4" />
       </Button>
       
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 border-b border-slate-100">
+      <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: hexColor }} />
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Floating Note</span>
@@ -937,7 +1149,7 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
         {(item.timecode !== null || item.screenshot_url) && (
           <div className="mb-4 flex items-center gap-3">
             {item.screenshot_url && (
-              <img src={item.screenshot_url} alt="Screenshot" className="w-24 h-14 rounded-lg object-cover shadow-sm border border-slate-100" />
+              <img src={item.screenshot_url} alt="Screenshot" className="w-24 h-14 rounded-lg object-cover shadow-sm border border-slate-100 dark:border-slate-700" />
             )}
             {item.timecode !== null && (
               <button 
@@ -945,7 +1157,7 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
                   e.stopPropagation();
                   window.dispatchEvent(new CustomEvent("video:seek", { detail: { time: item.timecode } }));
                 }}
-                className="text-[11px] font-mono bg-blue-50 text-blue-600 px-2 py-1 rounded-md hover:bg-blue-100 transition-colors"
+                className="text-[11px] font-mono bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
               >
                 跳转到 {Math.floor(item.timecode / 60).toString().padStart(2, "0")}:
                 {Math.floor(item.timecode % 60).toString().padStart(2, "0")}
@@ -953,11 +1165,11 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
             )}
           </div>
         )}
-        <div className="text-[13px] text-slate-500 border-l-2 pl-3 mb-4 leading-relaxed" style={{ borderLeftColor: hexColor }}>
+        <div className="text-[13px] text-slate-500 dark:text-slate-400 border-l-2 pl-3 mb-4 leading-relaxed" style={{ borderLeftColor: hexColor }}>
           {item.quote}
         </div>
         {annotation ? (
-          <p className="text-[14px] text-slate-800 font-semibold leading-relaxed">
+          <p className="text-[14px] text-slate-800 dark:text-slate-200 font-semibold leading-relaxed">
             {annotation.content}
           </p>
         ) : (

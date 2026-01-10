@@ -307,7 +307,7 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
   return (
     <div
       className={cn(
-        "absolute top-0 right-0 bottom-0 w-[420px] bg-white border-l border-slate-200 shadow-2xl z-30 transform transition-transform duration-300 ease-out flex flex-col",
+        "absolute top-0 right-0 bottom-0 w-[320px] bg-white border-l border-slate-200 shadow-2xl z-30 transform transition-transform duration-300 ease-out flex flex-col",
         hasPanel ? "translate-x-0" : "translate-x-full"
       )}
     >

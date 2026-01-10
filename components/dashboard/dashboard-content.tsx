@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import JSZip from "jszip";
 import TurndownService from "turndown";
 import { toast } from "sonner";
+import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -754,6 +755,8 @@ export function DashboardContent() {
   const [annotationTypeFilter, setAnnotationTypeFilter] = useState<string>("all");
   const [annotationsLoading, setAnnotationsLoading] = useState(false);
   const [annotationsError, setAnnotationsError] = useState<string | null>(null);
+  const [quoteMaterialIdByAnnotationId, setQuoteMaterialIdByAnnotationId] = useState<Record<string, string>>({});
+  const [quoteMaterialBusyAnnotationIds, setQuoteMaterialBusyAnnotationIds] = useState<Set<string>>(new Set());
 
   // Tag management states
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -818,6 +821,8 @@ export function DashboardContent() {
   const [smartLists, setSmartLists] = useState<SmartList[]>([]);
   const [smartListsExpanded, setSmartListsExpanded] = useState(true);
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
+
+  const lastSeenAnnotationsUpdatedAtRef = useRef<number>(0);
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const [notesLoadingError, setNotesLoadingError] = useState<string | null>(
     null,
@@ -988,6 +993,91 @@ export function DashboardContent() {
       }
     });
   }, [annotations, selectedAnnotationNoteId, annotationRecordSearch, annotationSort, annotationTypeFilter, annotationNotes]);
+
+  useEffect(() => {
+    if (activePrimary !== "annotations") return;
+
+    const ids = filteredAnnotationRecords
+      .map((a) => a.id)
+      .filter(Boolean)
+      .slice(0, 80);
+
+    if (ids.length === 0) {
+      setQuoteMaterialIdByAnnotationId({});
+      return;
+    }
+
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        const url = `/api/quote-materials?annotation_ids=${encodeURIComponent(ids.join(","))}&limit=200`;
+        const res = await fetch(url, { method: "GET", signal: controller.signal });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json?.success) return;
+
+        const next: Record<string, string> = {};
+        for (const it of Array.isArray(json.items) ? json.items : []) {
+          if (typeof it?.annotation_id === "string" && typeof it?.id === "string") {
+            next[it.annotation_id] = it.id;
+          }
+        }
+        setQuoteMaterialIdByAnnotationId(next);
+      } catch (e) {
+        if ((e as any)?.name === "AbortError") return;
+      }
+    };
+
+    void load();
+    return () => controller.abort();
+  }, [activePrimary, filteredAnnotationRecords]);
+
+  const toggleQuoteMaterialForAnnotation = useCallback(
+    async (annotationId: string) => {
+      if (!annotationId) return;
+      setQuoteMaterialBusyAnnotationIds((prev) => new Set(prev).add(annotationId));
+      try {
+        const existingId = quoteMaterialIdByAnnotationId[annotationId];
+        if (existingId) {
+          const res = await fetch(`/api/quote-materials?id=${encodeURIComponent(existingId)}`, { method: "DELETE" });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || !json?.success) {
+            toast.error(json?.error || "取消金句素材失败");
+            return;
+          }
+          setQuoteMaterialIdByAnnotationId((prev) => {
+            const next = { ...prev };
+            delete next[annotationId];
+            return next;
+          });
+          toast.success("已取消金句素材");
+          return;
+        }
+
+        const res = await fetch("/api/quote-materials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ annotation_id: annotationId }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json?.success) {
+          toast.error(json?.error || "设为金句素材失败");
+          return;
+        }
+        const id = String(json?.item?.id || "");
+        if (id) {
+          setQuoteMaterialIdByAnnotationId((prev) => ({ ...prev, [annotationId]: id }));
+        }
+        toast.success("已设为金句素材");
+      } finally {
+        setQuoteMaterialBusyAnnotationIds((prev) => {
+          const next = new Set(prev);
+          next.delete(annotationId);
+          return next;
+        });
+      }
+    },
+    [quoteMaterialIdByAnnotationId],
+  );
 
   useEffect(() => {
     const loadUser = async () => {
@@ -1607,6 +1697,69 @@ export function DashboardContent() {
     await Promise.all([loadMetadata(), loadTags()]);
     clearSelections();
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const readTs = () => {
+      try {
+        const raw = localStorage.getItem("newsbox:annotations_updated_at");
+        const ts = raw ? Number(raw) : 0;
+        return Number.isFinite(ts) ? ts : 0;
+      } catch {
+        return 0;
+      }
+    };
+
+    // Initialize on mount
+    if (lastSeenAnnotationsUpdatedAtRef.current === 0) {
+      lastSeenAnnotationsUpdatedAtRef.current = readTs();
+    }
+
+    const maybeRefresh = () => {
+      const ts = readTs();
+      if (ts > lastSeenAnnotationsUpdatedAtRef.current) {
+        lastSeenAnnotationsUpdatedAtRef.current = ts;
+        void refreshAll();
+        if (user && activePrimary === "annotations") {
+          loadAnnotationsView(0, false);
+        }
+      }
+    };
+
+    const onVisible = () => {
+      maybeRefresh();
+      // Annotation saves may complete slightly after navigation; re-check a couple times.
+      const t1 = window.setTimeout(maybeRefresh, 800);
+      const t2 = window.setTimeout(maybeRefresh, 2000);
+      return () => {
+        window.clearTimeout(t1);
+        window.clearTimeout(t2);
+      };
+    };
+
+    let cleanupTimers: (() => void) | null = null;
+    const run = () => {
+      cleanupTimers?.();
+      cleanupTimers = onVisible();
+    };
+
+    run();
+
+    const onFocus = () => run();
+    const onVisibilityChange = () => {
+      if (!document.hidden) run();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      cleanupTimers?.();
+    };
+  }, [activePrimary, loadAnnotationsView, user]);
 
   const ensureParentsExpanded = useCallback(
     (folderId: string) => {
@@ -3991,10 +4144,14 @@ export function DashboardContent() {
       {/* Primary Sidebar */}
       <aside className="w-[64px] h-screen bg-[#EBECEE] flex flex-col items-center py-5 gap-0 flex-shrink-0 z-50 border-r border-black/5">
         {/* Top Logo */}
-        <div className="w-11 h-11 bg-gradient-to-b from-[#5C7CFF] to-[#4D6EF3] rounded-[15px] flex items-center justify-center shadow-[0_4px_12px_rgba(77,110,243,0.3)] shrink-0 mb-8 relative overflow-hidden group cursor-pointer">
+        <Link
+          href="/"
+          aria-label="返回首页"
+          className="w-11 h-11 bg-gradient-to-b from-[#5C7CFF] to-[#4D6EF3] rounded-[15px] flex items-center justify-center shadow-[0_4px_12px_rgba(77,110,243,0.3)] shrink-0 mb-8 relative overflow-hidden group"
+        >
           <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <Sparkles className="h-6 w-6 text-white relative z-10" />
-        </div>
+        </Link>
 
         {/* Navigation Items */}
         <div className="flex flex-col gap-1 w-full px-2 items-center">
@@ -5077,6 +5234,8 @@ export function DashboardContent() {
                   {filteredAnnotationRecords.map((a) => {
                     const highlightColor = a.highlights?.color || "#FFD700";
                     const note = annotationNotes.find(n => n.id === a.note_id);
+                    const quoteMaterialId = quoteMaterialIdByAnnotationId[a.id];
+                    const quoteBusy = quoteMaterialBusyAnnotationIds.has(a.id);
 
                     return (
                       <Card
@@ -5086,6 +5245,33 @@ export function DashboardContent() {
                         onClick={() => setEditingAnnotation(a)}
                       >
                         <div className="p-3 flex flex-col h-full min-h-0">
+                          <div className="flex items-start justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-slate-400 hover:text-slate-700"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  disabled={quoteBusy}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void toggleQuoteMaterialForAnnotation(a.id);
+                                  }}
+                                >
+                                  <Quote className="h-4 w-4 mr-2" />
+                                  {quoteMaterialId ? "取消金句素材" : "设为金句素材"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                           <div className="flex-1 min-h-0 overflow-hidden">
                             {a.highlights?.quote ? (
                               <div className="mb-2">
@@ -5431,4 +5617,3 @@ export function DashboardContent() {
     </div>
   );
 }
-

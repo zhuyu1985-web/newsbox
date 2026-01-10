@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import { Graph } from "@antv/g6";
 import {
   ArrowRight,
   Loader2,
@@ -23,16 +23,6 @@ import { createClient } from "@/lib/supabase/client";
 import { EntityProfilePanel } from "./EntityProfilePanel";
 import { buildMockKnowledgeGraph } from "./mock-data";
 import type { EntityType, GraphData, GraphLink, GraphNode } from "./types";
-
-const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex-1 flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-    </div>
-  ),
-});
-
 
 interface KnowledgeGraphViewProps {
   userId: string;
@@ -92,7 +82,6 @@ function safeId(v: any): string {
 function predicateLabel(raw: string): string {
   const s = (raw || "").trim();
   if (!s) return "关联";
-  // 如果已经包含中文，就原样返回
   if (/[\u4e00-\u9fa5]/.test(s)) return s;
 
   const lower = s.toLowerCase();
@@ -122,17 +111,16 @@ function predicateLabel(raw: string): string {
   };
 
   if (map[lower]) return map[lower];
-  // 尽量避免纯英文直接上屏
-  if (/^[\x00-\x7F]+$/.test(s)) return "关联";
   return s;
 }
 
 export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
   const supabase = createClient();
-  const fgRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<Graph | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [graph, setGraph] = useState<GraphData>({ nodes: [], links: [] });
+  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
 
   const demoBundle = useMemo(() => buildMockKnowledgeGraph(), []);
   const [demoMode, setDemoMode] = useState(false);
@@ -147,13 +135,8 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
     DEFAULT: true,
   });
 
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedLink, setSelectedLink] = useState<GraphLink | null>(null);
-
-  const [hoverNodeId, setHoverNodeId] = useState<string | null>(null);
-  const [hoverLinkId, setHoverLinkId] = useState<string | null>(null);
-  const [highlightNodes, setHighlightNodes] = useState<Set<string>>(new Set());
-  const [highlightLinks, setHighlightLinks] = useState<Set<string>>(new Set());
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -161,14 +144,12 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; type: EntityType }>>([]);
 
   const expandedRef = useRef<Set<string>>(new Set());
-  const lastClickRef = useRef<{ id: string; t: number } | null>(null);
 
   useEffect(() => {
-    // 首次进入默认不拉全量，避免“毛线团”
-    setGraph({ nodes: [], links: [] });
+    setGraphData({ nodes: [], links: [] });
   }, [userId]);
 
-  // 搜索联想
+  // Search suggestions
   useEffect(() => {
     const q = searchQuery.trim();
     if (!q) {
@@ -218,30 +199,181 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
   }, [demoBundle, demoMode, searchQuery, supabase, userId]);
 
   const filteredGraph = useMemo(() => {
-    const nodes = graph.nodes.filter((n) => activeTypes[n.type] !== false);
+    const nodes = graphData.nodes.filter((n) => activeTypes[n.type] !== false);
     const nodeIds = new Set(nodes.map((n) => n.id));
-    const links = graph.links.filter((l) => nodeIds.has(safeId(l.source)) && nodeIds.has(safeId(l.target)));
+    const links = graphData.links.filter((l) => nodeIds.has(safeId(l.source)) && nodeIds.has(safeId(l.target)));
     return { nodes, links };
-  }, [graph, activeTypes]);
+  }, [graphData, activeTypes]);
 
-  const pulseTimeRef = useRef<number>(Date.now());
+  // Initialize G6 Graph
   useEffect(() => {
-    if (filteredGraph.nodes.length === 0) return;
+    if (!containerRef.current) return;
+    
+    // 如果已有实例，先销毁（支持热重载和配置更新）
+    if (graphRef.current) {
+      graphRef.current.destroy();
+      graphRef.current = null;
+    }
 
-    let raf = 0;
-    let last = 0;
-    const tick = (t: number) => {
-      raf = requestAnimationFrame(tick);
-      if (t - last < 48) return; // ~20fps，足够做轻微脉冲
-      last = t;
-      pulseTimeRef.current = Date.now();
-      fgRef.current?.refresh?.();
+    const graph = new Graph({
+      container: containerRef.current,
+      autoResize: true,
+      data: { nodes: [], edges: [] },
+      layout: {
+        type: "d3-force",
+        preventOverlap: true,
+        nodeSize: 40, // 物理碰撞半径（设大一点，让节点散开）
+        linkDistance: 250, // 增加连线长度
+        nodeStrength: -5000, // 强斥力，防止缩成一团
+        edgeStrength: 0.8,
+        collide: {
+          strength: 1,
+        },
+        alphaDecay: 0.03,
+        animated: true,
+      },
+      behaviors: [
+        "drag-canvas",
+        "zoom-canvas",
+        "drag-element",
+        {
+          type: "activate-relations",
+          trigger: "pointerenter",
+          activeState: "active",
+          inactiveState: "inactive",
+          resetSelected: true,
+        },
+        {
+          type: "click-select",
+          multiple: false,
+          trigger: "click",
+        }
+      ],
+      node: {
+        style: {
+          // 调小视觉半径：12 ~ 28px 之间
+          size: (d) => Math.max(12, ((d.data as any).val || 5) * 0.8 + 4),
+          fill: "#ffffff",
+          stroke: (d) => (d.data as any).color,
+          lineWidth: 2,
+          labelText: (d) => (d.data as any).name,
+          labelPlacement: "bottom",
+          labelBackground: true,
+          labelBackgroundFill: "#ffffff",
+          labelBackgroundStroke: "#e2e8f0",
+          labelBackgroundLineWidth: 1,
+          labelBackgroundRadius: 4,
+          labelFill: "#1e293b",
+          labelFontSize: 10,
+          labelFontWeight: 600,
+          cursor: "pointer",
+        },
+        state: {
+          active: {
+            lineWidth: 3,
+            strokeOpacity: 1,
+            shadowColor: (d) => (d.data as any).color,
+            shadowBlur: 12,
+          },
+          inactive: {
+            opacity: 0.1,
+            labelOpacity: 0,
+          },
+          selected: {
+            lineWidth: 3,
+            stroke: "#3b82f6",
+            shadowColor: "#3b82f6",
+            shadowBlur: 16,
+          }
+        },
+      },
+      edge: {
+        style: {
+          stroke: "#94a3b8",
+          lineWidth: 1,
+          opacity: 0.5,
+          endArrow: true,
+          labelText: (d) => (d.data as any).label,
+          labelBackground: true,
+          labelBackgroundFill: "#ffffff",
+          labelBackgroundStroke: "#e2e8f0",
+          labelBackgroundRadius: 2,
+          labelFontSize: 9,
+          labelFill: "#64748b",
+        },
+        state: {
+          active: {
+            stroke: "#3b82f6",
+            lineWidth: 2,
+            opacity: 1,
+          },
+          inactive: {
+            opacity: 0.05,
+            labelOpacity: 0,
+          }
+        }
+      },
+    });
+
+    graph.render();
+    graphRef.current = graph;
+
+    // Event listeners
+    graph.on("node:click", (e) => {
+      const id = e.target.id;
+      const nodeData = graphData.nodes.find(n => n.id === id);
+      if (nodeData) {
+        handleNodeClick(nodeData);
+      }
+    });
+
+    graph.on("edge:click", (e) => {
+      const id = e.target.id;
+      const edgeData = graphData.links.find(l => l.id === id);
+      if (edgeData) {
+        handleLinkClick(edgeData);
+      }
+    });
+
+    graph.on("canvas:click", () => {
+      setSelectedNodeId(null);
+      setSelectedLink(null);
+    });
+
+    return () => {
+      if (graphRef.current) {
+        graphRef.current.destroy();
+        graphRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredGraph.nodes.length > 0]); // Re-run when data availability changes
+
+  // Update Data
+  useEffect(() => {
+    if (!graphRef.current) return;
+
+    const data = {
+      nodes: filteredGraph.nodes.map((n) => ({
+        id: n.id,
+        data: { 
+          ...n,
+          color: n.color || TYPE_COLORS[n.type] || TYPE_COLORS.DEFAULT,
+        },
+      })),
+      edges: filteredGraph.links.map((l) => ({
+        id: l.id,
+        source: typeof l.source === 'object' ? (l.source as any).id : l.source,
+        target: typeof l.target === 'object' ? (l.target as any).id : l.target,
+        data: { ...l },
+      })),
     };
 
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [filteredGraph.nodes.length]);
+    graphRef.current.setData(data);
+    graphRef.current.render();
+  }, [filteredGraph]);
 
+  // Data Loading Logic (Same as before, adapted for G6 state)
   const loadDemoNeighborhood = async (seedId: string, opts?: { depth?: 1 | 2; append?: boolean }) => {
     const depth = opts?.depth ?? 1;
     const append = opts?.append ?? false;
@@ -255,14 +387,14 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
       const linksById = new Map<string, GraphLink>();
 
       if (append) {
-        for (const n of graph.nodes) nodesById.set(n.id, n);
-        for (const l of graph.links) linksById.set(l.id, l);
+        for (const n of graphData.nodes) nodesById.set(n.id, n);
+        for (const l of graphData.links) linksById.set(l.id, l);
       }
 
       const seed = fullNodesById.get(seedId);
       if (!seed) {
-        setGraph({ nodes: [], links: [] });
-        setSelectedNode(null);
+        setGraphData({ nodes: [], links: [] });
+        setSelectedNodeId(null);
         setSelectedLink(null);
         return;
       }
@@ -297,16 +429,18 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
         frontier.forEach((x) => visited.add(x));
       }
 
-      setGraph({
-        nodes: Array.from(nodesById.values()),
-        links: Array.from(linksById.values()),
-      });
-      setSelectedNode(seedNode);
+      const newNodes = Array.from(nodesById.values());
+      const newLinks = Array.from(linksById.values());
+      
+      setGraphData({ nodes: newNodes, links: newLinks });
+      setSelectedNodeId(seedNode.id);
       setSelectedLink(null);
-
+      
+      // Zoom to new data
       setTimeout(() => {
-        fgRef.current?.zoomToFit?.(500, 60);
-      }, 50);
+        graphRef.current?.fitView();
+      }, 100);
+
     } finally {
       setLoading(false);
     }
@@ -323,7 +457,6 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
 
     setLoading(true);
     try {
-      // 先拿 seed 实体
       const { data: seed, error: seedErr } = await supabase
         .from("knowledge_entities")
         .select("id, name, type, metadata")
@@ -335,8 +468,8 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
       const linksById = new Map<string, GraphLink>();
 
       if (append) {
-        for (const n of graph.nodes) nodesById.set(n.id, n);
-        for (const l of graph.links) linksById.set(l.id, l);
+        for (const n of graphData.nodes) nodesById.set(n.id, n);
+        for (const l of graphData.links) linksById.set(l.id, l);
       }
 
       const seedNode: GraphNode = {
@@ -417,19 +550,17 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
         frontier.forEach((x) => visited.add(x));
       }
 
-      setGraph({
-        nodes: Array.from(nodesById.values()),
-        links: Array.from(linksById.values()),
-      });
+      const newNodes = Array.from(nodesById.values());
+      const newLinks = Array.from(linksById.values());
 
-      setSelectedNode(seedNode);
+      setGraphData({ nodes: newNodes, links: newLinks });
+      setSelectedNodeId(seedNode.id);
       setSelectedLink(null);
 
-      // 视图聚焦
       setTimeout(() => {
-        if (!fgRef.current) return;
-        fgRef.current.zoomToFit(500, 60);
-      }, 80);
+        graphRef.current?.fitView();
+      }, 100);
+
     } catch (e) {
       console.error("Failed to load neighborhood", e);
     } finally {
@@ -446,12 +577,12 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
     setActiveTypes((prev) => ({ ...prev, [t]: !prev[t] }));
   };
 
-  const handleNodeClick = (node: any) => {
+  const handleNodeClick = (node: GraphNode) => {
     const now = Date.now();
     const prev = lastClickRef.current;
-    const nodeId = node?.id as string;
+    const nodeId = node.id;
 
-    // 双击展开
+    // Double click to expand
     if (prev && prev.id === nodeId && now - prev.t < 320) {
       lastClickRef.current = null;
       if (!expandedRef.current.has(nodeId)) {
@@ -462,64 +593,33 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
     }
 
     lastClickRef.current = { id: nodeId, t: now };
-
-    setSelectedNode(node);
+    setSelectedNodeId(nodeId);
     setSelectedLink(null);
-
-    if (fgRef.current) {
-      fgRef.current.centerAt(node.x, node.y, 350);
-      fgRef.current.zoom(2.1, 350);
-    }
+    
+    // Zoom focus
+    graphRef.current?.focusElement(nodeId, true);
   };
 
-  const handleLinkClick = (link: any) => {
-    setSelectedLink(link as GraphLink);
-    const sid = safeId(link.source);
-    const tid = safeId(link.target);
-
-    // 默认把面板锚到 source 节点（便于看“某实体的关系证据”）
-    const anchor = graph.nodes.find((n) => n.id === sid) || graph.nodes.find((n) => n.id === tid) || null;
-    if (anchor) setSelectedNode(anchor);
+  const handleLinkClick = (link: GraphLink) => {
+    setSelectedLink(link);
+    const sid = typeof link.source === 'object' ? (link.source as any).id : link.source;
+    const tid = typeof link.target === 'object' ? (link.target as any).id : link.target;
+    const anchor = graphData.nodes.find((n) => n.id === sid) || graphData.nodes.find((n) => n.id === tid);
+    if (anchor) setSelectedNodeId(anchor.id);
   };
 
-  const computeHighlight = (node: any) => {
-    if (!node) {
-      setHighlightNodes(new Set());
-      setHighlightLinks(new Set());
-      return;
-    }
-
-    const nid = node.id as string;
-    const hn = new Set<string>([nid]);
-    const hl = new Set<string>();
-
-    for (const l of filteredGraph.links) {
-      const s = safeId(l.source);
-      const t = safeId(l.target);
-      if (s === nid || t === nid) {
-        hl.add(l.id);
-        hn.add(s);
-        hn.add(t);
-      }
-    }
-
-    setHighlightNodes(hn);
-    setHighlightLinks(hl);
-  };
-
-  const handleZoomIn = () => fgRef.current?.zoom(fgRef.current.zoom() * 1.15, 250);
-  const handleZoomOut = () => fgRef.current?.zoom(fgRef.current.zoom() * 0.85, 250);
+  const handleZoomIn = () => graphRef.current?.zoom(1.2);
+  const handleZoomOut = () => graphRef.current?.zoom(0.8);
   const handleReset = () => {
-    fgRef.current?.zoomToFit(450, 60);
+    graphRef.current?.fitView();
     setSelectedLink(null);
   };
 
   return (
     <div className="flex-1 flex min-h-0 relative overflow-hidden bg-[#F8FAFC]">
-      {/* 画布背景：点阵网格 */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at:1px_1px,rgba(148,163,184,0.15)_1px,transparent_0)] bg-[size:24px_24px]" />
 
-      {/* 左侧：实体类型筛选 */}
+      {/* Left Sidebar: Types */}
       <div className="absolute top-6 left-6 z-20 w-[220px] rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200 shadow-sm">
         <div className="px-4 py-3 border-b border-slate-200/70">
           <div className="text-[11px] font-black text-slate-500 tracking-wider">实体类型</div>
@@ -573,7 +673,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
         </div>
       </div>
 
-      {/* 顶部：搜索 */}
+      {/* Top Search */}
       <div className="absolute top-6 left-[260px] right-6 z-20 flex items-start justify-between gap-4">
         <div className="relative w-[520px]">
           <div className="flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200 shadow-sm px-3 py-2">
@@ -628,7 +728,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
           )}
         </div>
 
-        {/* 右上：缩放控制 */}
+        {/* Top Right Controls */}
         <div className="flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200 shadow-sm p-2">
           <Button variant="ghost" size="icon" onClick={handleZoomIn} className="h-10 w-10 rounded-xl hover:bg-slate-100 text-slate-600">
             <ZoomIn className="h-4 w-4" />
@@ -643,8 +743,8 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
               if (demoMode) {
                 setDemoMode(false);
                 expandedRef.current = new Set();
-                setGraph({ nodes: [], links: [] });
-                setSelectedNode(null);
+                setGraphData({ nodes: [], links: [] });
+                setSelectedNodeId(null);
                 setSelectedLink(null);
                 setSearchQuery("");
                 setSearchOpen(false);
@@ -666,7 +766,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
         </div>
       </div>
 
-      {/* 画布 */}
+      {/* Main Canvas */}
       <div className="flex-1 relative">
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -702,7 +802,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
                 variant="ghost"
                 className="h-11 px-5 rounded-2xl border border-slate-200 bg-white/80 hover:bg-white text-slate-700 font-black"
                 onClick={() => {
-                  fgRef.current?.zoomToFit?.(450, 60);
+                  if (graphRef.current) graphRef.current.fitView();
                 }}
               >
                 我知道了
@@ -711,216 +811,19 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
             <p className="mt-3 text-xs text-slate-400">演示数据仅用于界面展示，不会写入你的数据库。</p>
           </div>
         ) : (
-          <ForceGraph2D
-            ref={fgRef}
-            graphData={filteredGraph}
-            backgroundColor="rgba(0,0,0,0)"
-            nodePointerAreaPaint={(node: any, color, ctx) => {
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, Math.max(8, node.val / 2 + 6), 0, 2 * Math.PI, false);
-              ctx.fill();
-            }}
-            nodeRelSize={6}
-            nodeVal={(n) => (n as GraphNode).val}
-            linkDirectionalArrowLength={4.2}
-            linkDirectionalArrowRelPos={1}
-            linkCurvature={0.18}
-            linkLabel={(l) => (l as GraphLink).label}
-            linkColor={(l) => {
-              const id = (l as any).id as string;
-              if (hoverLinkId && hoverLinkId === id) return "rgba(37,99,235,0.95)";
-              if (highlightLinks.size > 0) {
-                return highlightLinks.has(id) ? "rgba(37,99,235,0.85)" : "rgba(148,163,184,0.12)";
-              }
-              return "rgba(148,163,184,0.42)";
-            }}
-            linkWidth={(l) => {
-              const id = (l as any).id as string;
-              if (hoverLinkId && hoverLinkId === id) return 2.6;
-              if (highlightLinks.size > 0) return highlightLinks.has(id) ? 2.2 : 0.8;
-              return 1.4;
-            }}
-            linkDirectionalParticles={(l) => {
-              const id = (l as any).id as string;
-              if (hoverLinkId && hoverLinkId === id) return 10;
-              if (selectedLink?.id && selectedLink.id === id) return 12;
-              if (highlightLinks.size > 0) return highlightLinks.has(id) ? 8 : 1;
-              return demoMode ? 4 : 1;
-            }}
-            linkDirectionalParticleWidth={(l) => {
-              const id = (l as any).id as string;
-              if (hoverLinkId && hoverLinkId === id) return 2.2;
-              if (selectedLink?.id && selectedLink.id === id) return 2.4;
-              return 1.4;
-            }}
-            linkDirectionalParticleSpeed={(l) => {
-              const id = (l as any).id as string;
-              if (highlightLinks.size > 0 && highlightLinks.has(id)) return 0.014;
-              return demoMode ? 0.012 : 0.01;
-            }}
-            linkDirectionalParticleColor={(l) => {
-              const id = (l as any).id as string;
-              if (hoverLinkId && hoverLinkId === id) return "rgba(37,99,235,0.75)";
-              if (selectedLink?.id && selectedLink.id === id) return "rgba(37,99,235,0.70)";
-              return "rgba(37,99,235,0.55)";
-            }}
-            linkCanvasObjectMode={() => "after"}
-            linkCanvasObject={(link: any, ctx: any, globalScale: number) => {
-              const id = (link as any).id as string;
-              const isHigh =
-                (hoverLinkId && hoverLinkId === id) ||
-                (selectedLink?.id && selectedLink.id === id) ||
-                (highlightLinks.size > 0 && highlightLinks.has(id));
-
-              // 在足够大的缩放比例下，或者处于高亮状态时显示标签
-              const shouldShowLabel = isHigh || globalScale > 1.8;
-              if (!shouldShowLabel) return;
-
-              const s = link.source;
-              const t = link.target;
-              const sx = typeof s === "object" ? s.x : undefined;
-              const sy = typeof s === "object" ? s.y : undefined;
-              const tx = typeof t === "object" ? t.x : undefined;
-              const ty = typeof t === "object" ? t.y : undefined;
-              if (sx == null || sy == null || tx == null || ty == null) return;
-
-              const label = (link.label || "关联") as string;
-              const fontSize = 11 / globalScale;
-              if (fontSize < 2.5) return;
-
-              ctx.font = `${fontSize}px ui-sans-serif, system-ui`;
-              const textWidth = ctx.measureText(label).width;
-              const padX = 8 / globalScale;
-              const padY = 5 / globalScale;
-              const w = textWidth + padX * 2;
-              const h = fontSize + padY * 2;
-              const mx = (sx + tx) / 2;
-              const my = (sy + ty) / 2;
-
-              const x = mx - w / 2;
-              const y = my - h / 2;
-              const radius = 8 / globalScale;
-
-              ctx.shadowColor = "rgba(0,0,0,0.05)";
-              ctx.shadowBlur = 4 / globalScale;
-              ctx.fillStyle = isHigh ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.85)";
-              ctx.strokeStyle = isHigh ? "rgba(37,99,235,0.45)" : "rgba(226,232,240,0.8)";
-              ctx.lineWidth = 1 / globalScale;
-
-              ctx.beginPath();
-              ctx.moveTo(x + radius, y);
-              ctx.arcTo(x + w, y, x + w, y + h, radius);
-              ctx.arcTo(x + w, y + h, x, y + h, radius);
-              ctx.arcTo(x, y + h, x, y, radius);
-              ctx.arcTo(x, y, x + w, y, radius);
-              ctx.closePath();
-              ctx.fill();
-              ctx.stroke();
-
-              // 重置阴影避免影响文字
-              ctx.shadowBlur = 0;
-
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillStyle = isHigh ? "rgba(37,99,235,1)" : "rgba(100,116,139,0.9)";
-              ctx.fillText(label, mx, my);
-            }}
-            onNodeClick={handleNodeClick}
-            onLinkClick={handleLinkClick}
-            onNodeHover={(node: any) => {
-              setHoverNodeId(node ? (node.id as string) : null);
-              computeHighlight(node);
-            }}
-            onLinkHover={(link: any) => {
-              setHoverLinkId(link ? (link.id as string) : null);
-            }}
-            nodeCanvasObject={(node: any, ctx, globalScale) => {
-              const n = node as GraphNode;
-              const isSelected = selectedNode?.id === n.id;
-              const isHovered = hoverNodeId === n.id;
-              const isDim = highlightNodes.size > 0 && !highlightNodes.has(n.id);
-
-              const r = Math.max(10, (n.val || 12) / 2 + 6);
-
-              // 外圈
-              ctx.beginPath();
-              ctx.arc(n.x!, n.y!, r, 0, 2 * Math.PI);
-              ctx.fillStyle = isDim ? "rgba(226,232,240,0.55)" : "rgba(255,255,255,0.96)";
-              ctx.fill();
-              ctx.lineWidth = (isSelected ? 2.6 : 1.6) / globalScale;
-              ctx.strokeStyle = isDim ? "rgba(203,213,225,0.6)" : (n.color || TYPE_COLORS.DEFAULT);
-              ctx.stroke();
-
-              // 内点
-              ctx.beginPath();
-              ctx.arc(n.x!, n.y!, 3.2 / globalScale, 0, 2 * Math.PI);
-              ctx.fillStyle = isDim ? "rgba(148,163,184,0.6)" : (n.color || TYPE_COLORS.DEFAULT);
-              ctx.fill();
-
-              // 选中光晕（带轻微脉冲）
-              if (isSelected || isHovered) {
-                const t = pulseTimeRef.current;
-                const pulse = (Math.sin(t / 220) + 1) / 2; // 0~1
-                const extra = ((isSelected ? 10 : 7) * (0.35 + 0.65 * pulse)) / globalScale;
-
-                ctx.beginPath();
-                ctx.arc(n.x!, n.y!, r + 6 / globalScale + extra, 0, 2 * Math.PI);
-                ctx.strokeStyle = isSelected ? "rgba(37,99,235,0.32)" : "rgba(37,99,235,0.18)";
-                ctx.lineWidth = (6 + 2 * pulse) / globalScale;
-                ctx.stroke();
-              }
-
-              // 标签（缩放过小时隐藏）
-              const showLabel = globalScale < 2.6 || isSelected || isHovered;
-              if (!showLabel) return;
-
-              const label = n.name;
-              const fontSize = 12 / globalScale;
-              ctx.font = `${fontSize}px ui-sans-serif, system-ui`;
-              const textWidth = ctx.measureText(label).width;
-              const padX = 10 / globalScale;
-              const padY = 6 / globalScale;
-              const w = textWidth + padX * 2;
-              const h = fontSize + padY * 2;
-              const x = n.x! - w / 2;
-              const y = n.y! + r + 10 / globalScale;
-
-              // pill
-              ctx.fillStyle = isDim ? "rgba(248,250,252,0.75)" : "rgba(255,255,255,0.95)";
-              ctx.strokeStyle = "rgba(226,232,240,0.9)";
-              ctx.lineWidth = 1 / globalScale;
-
-              const radius = 10 / globalScale;
-              ctx.beginPath();
-              ctx.moveTo(x + radius, y);
-              ctx.arcTo(x + w, y, x + w, y + h, radius);
-              ctx.arcTo(x + w, y + h, x, y + h, radius);
-              ctx.arcTo(x, y + h, x, y, radius);
-              ctx.arcTo(x, y, x + w, y, radius);
-              ctx.closePath();
-              ctx.fill();
-              ctx.stroke();
-
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillStyle = isDim ? "rgba(100,116,139,0.6)" : "rgba(15,23,42,0.85)";
-              ctx.fillText(label, n.x!, y + h / 2);
-            }}
-          />
+          <div ref={containerRef} className="w-full h-full min-h-[600px]" />
         )}
       </div>
 
-      {/* 右侧实体档案 */}
       <EntityProfilePanel
         userId={userId}
-        entityId={selectedNode?.id || null}
-        selectedLink={selectedLink}
+        entityId={selectedNodeId}
+        selectedLink={selectedLink || undefined}
         demo={demoMode ? demoBundle.profile : null}
         demoMode={demoMode}
         onClose={() => {
           setSelectedLink(null);
-          setSelectedNode(null);
+          setSelectedNodeId(null);
         }}
         onSelectEntity={(id) => {
           setSearchQuery("");

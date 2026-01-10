@@ -20,6 +20,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 const keywords = ["深度长文", "B站视频", "微信公众号", "网页新闻", "播客音频"];
 
@@ -51,6 +52,7 @@ export default function LandingPage() {
   const [quoteKey, setQuoteKey] = useState(0);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>("");
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
 
   const navItems = [
     { id: "product-features", label: "产品功能" },
@@ -78,6 +80,12 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
+    const supabase = createClient();
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setIsAuthed(!!data.user))
+      .catch(() => setIsAuthed(false));
+
     const timer = setInterval(() => {
       setKeywordIndex((prev) => (prev + 1) % keywords.length);
     }, 3000);
@@ -203,14 +211,24 @@ export default function LandingPage() {
             })}
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/auth/login">
-              <Button variant="ghost" className="rounded-full px-5 text-sm font-medium">登录</Button>
-            </Link>
-            <Link href="/auth/sign-up">
-              <Button className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 shadow-lg shadow-blue-500/25 transition-all active:scale-95">
-                立即开始
-              </Button>
-            </Link>
+            {isAuthed === true ? (
+              <Link href="/dashboard">
+                <Button className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 shadow-lg shadow-blue-500/25 transition-all active:scale-95">
+                  我的收藏
+                </Button>
+              </Link>
+            ) : isAuthed === false ? (
+              <>
+                <Link href="/auth/login">
+                  <Button variant="ghost" className="rounded-full px-5 text-sm font-medium">登录</Button>
+                </Link>
+                <Link href="/auth/sign-up">
+                  <Button className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 shadow-lg shadow-blue-500/25 transition-all active:scale-95">
+                    立即开始
+                  </Button>
+                </Link>
+              </>
+            ) : null}
           </div>
         </div>
       </nav>

@@ -120,18 +120,18 @@ export function TranscriptView({ noteId }: { noteId: string }) {
       {transcript.segments.map((segment, index) => (
         <div
           key={index}
-          className="p-3 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors cursor-pointer group"
+          className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-100 dark:hover:border-slate-700 transition-colors cursor-pointer group"
           onClick={() => handleSegmentClick(segment.start)}
         >
           <div className="flex items-start gap-3">
-            <span className="text-[10px] font-mono text-slate-400 shrink-0 mt-1 bg-slate-50 px-1.5 py-0.5 rounded group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+            <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0 mt-1 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
               {Math.floor(segment.start / 60).toString().padStart(2, "0")}:
               {Math.floor(segment.start % 60).toString().padStart(2, "0")}
             </span>
-            <p className="text-sm text-slate-600 group-hover:text-slate-900 leading-relaxed">{segment.text}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 leading-relaxed">{segment.text}</p>
           </div>
           {segment.speaker && (
-            <div className="text-[10px] font-medium text-blue-400 mt-2 ml-14">发言人: {segment.speaker}</div>
+            <div className="text-[10px] font-medium text-blue-400 dark:text-blue-500 mt-2 ml-14">发言人: {segment.speaker}</div>
           )}
         </div>
       ))}
