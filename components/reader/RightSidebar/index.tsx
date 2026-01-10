@@ -46,7 +46,7 @@ export function RightSidebar({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800">
       {renderHeader()}
       
       {/* Tab内容区 */}

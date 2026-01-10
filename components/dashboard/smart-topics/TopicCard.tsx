@@ -94,19 +94,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({
             </div>
           </div>
 
-          <div>
-            {topic.summary_markdown ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100/50">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-bold uppercase">报告已生成</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-600 rounded-lg border border-amber-100/50">
-                <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-                <span className="text-[10px] font-bold uppercase">分析中</span>
-              </div>
-            )}
-          </div>
+          
         </div>
       </div>
 

@@ -77,6 +77,21 @@ type NoteMeta = {
   site_name: string | null;
 };
 
+type QuoteMaterialItem = {
+  id: string;
+  note_id: string;
+  highlight_id: string | null;
+  annotation_id: string | null;
+  content: string;
+  source_type: string;
+  created_at: string;
+  notes?: {
+    title: string | null;
+    source_url: string | null;
+    site_name: string | null;
+  } | null;
+};
+
 type Conversation = {
   id: string;
   title: string | null;
@@ -267,6 +282,14 @@ export function KnowledgeView({
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [mergeSourceTopicId, setMergeSourceTopicId] = useState<string | null>(null);
 
+  // --- quote materials state ---
+  const [quoteMaterials, setQuoteMaterials] = useState<QuoteMaterialItem[]>([]);
+  const [quoteMaterialsLoading, setQuoteMaterialsLoading] = useState(false);
+  const [quoteMaterialsError, setQuoteMaterialsError] = useState<string | null>(null);
+  const [quoteMaterialsQuery, setQuoteMaterialsQuery] = useState("");
+  const [quoteMaterialsPage, setQuoteMaterialsPage] = useState(1);
+  const [quoteMaterialsHasMore, setQuoteMaterialsHasMore] = useState(false);
+
   // drag-to-merge
   const [draggingTopicId, setDraggingTopicId] = useState<string | null>(null);
   const [dragOverTopicId, setDragOverTopicId] = useState<string | null>(null);
@@ -404,6 +427,67 @@ export function KnowledgeView({
   useEffect(() => {
     if (userId && subView === "chat") void loadConversations();
   }, [userId, subView, loadConversations]);
+
+  const loadQuoteMaterials = useCallback(
+    async (args?: { page?: number; append?: boolean }) => {
+      const page = args?.page ?? 1;
+      const append = args?.append ?? false;
+      const q = quoteMaterialsQuery.trim();
+      const limit = 50;
+
+      setQuoteMaterialsLoading(true);
+      setQuoteMaterialsError(null);
+
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", String(limit));
+        if (q) params.set("q", q);
+
+        const res = await fetch(`/api/quote-materials?${params.toString()}`, { method: "GET" });
+        const json = await res.json().catch(() => ({}));
+
+        if (!res.ok || !json?.success) {
+          setQuoteMaterialsError(json?.error || "加载金句素材失败");
+          return;
+        }
+
+        const items = (Array.isArray(json.items) ? json.items : []) as QuoteMaterialItem[];
+        setQuoteMaterials((prev) => (append ? [...prev, ...items] : items));
+        setQuoteMaterialsPage(page);
+        setQuoteMaterialsHasMore(items.length === limit);
+      } catch (e) {
+        setQuoteMaterialsError((e as Error)?.message || "加载金句素材失败");
+      } finally {
+        setQuoteMaterialsLoading(false);
+      }
+    },
+    [quoteMaterialsQuery],
+  );
+
+  const deleteQuoteMaterial = useCallback(async (id: string) => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/quote-materials?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || "删除失败");
+        return;
+      }
+      setQuoteMaterials((prev) => prev.filter((it) => it.id !== id));
+      toast.success("已删除");
+    } catch (e) {
+      toast.error((e as Error)?.message || "删除失败");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (subView !== "quotes") return;
+    const t = window.setTimeout(() => {
+      void loadQuoteMaterials({ page: 1, append: false });
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [subView, quoteMaterialsQuery, loadQuoteMaterials]);
 
   const loadMessages = useCallback(
     async (convId: string) => {
@@ -2490,26 +2574,206 @@ export function KnowledgeView({
         {subView === "graph" ? (
           <KnowledgeGraphView userId={userId || ""} />
         ) : subView === "quotes" ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/10">
-            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-slate-100">
-              <Quote className="h-10 w-10 text-blue-400" />
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="h-14 px-4 md:px-8 border-b border-slate-200/70 bg-white/60 backdrop-blur flex items-center gap-3 sticky top-0 z-10">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="h-9 w-9 rounded-xl border bg-rose-50 border-rose-100 flex items-center justify-center shrink-0">
+                  <Quote className="h-4 w-4 text-rose-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold text-slate-900">金句素材</div>
+                  <div className="text-[11px] text-slate-400 truncate">记者的灵魂弹药库，在这里发现引人深思的观点、犀利的反讽和精准的数据</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Input
+                  value={quoteMaterialsQuery}
+                  onChange={(e) => setQuoteMaterialsQuery(e.target.value)}
+                  placeholder="搜索金句…"
+                  className="h-9 w-[220px] rounded-xl"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-xl"
+                  onClick={() => void loadQuoteMaterials({ page: 1, append: false })}
+                  disabled={quoteMaterialsLoading}
+                  title="刷新"
+                >
+                  <RefreshCw className={cn("h-4 w-4", quoteMaterialsLoading ? "animate-spin" : "")} />
+                </Button>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-slate-900">
-              金句素材
-            </h3>
-            <p className="mt-3 text-sm text-slate-500 max-w-sm leading-relaxed">
-              此功能正在开发中。我们将自动为您提取笔记与文章中的金句、核心观点与精彩表达，并以卡片形式优雅呈现，方便随时查阅与引用。
-            </p>
-            <div className="mt-8">
-              <Button
-                variant="outline"
-                className="rounded-xl px-6 border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-                onClick={() => {
-                  if (onSubViewChange) onSubViewChange("chat");
-                }}
-              >
-                返回智能对话
-              </Button>
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-slate-50/30">
+              {quoteMaterialsError ? (
+                <div className="bg-red-50 text-red-600 border border-red-100 rounded-xl p-4 text-sm">
+                  {quoteMaterialsError}
+                </div>
+              ) : quoteMaterialsLoading && quoteMaterials.length === 0 ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  加载中…
+                </div>
+              ) : quoteMaterials.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-slate-100">
+                    <Quote className="h-8 w-8 text-slate-300" />
+                  </div>
+                  <div className="text-slate-900 font-semibold">暂无金句素材</div>
+                  <div className="mt-1 text-xs text-slate-400 max-w-sm">
+                    你可以在批注卡片里选择“设为金句素材”，或在阅读侧栏点“自动提取金句”。
+                  </div>
+                </div>
+              ) : (
+                <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+                  {quoteMaterials.map((it, i) => {
+                    const title = it.notes?.title?.trim() || "未命名笔记";
+                    const site = it.notes?.site_name?.trim() || "";
+                    const typeLabel = it.source_type === "llm" ? "自动" : "手动";
+                    
+                    const borderColors = [
+                      "border-blue-300", "border-emerald-300", "border-amber-300", "border-rose-300", 
+                      "border-violet-300", "border-indigo-300", "border-cyan-300", "border-fuchsia-300"
+                    ];
+                    const textColors = [
+                      "text-blue-600", "text-emerald-600", "text-amber-600", "text-rose-600",
+                      "text-violet-600", "text-indigo-600", "text-cyan-600", "text-fuchsia-600"
+                    ];
+                    const bgColors = [
+                      "bg-blue-50", "bg-emerald-50", "bg-amber-50", "bg-rose-50",
+                      "bg-violet-50", "bg-indigo-50", "bg-cyan-50", "bg-fuchsia-50"
+                    ];
+                    
+                    const idx = i % borderColors.length;
+                    const borderColor = borderColors[idx];
+                    const textColor = textColors[idx];
+                    const tagBg = bgColors[idx];
+
+                    return (
+                      <div key={it.id} className="break-inside-avoid mb-4">
+                        <Card className={cn("group rounded-2xl border shadow-sm bg-white hover:shadow-md transition-all duration-300", borderColor)}>
+                          <div className="p-5 flex flex-col gap-4">
+                            <blockquote className="text-base text-slate-800 leading-relaxed font-medium font-serif">
+                              <span className={cn("mr-1 font-sans font-bold opacity-60", textColor)}>“</span>
+                              {it.content}
+                              <span className={cn("ml-1 font-sans font-bold opacity-60", textColor)}>”</span>
+                            </blockquote>
+
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                              <div className="min-w-0 flex-1 mr-3">
+                                <div className="text-xs text-slate-500 font-medium truncate">
+                                  {site ? `${site} · ` : ""}{title}
+                                </div>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <span className={cn("inline-flex items-center text-[10px] px-2 py-0.5 rounded-full font-medium opacity-90", tagBg, textColor)}>
+                                    {typeLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-700"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(it.content);
+                                    toast.success("已复制");
+                                  }}
+                                  title="复制"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-blue-600"
+                                  onClick={() => {
+                                    window.location.href = `/notes/${it.note_id}`;
+                                  }}
+                                  title="打开来源"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-700"
+                                    >
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-36">
+                                    <DropdownMenuItem onClick={() => {
+                                      navigator.clipboard.writeText(it.content);
+                                      toast.success("已复制内容");
+                                    }}>
+                                      <Copy className="h-4 w-4 mr-2" /> 复制内容
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      const text = `“${it.content}”\n—— ${it.notes?.title || "未知来源"}`;
+                                      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+                                      const url = URL.createObjectURL(blob);
+                                      const a = document.createElement("a");
+                                      a.href = url;
+                                      a.download = `quote-${it.id.slice(0, 8)}.txt`;
+                                      a.click();
+                                      URL.revokeObjectURL(url);
+                                      toast.success("已导出文本");
+                                    }}>
+                                      <FileDown className="h-4 w-4 mr-2" /> 导出文本
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      if (navigator.share) {
+                                        navigator.share({
+                                            title: '金句分享',
+                                            text: `“${it.content}” —— ${it.notes?.title || ""}`,
+                                            url: window.location.href
+                                        }).catch(() => {});
+                                      } else {
+                                        navigator.clipboard.writeText(`“${it.content}” —— ${it.notes?.title || ""}`);
+                                        toast.success("已复制分享文本");
+                                      }
+                                    }}>
+                                      <Share2 className="h-4 w-4 mr-2" /> 分享
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => void deleteQuoteMaterial(it.id)} className="text-red-600 focus:text-red-600">
+                                      <Trash2 className="h-4 w-4 mr-2" /> 删除
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {quoteMaterialsHasMore ? (
+                <div className="mt-6 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => void loadQuoteMaterials({ page: quoteMaterialsPage + 1, append: true })}
+                    disabled={quoteMaterialsLoading}
+                  >
+                    加载更多
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : subView === "topics" ? (

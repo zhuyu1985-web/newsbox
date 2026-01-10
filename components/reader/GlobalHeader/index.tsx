@@ -224,10 +224,10 @@ export function GlobalHeader({
               variant="outline"
               size="sm"
               onClick={handleAIAnalysis}
-              className="hidden md:flex items-center gap-1.5 border-violet-200 bg-violet-50/50 text-violet-700 hover:bg-violet-100 hover:text-violet-800 hover:border-violet-300 transition-all shadow-sm h-8 px-3 rounded-full"
+              className="hidden md:flex items-center gap-1.5 border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-300 transition-all shadow-sm h-8 px-3 rounded-full"
               title="AI解读"
             >
-              <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
               <span className="hidden lg:inline font-medium text-xs">AI解读</span>
             </Button>
 
