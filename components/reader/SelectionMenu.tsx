@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { copyTextToClipboard } from "@/lib/clipboard";
 
 interface SelectionMenuProps {
   noteId: string;
@@ -181,17 +182,18 @@ export function SelectionMenu({
   };
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(selectedText);
-      setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-        window.getSelection()?.removeAllRanges();
-        setPosition(null);
-      }, 1500);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    const ok = await copyTextToClipboard(selectedText);
+    if (!ok) {
+      console.error("Failed to copy selection text");
+      return;
     }
+
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+      window.getSelection()?.removeAllRanges();
+      setPosition(null);
+    }, 1500);
   };
 
   if (!mounted || !position || !selectedText) {
@@ -299,5 +301,4 @@ export function SelectionMenu({
 
   return createPortal(menu, document.body);
 }
-
 

@@ -94,6 +94,13 @@ import { StatsSection } from "@/components/settings/sections/StatsSection";
 import { AppearanceSection } from "@/components/settings/sections/AppearanceSection";
 import { TrashSection } from "@/components/settings/sections/TrashSection";
 import { AboutSection } from "@/components/settings/sections/AboutSection";
+import {
+  consumeDirtyAnnotationNoteIds,
+  peekDirtyAnnotationNoteIds,
+  clearDirtyAnnotationNoteIds,
+  getLastDirtyNoteId,
+  NOTE_ANNOTATIONS_CHANGED_EVENT,
+} from "@/lib/noteSync";
 
 const PAGE_SIZE = 16;
 const ANNOTATIONS_PAGE_SIZE = 48;
@@ -198,7 +205,7 @@ type SettingsTab = "account" | "rewards" | "stats" | "appearance" | "trash" | "a
 type RawNote = NoteItem & {
   note_tags?: { tag_id: string; tags: NoteTag | null }[];
   folders?: { name: string } | null;
-  annotations?: { count: number }[];
+  highlights?: { count: number }[];
 };
 
 type NoteContentRecord = {
@@ -371,7 +378,7 @@ const noteSelect = `
   file_size,
   file_type,
   folders(name),
-  annotations(count),
+  highlights(count),
   note_tags(
     tag_id,
     tags(
@@ -502,7 +509,7 @@ function normalizeNote(raw: RawNote): NoteItem {
   return {
     ...raw,
     folder_name: raw.folders?.name,
-    annotation_count: raw.annotations?.[0]?.count ?? 0,
+    annotation_count: raw.highlights?.[0]?.count ?? 0,
     tags:
       raw.note_tags
         ?.map((relation) => relation?.tags)
@@ -1677,9 +1684,9 @@ export function DashboardContent() {
     });
   };
 
-  const clearSelections = () => {
+  const clearSelections = useCallback(() => {
     setSelectedNotes(new Set());
-  };
+  }, []);
 
   const ensureSelection = (ids?: string[]) => {
     if (ids && ids.length > 0) {
@@ -1692,11 +1699,84 @@ export function DashboardContent() {
     return Array.from(selectedNotes);
   };
 
-  const refreshAll = async () => {
+  const refreshAll = useCallback(async () => {
     setRefreshTrigger((prev) => prev + 1);
     await Promise.all([loadMetadata(), loadTags()]);
     clearSelections();
-  };
+  }, [clearSelections, loadMetadata, loadTags]);
+
+  const refreshAnnotationCounts = useCallback(
+    async (noteIds: string[]) => {
+      const ids = Array.from(new Set(noteIds)).filter(Boolean);
+      if (!user || ids.length === 0) return;
+
+      const { data, error } = await supabase
+        .from("notes")
+        .select("id, highlights(count)")
+        .in("id", ids);
+
+      if (error) {
+        console.error("Failed to refresh annotation counts:", error);
+        return;
+      }
+
+      const countsById = new Map<string, number>();
+      (data ?? []).forEach((row: any) => {
+        const count = row?.highlights?.[0]?.count ?? 0;
+        countsById.set(String(row.id), Number(count) || 0);
+      });
+
+      if (countsById.size === 0) return;
+
+      setNotes((prev) =>
+        prev.map((note) =>
+          countsById.has(note.id)
+            ? { ...note, annotation_count: countsById.get(note.id)! }
+            : note,
+        ),
+      );
+
+      setAnnotationNotes((prev) =>
+        prev.map((note) =>
+          countsById.has(note.id)
+            ? { ...note, annotation_count: countsById.get(note.id)! }
+            : note,
+        ),
+      );
+    },
+    [supabase, user],
+  );
+
+  const syncDirtyAnnotationCounts = useCallback(async () => {
+    if (!user) return;
+    // 使用 peek 而不是 consume，避免过早清空数据
+    const dirtyIds = peekDirtyAnnotationNoteIds();
+    if (dirtyIds.length === 0) return;
+    
+    // 检查 notes 状态是否已加载，如果还没加载完成，延迟处理
+    if (notes.length === 0) {
+      // notes 还没加载，不清空 sessionStorage，等待下次调用
+      return;
+    }
+    
+    // 刷新批注数量
+    await refreshAnnotationCounts(dirtyIds);
+    
+    // 刷新成功后清空已处理的 IDs
+    clearDirtyAnnotationNoteIds(dirtyIds);
+  }, [refreshAnnotationCounts, user, notes.length]);
+
+  // 初始调用
+  useEffect(() => {
+    syncDirtyAnnotationCounts();
+  }, [syncDirtyAnnotationCounts]);
+
+  // 当 notes 加载完成后，再次检查并刷新脏数据
+  useEffect(() => {
+    if (notes.length > 0) {
+      syncDirtyAnnotationCounts();
+    }
+  }, [notes.length, syncDirtyAnnotationCounts]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1717,9 +1797,17 @@ export function DashboardContent() {
     }
 
     const maybeRefresh = () => {
+      syncDirtyAnnotationCounts();
       const ts = readTs();
       if (ts > lastSeenAnnotationsUpdatedAtRef.current) {
         lastSeenAnnotationsUpdatedAtRef.current = ts;
+        
+        // 即使 sessionStorage 被清空，也尝试刷新最近更新的 noteId
+        const lastNoteId = getLastDirtyNoteId();
+        if (lastNoteId && notes.length > 0) {
+          void refreshAnnotationCounts([lastNoteId]);
+        }
+        
         void refreshAll();
         if (user && activePrimary === "annotations") {
           loadAnnotationsView(0, false);
@@ -1751,15 +1839,22 @@ export function DashboardContent() {
       if (!document.hidden) run();
     };
 
+    const onAnnotationsChanged = () => run();
+    const onPageShow = () => run();
+
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener(NOTE_ANNOTATIONS_CHANGED_EVENT, onAnnotationsChanged as EventListener);
+    window.addEventListener("pageshow", onPageShow as EventListener);
 
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener(NOTE_ANNOTATIONS_CHANGED_EVENT, onAnnotationsChanged as EventListener);
+      window.removeEventListener("pageshow", onPageShow as EventListener);
       cleanupTimers?.();
     };
-  }, [activePrimary, loadAnnotationsView, user]);
+  }, [activePrimary, loadAnnotationsView, refreshAll, syncDirtyAnnotationCounts, user, notes.length, refreshAnnotationCounts]);
 
   const ensureParentsExpanded = useCallback(
     (folderId: string) => {
@@ -2550,11 +2645,19 @@ export function DashboardContent() {
     }
     if (format === "markdown") {
       if (note.content_html) {
-        return `# ${title}\n\n> ${meta}\n\n${turndown.turndown(
+        return `# ${title}
+
+> ${meta}
+
+${turndown.turndown(
           note.content_html,
         )}`;
       }
-      return `# ${title}\n\n> ${meta}\n\n${
+      return `# ${title}
+
+> ${meta}
+
+${
         note.content_text || note.excerpt || ""
       }`;
     }
