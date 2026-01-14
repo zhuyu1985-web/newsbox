@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateFlashRead, generateKeyQuestions } from "@/lib/services/openai";
+import { requireAIMembership } from "@/lib/middleware/membership";
 
 function estimateReadTimeMinutes(text: string): number {
   const trimmed = (text || "").trim();
@@ -37,6 +38,17 @@ export async function POST(request: NextRequest) {
 
   const run = (async () => {
     try {
+      // AI 会员权限检查
+      const permCheck = await requireAIMembership();
+      if (!permCheck.authorized) {
+        await send("error", { 
+          message: "此功能需要 NewsBox AI 会员",
+          code: "AI_MEMBERSHIP_REQUIRED",
+          requiredPlan: "ai"
+        });
+        return;
+      }
+
       const { noteId, force = false } = await request.json();
 
       if (!noteId) {
@@ -45,14 +57,7 @@ export async function POST(request: NextRequest) {
       }
 
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        await send("error", { message: "Unauthorized" });
-        return;
-      }
+      const user = { id: permCheck.userId! };
 
       const { data: note, error: noteError } = await supabase
         .from("notes")
