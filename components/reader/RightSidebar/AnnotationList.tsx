@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
+import { markNoteAnnotationsDirty } from "@/lib/noteSync";
 
 interface HighlightWithAnnotation {
   id: string;
@@ -511,12 +512,6 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
     const annotation = item?.annotations?.[0];
     const trimmed = content.trim();
 
-    try {
-      localStorage.setItem("newsbox:annotations_updated_at", String(Date.now()));
-    } catch {
-      // ignore
-    }
-
     setSavingNoteIds((prev) => new Set(prev).add(highlightId));
 
     try {
@@ -526,11 +521,7 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
           .update({ content: trimmed })
           .eq("id", annotation.id);
         if (!error) {
-          try {
-            localStorage.setItem("newsbox:annotations_updated_at", String(Date.now()));
-          } catch {
-            // ignore
-          }
+          markNoteAnnotationsDirty(noteId);
           // 乐观更新
           setItems((prev) =>
             prev.map((it) =>
@@ -563,11 +554,7 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
           .single();
 
         if (!error && data) {
-          try {
-            localStorage.setItem("newsbox:annotations_updated_at", String(Date.now()));
-          } catch {
-            // ignore
-          }
+          markNoteAnnotationsDirty(noteId);
           setItems((prev) =>
             prev.map((it) =>
               it.id === highlightId ? { ...it, annotations: [data] } : it

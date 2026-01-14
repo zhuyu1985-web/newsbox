@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { markNoteAnnotationsDirty } from "@/lib/noteSync";
 
 interface AnnotationDialogProps {
   open: boolean;
@@ -63,6 +64,8 @@ export function AnnotationDialog({
       });
 
       if (error) throw error;
+
+      markNoteAnnotationsDirty(noteId);
 
       // 成功后关闭对话框并触发刷新
       setNote("");
@@ -156,4 +159,3 @@ export function AnnotationDialog({
     </Dialog>
   );
 }
-

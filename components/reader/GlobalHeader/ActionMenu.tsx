@@ -31,12 +31,18 @@ import {
 import { toast } from "sonner";
 import { MoveToFolderDialog } from "./MoveToFolderDialog";
 import { EditMetaDialog } from "@/components/reader/EditMetaDialog";
+import { copyTextToClipboard } from "@/lib/clipboard";
 
 interface Note {
   id: string;
   title: string | null;
   source_url: string | null;
   content_type: "article" | "video" | "audio";
+  author?: string | null;
+  site_name?: string | null;
+  published_at?: string | null;
+  content_html?: string | null;
+  content_text?: string | null;
   is_starred?: boolean;
   folder_id?: string | null;
 }
@@ -51,6 +57,16 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
   const [isStarred, setIsStarred] = useState(note.is_starred || false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showEditMetaDialog, setShowEditMetaDialog] = useState(false);
+  const [cachedNoteData, setCachedNoteData] = useState<{
+    title?: string | null;
+    source_url?: string | null;
+    author?: string | null;
+    site_name?: string | null;
+    published_at?: string | null;
+    content_text?: string | null;
+    content_html?: string | null;
+  } | null>(null);
+  const [isContentLoading, setIsContentLoading] = useState(false);
   const supabase = createClient();
 
   // 获取当前星标状态
@@ -70,6 +86,38 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
     fetchStarredStatus();
   }, [note.id, supabase]);
 
+  useEffect(() => {
+    const shouldPrefetch =
+      note.content_text === undefined || note.content_html === undefined;
+
+    if (!shouldPrefetch) return;
+
+    let cancelled = false;
+    const prefetch = async () => {
+      setIsContentLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("notes")
+          .select(
+            "content_text, content_html, title, source_url, author, site_name, published_at"
+          )
+          .eq("id", note.id)
+          .single();
+
+        if (cancelled) return;
+        if (error || !data) return;
+        setCachedNoteData(data);
+      } finally {
+        if (!cancelled) setIsContentLoading(false);
+      }
+    };
+
+    prefetch();
+    return () => {
+      cancelled = true;
+    };
+  }, [note.id, note.content_html, note.content_text, supabase]);
+
   // 监听来自 ReaderLayout 的星标状态变化事件
   useEffect(() => {
     const handleStarChanged = (e: any) => {
@@ -83,13 +131,12 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
   }, []);
 
   const copyToClipboard = async (text: string, successMsg: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+    const ok = await copyTextToClipboard(text);
+    if (ok) {
       toast.success(successMsg);
-    } catch (err) {
-      console.error("复制失败:", err);
-      toast.error("复制失败，请重试");
+      return;
     }
+    toast.error("复制失败，请先点击页面后重试");
   };
 
   const handleAction = async (action: string) => {
@@ -135,17 +182,25 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
       case "copy-text":
       case "copy-markdown":
       case "copy-html": {
-        // 获取笔记的完整内容
-        const { data: noteData, error } = await supabase
-          .from("notes")
-          .select("content_text, content_html, title, source_url, author, site_name, published_at")
-          .eq("id", note.id)
-          .single();
+        const hasLoadedContent =
+          note.content_text !== undefined ||
+          note.content_html !== undefined ||
+          cachedNoteData !== null;
 
-        if (error || !noteData) {
-          toast.error("获取笔记内容失败");
+        if (!hasLoadedContent && isContentLoading) {
+          toast.info("内容加载中，请稍后重试");
           return;
         }
+
+        const noteData = {
+          title: note.title ?? cachedNoteData?.title ?? null,
+          source_url: note.source_url ?? cachedNoteData?.source_url ?? null,
+          author: note.author ?? cachedNoteData?.author ?? null,
+          site_name: note.site_name ?? cachedNoteData?.site_name ?? null,
+          published_at: note.published_at ?? cachedNoteData?.published_at ?? null,
+          content_text: note.content_text ?? cachedNoteData?.content_text ?? null,
+          content_html: note.content_html ?? cachedNoteData?.content_html ?? null,
+        };
 
         if (action === "copy-text") {
           // 复制纯文本
@@ -416,4 +471,3 @@ export function ActionMenu({ note, onNoteChange }: ActionMenuProps) {
     </>
   );
 }
-
