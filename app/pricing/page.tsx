@@ -3,14 +3,19 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles, Zap, Shield, Globe, Cpu, ArrowRight, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Check, Sparkles, Zap, Shield, Globe, Cpu, ArrowRight, ChevronDown, Loader2 } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useMembership } from "@/components/providers/MembershipProvider";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const pricingTiers = [
   {
+    id: "pro" as const,
     name: "NewsBox Pro",
-    price: "98",
+    price: "9.9",
     period: "/年",
     description: "解锁无限收藏与高级管理功能，适合进阶阅读者。",
     buttonText: "升级 Pro",
@@ -26,11 +31,12 @@ const pricingTiers = [
     ]
   },
   {
-    name: "NewsBox Pro + AI",
-    price: "198",
+    id: "ai" as const,
+    name: "NewsBox AI",
+    price: "19.9",
     period: "/年",
     description: "包含 Pro 全部功能，并赋予 AI 深度阅读助手能力。",
-    buttonText: "免费试用 14 天",
+    buttonText: "升级 Pro + AI",
     buttonVariant: "default" as const,
     highlight: true,
     features: [
@@ -38,8 +44,8 @@ const pricingTiers = [
       "AI 阅读助手：文章自动解读",
       "AI 幻影高亮：关键内容预警",
       "AI 智能摘要：极速概括大意",
-      "每月最多 1500 次 AI 使用次数",
-      "未来所有 AI 增强功能优先体验",
+      "AI 知识库与智能专题",
+      "AI 金句提炼与 AI 快照",
       "优先技术支持"
     ]
   }
@@ -65,8 +71,191 @@ const faqs = [
 ];
 
 export default function PricingPage() {
+  return (
+    <Suspense fallback={<PricingPageSkeleton />}>
+      <PricingPageContent />
+    </Suspense>
+  );
+}
+
+// 加载骨架屏
+function PricingPageSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#FBFBFD] dark:bg-black">
+      <div className="pt-32 pb-16 lg:pt-48 lg:pb-24">
+        <div className="container mx-auto px-6 text-center">
+          <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
+            <div className="h-12 bg-slate-200 dark:bg-slate-800 rounded-lg w-2/3 mx-auto"></div>
+            <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-1/2 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function PricingPageContent() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { status: membershipStatus, isLoading: membershipLoading, refreshMembership } = useMembership();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  // 检查登录状态
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkAuth();
+  }, []);
+
+  // 检查支付结果
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    const order = searchParams.get("order");
+    const message = searchParams.get("message");
+    const reason = searchParams.get("reason");
+
+    if (payment === "success") {
+      toast.success("支付成功！您的会员已开通", { duration: 5000 });
+      refreshMembership();
+      // 清除 URL 参数
+      router.replace("/pricing");
+    } else if (payment === "error") {
+      toast.error(message || "支付失败，请重试", { duration: 5000 });
+      router.replace("/pricing");
+    } else if (payment === "pending") {
+      toast.info("支付处理中，请稍后刷新查看状态", { duration: 5000 });
+      router.replace("/pricing");
+    }
+
+    // 显示过期提示
+    if (reason === "trial_expired") {
+      toast.info("您的 14 天试用期已结束，请订阅会员继续使用", { duration: 8000 });
+    } else if (reason === "expired") {
+      toast.info("您的会员已过期，请续费后继续使用", { duration: 8000 });
+    }
+  }, [searchParams, router, refreshMembership]);
+
+  // 发起支付
+  const handlePayment = async (planType: "pro" | "ai") => {
+    if (!isLoggedIn) {
+      router.push("/auth/sign-up");
+      return;
+    }
+
+    setLoadingPlan(planType);
+    try {
+      const response = await fetch("/api/payment/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planType,
+          payType: "wxpay", // 目前仅支持微信支付
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "创建订单失败");
+      }
+
+      // 跳转到支付页面
+      window.location.href = result.data.paymentUrl;
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error(error instanceof Error ? error.message : "支付失败，请重试");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  // 开发环境：手动激活会员（用于本地测试，z-pay 无法回调 localhost）
+  const handleDevActivate = async (planType: "pro" | "ai") => {
+    if (!isLoggedIn) {
+      toast.error("请先登录");
+      return;
+    }
+
+    setLoadingPlan(planType);
+    try {
+      const response = await fetch("/api/dev/activate-membership", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planType }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "激活失败");
+      }
+
+      toast.success(result.message);
+      refreshMembership();
+      // 跳转到 dashboard
+      setTimeout(() => router.push("/dashboard"), 1000);
+    } catch (error) {
+      console.error("Dev activate error:", error);
+      toast.error(error instanceof Error ? error.message : "激活失败");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  // 获取按钮文本
+  const getButtonText = (tier: typeof pricingTiers[0]) => {
+    if (loadingPlan === tier.id) {
+      return <><Loader2 className="w-5 h-5 animate-spin mr-2" />处理中...</>;
+    }
+
+    if (!isLoggedIn) {
+      return tier.highlight ? "注册并免费试用" : "注册并升级";
+    }
+
+    if (membershipStatus) {
+      // 当前方案 - 可续费
+      if (membershipStatus.planType === tier.id && membershipStatus.isActive) {
+        return "当前方案（续费）";
+      }
+      // AI 用户查看 Pro 方案 - 已包含，不可点击
+      if (membershipStatus.planType === "ai" && tier.id === "pro" && membershipStatus.isActive) {
+        return "已包含";
+      }
+      // 试用期用户
+      if (membershipStatus.isTrial) {
+        return `立即订阅`;
+      }
+      // Pro 用户升级到 AI
+      if (membershipStatus.planType === "pro" && tier.id === "ai" && membershipStatus.isActive) {
+        return "升级到 AI";
+      }
+      // 过期用户
+      if (!membershipStatus.isActive) {
+        return "立即订阅";
+      }
+    }
+
+    return tier.buttonText;
+  };
+
+  // 获取按钮是否禁用
+  const isButtonDisabled = (tier: typeof pricingTiers[0]) => {
+    if (loadingPlan) return true;
+    if (!membershipStatus) return false;
+    
+    // AI 用户不能降级到 Pro（但显示"已包含"）
+    if (membershipStatus.planType === "ai" && tier.id === "pro" && membershipStatus.isActive) {
+      return true;
+    }
+    // 其他情况都可以点击（包括续费）
+    return false;
+  };
 
   const navItems = [
     { id: "product-features", label: "产品功能", href: "/#product-features" },
@@ -236,25 +425,35 @@ export default function PricingPage() {
                   ))}
                 </div>
 
-                <Link href="/auth/sign-up" className="block">
-                  <Button 
-                    variant={tier.buttonVariant} 
-                    className={`w-full h-14 rounded-2xl text-lg font-bold transition-all active:scale-95 ${
-                      tier.highlight 
+                {/* 支付方式提示 */}
+                {isLoggedIn && (
+                  <div className="mb-4 flex items-center justify-center">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-600 bg-green-50 dark:bg-green-900/20">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#07C160">
+                        <path d="M8.691 13.553c-.262.104-.577.032-.755-.186a.596.596 0 01.029-.75c.185-.231.51-.314.78-.205l.67.284c.262.104.577.032.755-.186a.596.596 0 01-.029-.75c-.185-.231-.51-.314-.78-.205l-.67-.284c-.262.104-.577.032-.755-.186a.596.596 0 01.029-.75c.185-.231.51-.314.78-.205L12 9.5c2.485 0 4.5 1.567 4.5 3.5s-2.015 3.5-4.5 3.5-4.5-1.567-4.5-3.5c0-.524.158-1.02.44-1.46z"/>
+                      </svg>
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300">微信支付</span>
+                    </div>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={() => handlePayment(tier.id)}
+                  disabled={isButtonDisabled(tier)}
+                  variant={tier.buttonVariant} 
+                  className={`w-full h-14 rounded-2xl text-lg font-bold transition-all active:scale-95 ${
+                    isButtonDisabled(tier) 
+                      ? "opacity-50 cursor-not-allowed"
+                      : tier.highlight 
                         ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25" 
                         : "border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    {tier.buttonText}
-                    {tier.highlight && <ArrowRight className="ml-2 w-5 h-5" />}
-                  </Button>
-                </Link>
+                  }`}
+                >
+                  {getButtonText(tier)}
+                  {tier.highlight && !isButtonDisabled(tier) && !loadingPlan && <ArrowRight className="ml-2 w-5 h-5" />}
+                </Button>
                 
-                {tier.highlight && (
-                  <p className="mt-4 text-center text-xs text-slate-400 font-medium">
-                    无信用卡要求，试用期内随时可取消
-                  </p>
-                )}
+              
               </motion.div>
             ))}
           </div>
@@ -270,6 +469,49 @@ export default function PricingPage() {
               免费用户限额 200 篇，每篇最多 3 个标注。升级以解锁无限可能。
             </p>
           </motion.div>
+
+          {/* 开发环境测试激活 */}
+          {process.env.NODE_ENV === "development" && isLoggedIn && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="mt-8 p-6 rounded-2xl border-2 border-dashed border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20"
+            >
+              <p className="text-orange-600 dark:text-orange-400 text-sm font-medium mb-4 text-center">
+                🛠️ 开发环境测试（仅本地可用，用于绕过支付回调问题）
+              </p>
+
+              {/* 调试信息 */}
+              {membershipStatus && (
+                <div className="mb-4 p-3 bg-white/50 dark:bg-black/20 rounded-lg text-xs font-mono">
+                  <div className="text-slate-600 dark:text-slate-300">
+                    <strong>当前会员状态:</strong> {JSON.stringify(membershipStatus, null, 2)}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-center gap-4">
+                <Button
+                  onClick={() => handleDevActivate("pro")}
+                  disabled={!!loadingPlan}
+                  variant="outline"
+                  className="border-orange-400 text-orange-600 hover:bg-orange-100"
+                >
+                  {loadingPlan === "pro" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  激活 Pro 会员
+                </Button>
+                <Button
+                  onClick={() => handleDevActivate("ai")}
+                  disabled={!!loadingPlan}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  {loadingPlan === "ai" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  激活 AI 会员
+                </Button>
+              </div>
+            </motion.div>
+          )}
         </div>
       </section>
 

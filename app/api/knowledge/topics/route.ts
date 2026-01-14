@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireAIMembership } from "@/lib/middleware/membership";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // AI 会员权限检查
+    const permCheck = await requireAIMembership();
+    if (!permCheck.authorized) {
+      return permCheck.response;
     }
+
+    const supabase = await createClient();
+    const user = { id: permCheck.userId! };
 
     const base = supabase
       .from("knowledge_topics")

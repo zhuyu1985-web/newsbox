@@ -1,57 +1,118 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Bell, ChevronLeft, Info } from "lucide-react";
+import { Bell, ChevronLeft, Info, CreditCard, AlertTriangle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 type Notification = {
   id: string;
   title: string;
-  summary: string;
-  content: string;
-  date: string;
-  read: boolean;
+  message: string;
+  type: string;
+  link?: string;
+  is_read: boolean;
+  created_at: string;
 };
 
 const MOCK_NOTIFICATIONS: Notification[] = [
   {
-    id: "1",
+    id: "mock-1",
     title: "NewsBox AI 1.0 更新",
-    summary: "全新 AI 引擎，更精准的摘要与问答...",
-    content: "我们很高兴地宣布 NewsBox AI 1.0 正式上线！\n\n本次更新包含：\n1. 升级的 LLM 模型，解析速度提升 30%。\n2. 支持对视频内容的深度问答。\n3. 优化了自动标签生成的准确率。\n\n快去体验吧！",
-    date: "2025-01-03",
-    read: false,
-  },
-  {
-    id: "2",
-    title: "浏览器扩展升级",
-    summary: "修复了部分网站无法抓取的问题...",
-    content: "浏览器扩展版本 8.1.0 已发布。\n\n修复了以下问题：\n- 某些动态加载网站无法正确识别正文。\n- 优化了图片抓取逻辑，支持 WebP 格式。\n\n请在浏览器扩展商店更新。",
-    date: "2025-01-03",
-    read: true,
-  },
-  {
-    id: "3",
-    title: "欢迎使用 NewsBox",
-    summary: "新手指南：如何高效管理你的知识库...",
-    content: "欢迎来到 NewsBox\n\n这里有一些入门建议：\n1. 安装浏览器扩展，一键收藏网页。\n2. 绑定微信，转发文章即可收藏。\n3. 尝试使用 AI 解读功能，快速获取文章要点。\n\n祝你使用愉快！",
-    date: "2025-01-03",
-    read: true,
+    message: "我们很高兴地宣布 NewsBox AI 1.0 正式上线！\n\n本次更新包含：\n1. 升级的 LLM 模型，解析速度提升 30%。\n2. 支持对视频内容的深度问答。\n3. 优化了自动标签生成的准确率。\n\n快去体验吧！",
+    type: "system",
+    is_read: false,
+    created_at: new Date().toISOString(),
   },
 ];
+
+// 获取通知类型的图标
+function getNotificationIcon(type: string) {
+  switch (type) {
+    case "membership_expiring_7d":
+    case "membership_expiring_3d":
+      return <CreditCard className="w-4 h-4 text-amber-500" />;
+    case "membership_expired":
+      return <AlertTriangle className="w-4 h-4 text-red-500" />;
+    default:
+      return <Info className="w-4 h-4 text-blue-500" />;
+  }
+}
+
+// 格式化日期
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffDays === 0) return "今天";
+  if (diffDays === 1) return "昨天";
+  if (diffDays < 7) return `${diffDays} 天前`;
+  return date.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
+}
 
 export function NotificationsPopover({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [activeNote, setActiveNote] = useState<Notification | null>(null);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [loading, setLoading] = useState(false);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // 从数据库加载通知
+  const loadNotifications = useCallback(async () => {
+    try {
+      setLoading(true);
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
 
-  const handleRead = (id: string) => {
+      const { data, error } = await supabase
+        .from("user_notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (!error && data) {
+        // 合并数据库通知和默认通知
+        setNotifications(data.length > 0 ? data : MOCK_NOTIFICATIONS);
+      }
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      loadNotifications();
+    }
+  }, [open, loadNotifications]);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  const handleRead = async (id: string) => {
+    // 更新本地状态
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
+
+    // 如果不是 mock 通知，更新数据库
+    if (!id.startsWith("mock-")) {
+      try {
+        const supabase = createClient();
+        await supabase
+          .from("user_notifications")
+          .update({ is_read: true })
+          .eq("id", id);
+      } catch (err) {
+        console.error("Failed to mark notification as read:", err);
+      }
+    }
   };
 
   const handleClickItem = (note: Notification) => {
@@ -106,10 +167,19 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
               <h3 className="text-lg font-bold text-slate-900 mb-2 leading-tight">
                 {activeNote.title}
               </h3>
-              <div className="text-xs text-slate-400 mb-6">{activeNote.date}</div>
+              <div className="text-xs text-slate-400 mb-6">{formatDate(activeNote.created_at)}</div>
               <div className="prose prose-sm prose-slate max-w-none text-slate-600 whitespace-pre-wrap leading-relaxed">
-                {activeNote.content}
+                {activeNote.message}
               </div>
+              {activeNote.link && (
+                <Link
+                  href={activeNote.link}
+                  className="mt-6 inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  onClick={() => setOpen(false)}
+                >
+                  查看详情 &rarr;
+                </Link>
+              )}
             </div>
           ) : (
             <div className="space-y-0.5 p-2">
@@ -120,13 +190,13 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
                   className={cn(
                     "w-full flex gap-3 px-3 py-3 rounded-xl transition-all text-left group relative overflow-hidden",
                     "hover:bg-white hover:shadow-sm hover:scale-[1.02] active:scale-[0.98]",
-                    !note.read ? "bg-white/50" : "opacity-80 hover:opacity-100"
+                    !note.is_read ? "bg-white/50" : "opacity-80 hover:opacity-100"
                   )}
                 >
                   <div
                     className={cn(
                       "w-2 h-2 rounded-full mt-2 shrink-0 transition-colors",
-                      !note.read ? "bg-[#FF4D4D]" : "bg-transparent"
+                      !note.is_read ? "bg-[#FF4D4D]" : "bg-transparent"
                     )}
                   />
                   <div className="flex-1 min-w-0 space-y-1">
@@ -134,7 +204,7 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
                       <span
                         className={cn(
                           "text-sm truncate",
-                          !note.read
+                          !note.is_read
                             ? "font-semibold text-slate-900"
                             : "font-medium text-slate-700"
                         )}
@@ -142,11 +212,11 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
                         {note.title}
                       </span>
                       <span className="text-[10px] text-slate-400 shrink-0">
-                        {note.date}
+                        {formatDate(note.created_at)}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                      {note.summary}
+                      {note.message}
                     </p>
                   </div>
                 </button>

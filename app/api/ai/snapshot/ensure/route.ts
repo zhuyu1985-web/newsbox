@@ -4,6 +4,7 @@ import { generateSnapshotData } from "@/lib/services/snapshot";
 import { sha256Hex, stripHtmlToText } from "@/lib/ai-snapshot/hash";
 import { renderSnapshotImageResponse } from "@/lib/ai-snapshot/render";
 import { isSnapshotTemplate, SNAPSHOT_TEMPLATES, type SnapshotTemplate } from "@/lib/ai-snapshot/types";
+import { requireAIMembership } from "@/lib/middleware/membership";
 
 const SIGNED_URL_EXPIRES_IN = 60 * 15;
 const DEFAULT_BUCKET = "zhuyu";
@@ -13,15 +14,14 @@ async function sleep(ms: number) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // AI 会员权限检查
+  const permCheck = await requireAIMembership();
+  if (!permCheck.authorized) {
+    return permCheck.response;
   }
+
+  const supabase = await createClient();
+  const user = { id: permCheck.userId! };
 
   const body = await request.json().catch(() => null);
   const noteId = body?.noteId as string | undefined;

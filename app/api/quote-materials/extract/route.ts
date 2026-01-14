@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireAIMembership } from "@/lib/middleware/membership";
 
 function normalizeForContains(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -60,15 +61,14 @@ async function callOpenAIJson(args: { system: string; user: string; temperature?
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "未授权" }, { status: 401 });
+    // AI 会员权限检查
+    const permCheck = await requireAIMembership();
+    if (!permCheck.authorized) {
+      return permCheck.response;
     }
+
+    const supabase = await createClient();
+    const user = { id: permCheck.userId! };
 
     const body = await request.json().catch(() => ({}));
     const noteId = typeof body?.note_id === "string" ? body.note_id.trim() : "";

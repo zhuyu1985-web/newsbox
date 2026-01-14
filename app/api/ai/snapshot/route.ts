@@ -3,19 +3,19 @@ import { createClient } from "@/lib/supabase/server";
 import { sha256Hex, stripHtmlToText } from "@/lib/ai-snapshot/hash";
 import type { SnapshotTemplate } from "@/lib/ai-snapshot/types";
 import { isSnapshotTemplate } from "@/lib/ai-snapshot/types";
+import { requireAIMembership } from "@/lib/middleware/membership";
 
 const SIGNED_URL_EXPIRES_IN = 60 * 15;
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // AI 会员权限检查
+  const permCheck = await requireAIMembership();
+  if (!permCheck.authorized) {
+    return permCheck.response;
   }
+
+  const supabase = await createClient();
+  const user = { id: permCheck.userId! };
 
   const noteId = request.nextUrl.searchParams.get("noteId") || "";
   const templateRaw = request.nextUrl.searchParams.get("template");
