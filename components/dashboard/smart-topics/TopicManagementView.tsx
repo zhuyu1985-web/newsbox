@@ -105,9 +105,9 @@ export const TopicManagementView: React.FC<TopicManagementViewProps> = ({
 
   if (loadingDetail || !topicDetail) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-white">
+      <div className="flex-1 flex flex-col items-center justify-center bg-card">
         <div className="h-8 w-8 text-blue-500 animate-spin border-4 border-current border-t-transparent rounded-full" />
-        <p className="text-slate-500 mt-4 font-medium">加载专题内容中...</p>
+        <p className="text-muted-foreground mt-4 font-medium">加载专题内容中...</p>
       </div>
     );
   }
@@ -115,29 +115,29 @@ export const TopicManagementView: React.FC<TopicManagementViewProps> = ({
   const { topic } = topicDetail;
 
   return (
-    <div className="flex-1 flex flex-col bg-white text-slate-900 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-card text-card-foreground overflow-hidden">
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {/* Shared Detail Header (Moved inside scroll to not be fixed) */}
-        <div className="px-8 pt-6 pb-0 border-b border-slate-200/80">
+        <div className="px-8 pt-6 pb-0 border-b border-border/80">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Breadcrumbs & Actions */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
+              <div className="flex items-center gap-3 text-sm font-bold tracking-wider text-muted-foreground uppercase">
                 <span className="cursor-pointer hover:text-blue-600 transition-colors" onClick={handleBackToList}>智能专题</span>
-                <ChevronRight className="h-4 w-4 text-slate-300" />
-                <span className="text-slate-800">专题详情</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                <span className="text-card-foreground">专题详情</span>
               </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="bg-slate-50 border-slate-200 rounded-xl gap-2 text-slate-600 h-9" onClick={() => toast.info("功能开发中")}>
+              <Button variant="outline" className="bg-muted border-border rounded-xl gap-2 text-card-foreground h-9" onClick={() => toast.info("功能开发中")}>
                 <Share2 className="h-3.5 w-3.5" /> 分享
               </Button>
               {subView === "timeline" ? (
-                <Button variant="outline" className="bg-slate-50 border-slate-200 rounded-xl gap-2 text-slate-600 h-9" onClick={() => toast.info("功能开发中")}>
+                <Button variant="outline" className="bg-muted border-border rounded-xl gap-2 text-card-foreground h-9" onClick={() => toast.info("功能开发中")}>
                   <FileDown className="h-3.5 w-3.5" /> 导出 MD
                 </Button>
               ) : (
-                <Button variant="outline" className="bg-slate-50 border-slate-200 rounded-xl gap-2 text-slate-600 h-9" onClick={() => toast.info("功能开发中")}>
+                <Button variant="outline" className="bg-muted border-border rounded-xl gap-2 text-card-foreground h-9" onClick={() => toast.info("功能开发中")}>
                   <Download className="h-3.5 w-3.5" /> 下载报告
                 </Button>
               )}
@@ -151,11 +151,11 @@ export const TopicManagementView: React.FC<TopicManagementViewProps> = ({
 
           {/* Title and Meta */}
           <div className="flex flex-col gap-4">
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-3xl font-extrabold text-card-foreground tracking-tight">
               {topic.title || "未命名专题"}
             </h1>
 
-            <p className="text-sm text-slate-500 leading-relaxed max-w-3xl">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
               基于该专题下的 {topic.member_count} 篇内容，通过 AI 智能分析生成的深度脉络与专题报告。
             </p>
             
@@ -183,7 +183,7 @@ export const TopicManagementView: React.FC<TopicManagementViewProps> = ({
               onClick={() => setSubView("timeline")}
               className={cn(
                 "pb-4 text-sm font-bold tracking-wide transition-all relative flex items-center gap-2",
-                subView === "timeline" ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
+                subView === "timeline" ? "text-blue-600" : "text-muted-foreground/70 hover:text-card-foreground"
               )}
             >
               <LineChart className="h-4 w-4" />
@@ -196,7 +196,7 @@ export const TopicManagementView: React.FC<TopicManagementViewProps> = ({
               onClick={() => setSubView("report")}
               className={cn(
                 "pb-4 text-sm font-bold tracking-wide transition-all relative flex items-center gap-2",
-                subView === "report" ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
+                subView === "report" ? "text-blue-600" : "text-muted-foreground/70 hover:text-card-foreground"
               )}
             >
               <FileText className="h-4 w-4" />

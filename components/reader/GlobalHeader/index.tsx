@@ -239,9 +239,9 @@ export function GlobalHeader({
               className={cn(
                 "hidden md:flex items-center gap-1.5 relative transition-all duration-200 h-8 px-3 rounded-full shadow-sm",
                 // 默认状态：轻量级边框 + 白色背景
-                "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300",
+                "border-border bg-card text-card-foreground hover:bg-muted hover:text-card-foreground hover:border-slate-300",
                 // 激活状态：深色背景或高亮
-                !isRightSidebarCollapsed && activeRightTab === "annotations" && "bg-slate-100 border-slate-300 text-slate-900 shadow-inner"
+                !isRightSidebarCollapsed && activeRightTab === "annotations" && "bg-muted border-slate-300 text-card-foreground shadow-inner"
               )}
               title={isSidebarCompact ? "展开批注" : "收起批注"}
             >

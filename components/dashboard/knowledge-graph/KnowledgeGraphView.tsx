@@ -620,9 +620,9 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at:1px_1px,rgba(148,163,184,0.15)_1px,transparent_0)] bg-[size:24px_24px]" />
 
       {/* Left Sidebar: Types */}
-      <div className="absolute top-6 left-6 z-20 w-[220px] rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200 shadow-sm">
-        <div className="px-4 py-3 border-b border-slate-200/70">
-          <div className="text-[11px] font-black text-slate-500 tracking-wider">实体类型</div>
+      <div className="absolute top-6 left-6 z-20 w-[220px] rounded-2xl bg-card/90 backdrop-blur-xl border border-border shadow-sm">
+        <div className="px-4 py-3 border-b border-border/70">
+          <div className="text-[11px] font-black text-muted-foreground tracking-wider">实体类型</div>
         </div>
         <div className="p-3 space-y-1">
           {([
@@ -640,29 +640,29 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
                 key={t}
                 className={cn(
                   "w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors",
-                  on ? "bg-slate-50 hover:bg-slate-100" : "bg-transparent hover:bg-slate-50"
+                  on ? "bg-muted hover:bg-muted" : "bg-transparent hover:bg-muted"
                 )}
                 onClick={() => toggleType(t)}
                 type="button"
               >
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
-                    <Icon className="h-4 w-4 text-slate-600" />
+                  <div className="h-7 w-7 rounded-xl bg-card border border-border flex items-center justify-center">
+                    <Icon className="h-4 w-4 text-card-foreground" />
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[t] }} />
-                    <span className="text-sm font-bold text-slate-700">{typeLabel(t)}</span>
+                    <span className="text-sm font-bold text-popover-foreground">{typeLabel(t)}</span>
                   </div>
                 </div>
                 <div
                   className={cn(
                     "h-5 w-9 rounded-full border transition-all relative",
-                    on ? "bg-blue-600 border-blue-600" : "bg-white border-slate-200"
+                    on ? "bg-blue-600 border-blue-600" : "bg-card border-border"
                   )}
                 >
                   <div
                     className={cn(
-                      "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all",
+                      "absolute top-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition-all",
                       on ? "left-4" : "left-0.5 bg-slate-200"
                     )}
                   />
@@ -676,8 +676,8 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
       {/* Top Search */}
       <div className="absolute top-6 left-[260px] right-6 z-20 flex items-start justify-between gap-4">
         <div className="relative w-[520px]">
-          <div className="flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200 shadow-sm px-3 py-2">
-            <Search className="h-4 w-4 text-slate-400" />
+          <div className="flex items-center gap-2 rounded-2xl bg-card/90 backdrop-blur-xl border border-border shadow-sm px-3 py-2">
+            <Search className="h-4 w-4 text-muted-foreground/70" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -706,22 +706,22 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
           </div>
 
           {searchOpen && searchResults.length > 0 && (
-            <div className="absolute mt-2 w-full rounded-2xl bg-white border border-slate-200 shadow-lg overflow-hidden">
+            <div className="absolute mt-2 w-full rounded-2xl bg-card border border-border shadow-lg overflow-hidden">
               {searchResults.map((r) => (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => handlePickEntity(r.id)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: TYPE_COLORS[r.type] || TYPE_COLORS.DEFAULT }}
                     />
-                    <span className="text-sm font-bold text-slate-800 truncate">{r.name}</span>
+                    <span className="text-sm font-bold text-card-foreground truncate">{r.name}</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-400">{typeLabel(r.type)}</span>
+                  <span className="text-xs font-bold text-muted-foreground/70">{typeLabel(r.type)}</span>
                 </button>
               ))}
             </div>
@@ -729,11 +729,11 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
         </div>
 
         {/* Top Right Controls */}
-        <div className="flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200 shadow-sm p-2">
-          <Button variant="ghost" size="icon" onClick={handleZoomIn} className="h-10 w-10 rounded-xl hover:bg-slate-100 text-slate-600">
+        <div className="flex items-center gap-2 rounded-2xl bg-card/90 backdrop-blur-xl border border-border shadow-sm p-2">
+          <Button variant="ghost" size="icon" onClick={handleZoomIn} className="h-10 w-10 rounded-xl hover:bg-muted text-card-foreground">
             <ZoomIn className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleZoomOut} className="h-10 w-10 rounded-xl hover:bg-slate-100 text-slate-600">
+          <Button variant="ghost" size="icon" onClick={handleZoomOut} className="h-10 w-10 rounded-xl hover:bg-muted text-card-foreground">
             <ZoomOut className="h-4 w-4" />
           </Button>
 
@@ -754,13 +754,13 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
                 loadDemoNeighborhood(demoBundle.seedEntityId, { depth: 1, append: false });
               }
             }}
-            className="h-10 px-3 rounded-xl hover:bg-slate-100 text-slate-700 font-black"
+            className="h-10 px-3 rounded-xl hover:bg-muted text-popover-foreground font-black"
           >
             {demoMode ? "退出演示" : "演示数据"}
           </Button>
 
           <div className="w-px h-6 bg-slate-200" />
-          <Button variant="ghost" size="icon" onClick={handleReset} className="h-10 w-10 rounded-xl hover:bg-slate-100 text-slate-600">
+          <Button variant="ghost" size="icon" onClick={handleReset} className="h-10 w-10 rounded-xl hover:bg-muted text-card-foreground">
             <Maximize2 className="h-4 w-4" />
           </Button>
         </div>
@@ -770,20 +770,20 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
       <div className="flex-1 relative">
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-white/90 border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-card/90 border border-border shadow-sm">
               <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-              <span className="text-sm font-bold text-slate-600">正在加载关系网络...</span>
+              <span className="text-sm font-bold text-card-foreground">正在加载关系网络...</span>
             </div>
           </div>
         ) : null}
 
         {filteredGraph.nodes.length === 0 ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8">
-            <div className="w-16 h-16 rounded-3xl bg-white border border-slate-200 shadow-sm flex items-center justify-center">
-              <Search className="h-7 w-7 text-slate-300" />
+            <div className="w-16 h-16 rounded-3xl bg-card border border-border shadow-sm flex items-center justify-center">
+              <Search className="h-7 w-7 text-muted-foreground/50" />
             </div>
-            <h3 className="mt-6 text-xl font-black text-slate-900">从一个实体开始</h3>
-            <p className="mt-2 text-sm text-slate-500 max-w-md leading-relaxed">
+            <h3 className="mt-6 text-xl font-black text-card-foreground">从一个实体开始</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
               在上方输入人物、组织或地点名称，系统会按需加载 1 度关系；双击节点可继续展开下一层。
             </p>
 
@@ -800,7 +800,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
               </Button>
               <Button
                 variant="ghost"
-                className="h-11 px-5 rounded-2xl border border-slate-200 bg-white/80 hover:bg-white text-slate-700 font-black"
+                className="h-11 px-5 rounded-2xl border border-border bg-card/80 hover:bg-card text-popover-foreground font-black"
                 onClick={() => {
                   if (graphRef.current) graphRef.current.fitView();
                 }}
@@ -808,7 +808,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
                 我知道了
               </Button>
             </div>
-            <p className="mt-3 text-xs text-slate-400">演示数据仅用于界面展示，不会写入你的数据库。</p>
+            <p className="mt-3 text-xs text-muted-foreground/70">演示数据仅用于界面展示，不会写入你的数据库。</p>
           </div>
         ) : (
           <div ref={containerRef} className="w-full h-full min-h-[600px]" />

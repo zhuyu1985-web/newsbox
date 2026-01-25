@@ -307,25 +307,25 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
   return (
     <div
       className={cn(
-        "absolute top-0 right-0 bottom-0 w-[320px] bg-white border-l border-slate-200 shadow-2xl z-30 transform transition-transform duration-300 ease-out flex flex-col",
+        "absolute top-0 right-0 bottom-0 w-[320px] bg-card border-l border-border shadow-2xl z-30 transform transition-transform duration-300 ease-out flex flex-col",
         hasPanel ? "translate-x-0" : "translate-x-full"
       )}
     >
       {/* Header */}
-      <div className="px-6 py-5 border-b border-slate-200 flex items-start justify-between gap-4">
+      <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Badge className="bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-[10px] font-bold">
               {typeLabel(headerType)}
             </Badge>
-            <span className="text-[11px] font-bold text-slate-400">实体档案</span>
+            <span className="text-[11px] font-bold text-muted-foreground/70">实体档案</span>
           </div>
-          <h2 className="mt-2 text-2xl font-black text-slate-900 truncate">{entity?.name || ""}</h2>
+          <h2 className="mt-2 text-2xl font-black text-card-foreground truncate">{entity?.name || ""}</h2>
           {entity?.aliases?.length ? (
-            <p className="mt-1 text-xs text-slate-500 line-clamp-1">别名：{entity.aliases.join("，")}</p>
+            <p className="mt-1 text-xs text-muted-foreground line-clamp-1">别名：{entity.aliases.join("，")}</p>
           ) : null}
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 rounded-xl hover:bg-slate-100 text-slate-500">
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 rounded-xl hover:bg-muted text-muted-foreground">
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -334,22 +334,22 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
         {loading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <p className="text-sm font-bold text-slate-500">加载中...</p>
+            <p className="text-sm font-bold text-muted-foreground">加载中...</p>
           </div>
         ) : entity ? (
           <div className="p-6 space-y-8">
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="text-[10px] font-black text-slate-400 tracking-wider">提及</div>
-                <div className="mt-1 text-2xl font-black text-slate-900">{mentionCount}</div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="text-[10px] font-black text-muted-foreground/70 tracking-wider">提及</div>
+                <div className="mt-1 text-2xl font-black text-card-foreground">{mentionCount}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="text-[10px] font-black text-slate-400 tracking-wider">关系</div>
-                <div className="mt-1 text-2xl font-black text-slate-900">{relationshipCount}</div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="text-[10px] font-black text-muted-foreground/70 tracking-wider">关系</div>
+                <div className="mt-1 text-2xl font-black text-card-foreground">{relationshipCount}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="text-[10px] font-black text-slate-400 tracking-wider">趋势</div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="text-[10px] font-black text-muted-foreground/70 tracking-wider">趋势</div>
                 <div className={cn("mt-1 text-2xl font-black", (trendPct ?? 0) >= 0 ? "text-emerald-600" : "text-rose-600")}>
                   {trendPct === null ? "—" : `${trendPct >= 0 ? "+" : ""}${trendPct}%`}
                 </div>
@@ -359,11 +359,11 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
             {/* Bio */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-400" />
-                <span className="text-xs font-black text-slate-500 tracking-wider">简介摘要</span>
+                <FileText className="h-4 w-4 text-muted-foreground/70" />
+                <span className="text-xs font-black text-muted-foreground tracking-wider">简介摘要</span>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
-                <p className="text-sm text-slate-700 leading-relaxed">
+              <div className="rounded-2xl border border-border bg-muted/50 p-4">
+                <p className="text-sm text-popover-foreground leading-relaxed">
                   {entity.description || "暂无简介。后续会基于你的收藏库自动生成更准确的实体摘要。"}
                 </p>
               </div>
@@ -373,43 +373,43 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
             {selectedLink ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-slate-400" />
-                  <span className="text-xs font-black text-slate-500 tracking-wider">关系证据</span>
+                  <Link2 className="h-4 w-4 text-muted-foreground/70" />
+                  <span className="text-xs font-black text-muted-foreground tracking-wider">关系证据</span>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
-                  <div className="text-[11px] font-bold text-slate-500 leading-relaxed">
-                    <span className="font-black text-slate-700">{typeof (selectedLink as any)?.source === "object" ? (selectedLink as any).source.name : ""}</span>
-                    <span className="mx-2 text-slate-300">—</span>
-                    <span className="px-2 py-0.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-black text-[10px]">
+                <div className="rounded-2xl border border-border bg-muted/50 p-4">
+                  <div className="text-[11px] font-bold text-muted-foreground leading-relaxed">
+                    <span className="font-black text-popover-foreground">{typeof (selectedLink as any)?.source === "object" ? (selectedLink as any).source.name : ""}</span>
+                    <span className="mx-2 text-muted-foreground/50">—</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-card border border-border text-popover-foreground font-black text-[10px]">
                       {(selectedLink as any)?.label || "关联"}
                     </span>
-                    <span className="mx-2 text-slate-300">→</span>
-                    <span className="font-black text-slate-700">{typeof (selectedLink as any)?.target === "object" ? (selectedLink as any).target.name : ""}</span>
+                    <span className="mx-2 text-muted-foreground/50">→</span>
+                    <span className="font-black text-popover-foreground">{typeof (selectedLink as any)?.target === "object" ? (selectedLink as any).target.name : ""}</span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {demoMode ? "演示模式：证据用于展示，原文笔记不可打开。" : "点击右侧证据条目可跳转到原文笔记。"}
                   </p>
                 </div>
 
                 {evidenceLoading ? (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 flex items-center gap-2">
+                  <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                    <span className="text-sm text-slate-500">加载证据中...</span>
+                    <span className="text-sm text-muted-foreground">加载证据中...</span>
                   </div>
                 ) : evidenceList.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+                  <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
                     暂无可展示的证据片段。
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {evidenceList.map((ev: any) => (
-                      <div key={ev.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div key={ev.id} className="rounded-2xl border border-border bg-card p-4">
                         <div className="flex items-center justify-between gap-3">
                           <Badge className="bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-[10px] font-bold">
                             {predicateLabel(ev.relation)}
                           </Badge>
-                          <span className="text-[10px] font-bold text-slate-400">
+                          <span className="text-[10px] font-bold text-muted-foreground/70">
                             {ev.notes?.published_at
                               ? new Date(ev.notes.published_at).toLocaleDateString()
                               : ev.notes?.created_at
@@ -417,17 +417,17 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
                                 : ""}
                           </span>
                         </div>
-                        <p className="mt-3 text-sm text-slate-700 leading-relaxed">
+                        <p className="mt-3 text-sm text-popover-foreground leading-relaxed">
                           {ev.evidence_snippet || "（缺少证据片段）"}
                         </p>
                         {ev.notes?.id ? (
                           <button
                             type="button"
-                            className="mt-3 w-full flex items-center justify-between gap-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 text-left"
+                            className="mt-3 w-full flex items-center justify-between gap-3 rounded-xl bg-muted hover:bg-muted border border-border px-3 py-2 text-left"
                             onClick={() => window.open(`/notes/${ev.notes.id}`, "_blank")}
                           >
-                            <span className="text-xs font-bold text-slate-700 line-clamp-1">{ev.notes.title || "打开原文"}</span>
-                            <ExternalLink className="h-4 w-4 text-slate-400" />
+                            <span className="text-xs font-bold text-popover-foreground line-clamp-1">{ev.notes.title || "打开原文"}</span>
+                            <ExternalLink className="h-4 w-4 text-muted-foreground/70" />
                           </button>
                         ) : null}
                       </div>
@@ -441,8 +441,8 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
             {relationships.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-slate-400" />
-                  <span className="text-xs font-black text-slate-500 tracking-wider">关联关系</span>
+                  <Link2 className="h-4 w-4 text-muted-foreground/70" />
+                  <span className="text-xs font-black text-muted-foreground tracking-wider">关联关系</span>
                 </div>
                 <div className="space-y-2">
                   {relationships.map((rel: any) => {
@@ -451,20 +451,20 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
                       <button
                         key={rel.id}
                         type="button"
-                        className="w-full rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors p-4 text-left"
+                        className="w-full rounded-2xl border border-border bg-card hover:bg-muted transition-colors p-4 text-left"
                         onClick={() => onSelectEntity?.(other.id)}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-9 w-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600">
+                            <div className="h-9 w-9 rounded-xl border border-border bg-card flex items-center justify-center text-card-foreground">
                               {typeIcon(other.type)}
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-black text-slate-900 truncate">{other.name}</div>
-                              <div className="text-[11px] font-bold text-slate-400">{predicateLabel(rel.relation)}</div>
+                              <div className="text-sm font-black text-card-foreground truncate">{other.name}</div>
+                              <div className="text-[11px] font-bold text-muted-foreground/70">{predicateLabel(rel.relation)}</div>
                             </div>
                           </div>
-                          <ExternalLink className="h-4 w-4 text-slate-300" />
+                          <ExternalLink className="h-4 w-4 text-muted-foreground/50" />
                         </div>
                       </button>
                     );
@@ -477,8 +477,8 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
             {mentions.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-slate-400" />
-                  <span className="text-xs font-black text-slate-500 tracking-wider">提及来源</span>
+                  <FileText className="h-4 w-4 text-muted-foreground/70" />
+                  <span className="text-xs font-black text-muted-foreground tracking-wider">提及来源</span>
                 </div>
                 <div className="space-y-2">
                   {mentions.map((m: any, idx: number) => {
@@ -490,8 +490,8 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
                         type="button"
                         disabled={Boolean(demoMode) || !note.id}
                         className={cn(
-                          "w-full rounded-2xl border border-slate-200 bg-white transition-colors p-4 text-left",
-                          Boolean(demoMode) || !note.id ? "opacity-60 cursor-not-allowed" : "hover:bg-slate-50"
+                          "w-full rounded-2xl border border-border bg-card transition-colors p-4 text-left",
+                          Boolean(demoMode) || !note.id ? "opacity-60 cursor-not-allowed" : "hover:bg-muted"
                         )}
                         onClick={() => {
                           if (demoMode || !note.id) return;
@@ -499,18 +499,18 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
                         }}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-[10px] font-black text-slate-400 tracking-wider">
+                          <span className="text-[10px] font-black text-muted-foreground/70 tracking-wider">
                             {note.published_at
                               ? new Date(note.published_at).toLocaleDateString()
                               : note.created_at
                                 ? new Date(note.created_at).toLocaleDateString()
                                 : ""}
                           </span>
-                          <ExternalLink className="h-4 w-4 text-slate-300" />
+                          <ExternalLink className="h-4 w-4 text-muted-foreground/50" />
                         </div>
-                        <div className="mt-2 text-sm font-black text-slate-900 line-clamp-2">{note.title}</div>
+                        <div className="mt-2 text-sm font-black text-card-foreground line-clamp-2">{note.title}</div>
                         {note.excerpt ? (
-                          <div className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed">{note.excerpt}</div>
+                          <div className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">{note.excerpt}</div>
                         ) : null}
                       </button>
                     );
@@ -521,13 +521,13 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
           </div>
         ) : (
           <div className="p-12 text-center">
-            <p className="text-sm text-slate-500">无法加载该实体信息。</p>
+            <p className="text-sm text-muted-foreground">无法加载该实体信息。</p>
           </div>
         )}
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-6 border-t border-slate-200 bg-white">
+      <div className="p-6 border-t border-border bg-card">
         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-black shadow-lg shadow-blue-200 transition-all active:scale-95">
           深度追溯此实体
         </Button>

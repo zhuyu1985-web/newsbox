@@ -82,9 +82,9 @@ export function TrashSection() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-900">最近删除</h3>
+          <h3 className="text-base font-bold text-card-foreground">最近删除</h3>
           <Button variant="outline" size="sm" onClick={load}>
             刷新
           </Button>
@@ -92,14 +92,14 @@ export function TrashSection() {
 
         <div className="p-6">
           {loading ? (
-            <div className="flex items-center gap-2 text-slate-500">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               加载中…
             </div>
           ) : error ? (
             <div className="text-sm text-red-600">{error}</div>
           ) : items.length === 0 ? (
-            <div className="text-sm text-slate-500">暂无最近删除记录</div>
+            <div className="text-sm text-muted-foreground">暂无最近删除记录</div>
           ) : (
             <div className="space-y-2">
               {items.map((n) => (
@@ -108,14 +108,14 @@ export function TrashSection() {
                   className="bg-[#f5f5f7] rounded-2xl p-5 flex items-center justify-between gap-4"
                 >
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 truncate">
+                    <div className="text-sm font-semibold text-card-foreground truncate">
                       {n.title || "无标题"}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                       <span className="truncate max-w-[180px]">
                         {n.site_name || "未知来源"}
                       </span>
-                      <span className="text-slate-300">·</span>
+                      <span className="text-muted-foreground/50">·</span>
                       <span>{new Date(n.deleted_at).toLocaleString("zh-CN")}</span>
                     </div>
                   </div>

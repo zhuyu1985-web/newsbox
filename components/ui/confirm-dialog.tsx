@@ -46,9 +46,9 @@ export function ConfirmDialog({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-slate-800">{title}</AlertDialogTitle>
+          <AlertDialogTitle className="text-card-foreground">{title}</AlertDialogTitle>
           {description && (
-            <AlertDialogDescription className="text-slate-500">
+            <AlertDialogDescription className="text-muted-foreground">
               {description}
             </AlertDialogDescription>
           )}
@@ -56,7 +56,7 @@ export function ConfirmDialog({
         <AlertDialogFooter className="gap-2">
           <AlertDialogCancel 
             disabled={loading} 
-            className="border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-xl mt-0"
+            className="border-border hover:bg-muted hover:text-card-foreground rounded-xl mt-0"
           >
             {cancelText}
           </AlertDialogCancel>

@@ -27,7 +27,7 @@ export function LeftSidebar({ note, currentView, onCollapse }: LeftSidebarProps)
     <div className="h-full flex flex-col bg-transparent">
       {/* 侧栏头部 */}
       <div className="flex items-center justify-between px-6 py-10">
-        <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
+        <h3 className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em]">
           {note.content_type === "video" ? "Chapters" : "Outline"}
         </h3>
       </div>

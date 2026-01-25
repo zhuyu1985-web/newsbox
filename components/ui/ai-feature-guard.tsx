@@ -79,17 +79,17 @@ export function AIFeatureGuard({
     case "locked":
     default:
       return (
-        <div className="relative rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center">
+        <div className="relative rounded-xl border border-dashed border-border dark:border-slate-800 p-6 text-center">
           <div className="absolute inset-0 bg-gradient-to-t from-white/80 dark:from-black/80 to-transparent rounded-xl" />
           <div className="relative z-10 space-y-4">
             <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <h4 className="font-semibold text-slate-800 dark:text-slate-200">
+              <h4 className="font-semibold text-card-foreground dark:text-slate-200">
                 {feature}需要 AI 会员
               </h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground/70 mt-1">
                 升级到 NewsBox AI 会员解锁全部 AI 功能
               </p>
             </div>

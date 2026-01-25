@@ -138,7 +138,7 @@ export function BrowseHistoryPopover({
                   "text-base font-semibold tracking-tight pb-2 border-b-[2px] transition-colors",
                   tab === "local"
                     ? "text-[#2F6BFF] border-[#2F6BFF]"
-                    : "text-slate-900/70 border-transparent hover:text-slate-900"
+                    : "text-slate-900/70 dark:text-white/70 border-transparent hover:text-slate-900 dark:hover:text-white"
                 )}
                 onClick={() => setTab("local")}
               >
@@ -148,8 +148,8 @@ export function BrowseHistoryPopover({
                 className={cn(
                   "text-base font-semibold tracking-tight pb-2 border-b-[2px] transition-colors flex items-center gap-1.5",
                   tab === "cloud"
-                    ? "text-slate-900 border-slate-900/30"
-                    : "text-slate-900/70 border-transparent hover:text-slate-900"
+                    ? "text-slate-900 dark:text-white border-slate-900/30 dark:border-white/30"
+                    : "text-slate-900/70 dark:text-white/70 border-transparent hover:text-slate-900 dark:hover:text-white"
                 )}
                 onClick={() => setTab("cloud")}
               >
@@ -197,7 +197,7 @@ export function BrowseHistoryPopover({
                     <FileText className="h-4 w-4 text-slate-700" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-slate-900 truncate">
+                    <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
                       {it.title || "无标题"}
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
@@ -231,7 +231,7 @@ export function BrowseHistoryPopover({
                     <Globe className="h-4 w-4 text-slate-700" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-slate-900 truncate">
+                    <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
                       {it.title || "无标题"}
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">

@@ -254,8 +254,8 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
                 <Camera className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">AI 快照</h1>
-                <p className="text-xs text-slate-500">将长文章浓缩为精美分享卡片</p>
+                <h1 className="text-xl font-bold text-card-foreground">AI 快照</h1>
+                <p className="text-xs text-muted-foreground">将长文章浓缩为精美分享卡片</p>
               </div>
             </div>
 
@@ -293,8 +293,8 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
           <div className="grid lg:grid-cols-[240px,1fr] gap-6">
             {/* 左侧：风格选择器 */}
             <div className="space-y-4">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200/90 p-4">
-                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+              <div className="bg-card rounded-xl shadow-sm border border-border/90 p-4">
+                <h3 className="text-sm font-bold text-card-foreground mb-3 flex items-center gap-2">
                   <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                   </svg>
@@ -309,14 +309,14 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
                         "w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all text-left group",
                         selectedTemplate === template.id
                           ? "border-blue-500 bg-blue-50 shadow-sm"
-                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 bg-white"
+                          : "border-border hover:border-slate-300 hover:bg-muted bg-card"
                       )}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm text-slate-900 truncate group-hover:text-blue-700 transition-colors">
+                        <div className="font-semibold text-sm text-card-foreground truncate group-hover:text-blue-700 transition-colors">
                           {template.name}
                         </div>
-                        <div className="text-xs text-slate-500 mt-1 truncate leading-relaxed">
+                        <div className="text-xs text-muted-foreground mt-1 truncate leading-relaxed">
                           {template.description}
                         </div>
                       </div>
@@ -350,7 +350,7 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
 
             {/* 右侧：快照预览 */}
             <div className="flex flex-col">
-              <div className="relative bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+              <div className="relative bg-card rounded-xl shadow-lg border border-border overflow-hidden">
                 <div className="relative w-full max-w-md mx-auto aspect-[3/4] bg-gradient-to-br from-slate-100 to-slate-200">
                   <AnimatePresence mode="wait">
                     {/* 首次加载时显示 loading */}
@@ -360,7 +360,7 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm z-10"
+                        className="absolute inset-0 flex flex-col items-center justify-center bg-card/95 backdrop-blur-sm z-10"
                       >
                         <motion.div
                           initial={{ scale: 0.8, opacity: 0 }}
@@ -369,8 +369,8 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
                           className="flex flex-col items-center"
                         >
                           <Loader2 className="h-12 w-12 text-blue-600 animate-spin mb-4" />
-                          <p className="text-base font-semibold text-slate-700 mb-1">正在生成快照...</p>
-                          <p className="text-sm text-slate-400">AI 正在提炼核心内容</p>
+                          <p className="text-base font-semibold text-popover-foreground mb-1">正在生成快照...</p>
+                          <p className="text-sm text-muted-foreground/70">AI 正在提炼核心内容</p>
                         </motion.div>
                       </motion.div>
                     )}
@@ -440,10 +440,10 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
                             }}
                             className="relative z-10"
                           >
-                            <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center">
+                            <div className="w-16 h-16 rounded-2xl bg-card shadow-lg flex items-center justify-center">
                               <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
                             </div>
-                            <p className="text-sm font-medium text-slate-500 mt-3">加载中...</p>
+                            <p className="text-sm font-medium text-muted-foreground mt-3">加载中...</p>
                           </motion.div>
                         </motion.div>
                       )}
@@ -477,20 +477,20 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
                 </div>
 
                 {/* 底部信息栏：始终占位，避免生成前后高度变化导致页面抖动 */}
-                <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 h-12 flex items-center">
+                <div className="border-t border-border bg-muted px-5 py-3 h-12 flex items-center">
                   <div
                     className={cn(
                       "w-full flex items-center justify-between text-sm transition-opacity font-medium",
                       imageUrl && !isGenerating && !error ? "opacity-100" : "opacity-0"
                     )}
                   >
-                    <div className="text-slate-600 flex items-center gap-1.5">
+                    <div className="text-card-foreground flex items-center gap-1.5">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       <span>1200 × 1600 px</span>
                     </div>
-                    <div className="text-slate-600 flex items-center gap-1.5">
+                    <div className="text-card-foreground flex items-center gap-1.5">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>

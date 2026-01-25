@@ -137,25 +137,25 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
   }, [displayCount, filteredTopics.length]);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F8FAFC] text-slate-900 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden">
       <div 
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto custom-scrollbar"
       >
         {/* Row 1: Navigation & Main Actions (Moved inside scroll to not be fixed) */}
-        <div className="px-8 py-5 flex items-center justify-between bg-white border-b border-slate-100">
+        <div className="px-8 py-5 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               智能专题
               <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">Beta</span>
             </h1>
-            <p className="text-xs text-slate-500 mt-1">基于 AI 语义聚类技术，为您自动梳理知识脉络与核心话题。</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">基于 AI 语义聚类技术，为您自动梳理知识脉络与核心话题。</p>
           </div>
           <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
               size="sm" 
-              className="rounded-xl border-slate-200 text-slate-600 gap-2 h-9 px-4 hover:bg-slate-50"
+              className="rounded-xl border-border text-card-foreground gap-2 h-9 px-4 hover:bg-muted"
               onClick={() => window.location.reload()}
             >
               <RefreshCw className="h-3.5 w-3.5" /> 刷新专题列表
@@ -182,38 +182,38 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
               { label: "今日生成专题", value: stats.todayTopics, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
               { label: "今日入库文章", value: stats.todayArticles, icon: History, color: "text-indigo-600", bg: "bg-indigo-50" },
             ].map((stat, i) => (
-              <div key={i} className="bg-white p-5 rounded-[20px] border border-slate-100 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+              <div key={i} className="bg-card p-5 rounded-[20px] border border-border flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
                 <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0", stat.bg)}>
                   <stat.icon className={cn("h-6 w-6", stat.color)} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                  <p className="text-2xl font-black text-slate-900 mt-0.5">{stat.value.toLocaleString()}</p>
+                  <p className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-2xl font-black text-card-foreground mt-0.5">{stat.value.toLocaleString()}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Row 3: Search & Filters */}
-          <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-[20px] border border-slate-100 shadow-sm">
+          <div className="flex flex-col md:flex-row items-center gap-4 bg-card p-4 rounded-[20px] border border-border shadow-sm">
             <div className="flex-1 w-full relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
               <Input 
                 placeholder="搜索专题名称、关键词或摘要..." 
-                className="w-full bg-slate-50/50 border-slate-100 pl-10 h-10 rounded-xl focus-visible:ring-blue-500/20 transition-all text-sm"
+                className="w-full bg-muted/50 border-border pl-10 h-10 rounded-xl focus-visible:ring-blue-500/20 transition-all text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <div className="flex items-center gap-2 bg-slate-50/50 p-1 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-xl border border-border">
                 <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[130px] h-8 border-none bg-transparent focus:ring-0 text-xs font-medium text-slate-600">
-                    <Calendar className="h-3.5 w-3.5 mr-2 text-slate-400" />
+                  <SelectTrigger className="w-[130px] h-8 border-none bg-transparent focus:ring-0 text-xs font-medium text-card-foreground">
+                    <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground/70" />
                     <SelectValue placeholder="日期检索" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-100">
+                  <SelectContent className="rounded-xl border-border">
                     <SelectItem value="all">全部时间</SelectItem>
                     <SelectItem value="24h">24小时内</SelectItem>
                     <SelectItem value="3d">3日内</SelectItem>
@@ -225,11 +225,11 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
                 <div className="w-px h-4 bg-slate-200" />
                 
                 <Select value={sortOrder} onValueChange={setSortOrder}>
-                  <SelectTrigger className="w-[140px] h-8 border-none bg-transparent focus:ring-0 text-xs font-medium text-slate-600">
-                    <ArrowUpDown className="h-3.5 w-3.5 mr-2 text-slate-400" />
+                  <SelectTrigger className="w-[140px] h-8 border-none bg-transparent focus:ring-0 text-xs font-medium text-card-foreground">
+                    <ArrowUpDown className="h-3.5 w-3.5 mr-2 text-muted-foreground/70" />
                     <SelectValue placeholder="排序方式" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-100">
+                  <SelectContent className="rounded-xl border-border">
                     <SelectItem value="newest">最新生成倒序</SelectItem>
                     <SelectItem value="oldest">时间生成正序</SelectItem>
                     <SelectItem value="name_asc">专题名称正序</SelectItem>
@@ -243,24 +243,24 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
           {/* Row 4: Topic List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-card-foreground flex items-center gap-2">
                 专题列表
-                <span className="text-xs font-normal text-slate-400">({filteredTopics.length})</span>
+                <span className="text-xs font-normal text-muted-foreground/70">({filteredTopics.length})</span>
               </h3>
             </div>
 
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-4">
                 <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
-                <p className="text-xs text-slate-400 font-medium tracking-wide">正在构建智能视图...</p>
+                <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">正在构建智能视图...</p>
               </div>
             ) : filteredTopics.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center bg-white border border-dashed border-slate-200 rounded-[32px]">
-                <div className="h-20 w-20 rounded-[28px] bg-slate-50 flex items-center justify-center mb-6">
+              <div className="flex flex-col items-center justify-center py-24 text-center bg-card border border-dashed border-border rounded-[32px]">
+                <div className="h-20 w-20 rounded-[28px] bg-muted flex items-center justify-center mb-6">
                   <Sparkles className="h-8 w-8 text-slate-200" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">未找到相关专题</h3>
-                <p className="text-sm text-slate-500 mt-2 max-w-sm leading-relaxed">
+                <h3 className="text-lg font-bold text-card-foreground">未找到相关专题</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-sm leading-relaxed">
                   尝试调整搜索词或筛选条件，或者点击顶部的 “立即出发聚类” 重新生成。
                 </p>
               </div>
@@ -282,9 +282,9 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
             {/* Infinite Scroll Loader */}
             {displayCount < filteredTopics.length && (
               <div className="flex justify-center py-10">
-                <div className="flex items-center gap-3 px-6 py-2 bg-white rounded-full border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-3 px-6 py-2 bg-card rounded-full border border-border shadow-sm">
                   <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                  <span className="text-xs font-medium text-slate-500">正在加载更多专题...</span>
+                  <span className="text-xs font-medium text-muted-foreground">正在加载更多专题...</span>
                 </div>
               </div>
             )}

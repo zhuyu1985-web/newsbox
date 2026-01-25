@@ -193,8 +193,8 @@ export function MoveToFolderDialog({
             className="w-full max-w-md mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <Card className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl">
-              <h3 className="text-lg font-semibold mb-4 text-slate-800">移动到收藏夹</h3>
+            <Card className="w-full p-6 shadow-xl border-border/60 bg-card/95 backdrop-blur-xl">
+              <h3 className="text-lg font-semibold mb-4 text-card-foreground">移动到收藏夹</h3>
 
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -206,7 +206,7 @@ export function MoveToFolderDialog({
                     {/* 未分类选项 */}
                     <Button
                       variant={selectedFolderId === null ? "default" : "outline"}
-                      className="w-full justify-start hover:bg-slate-50 border-slate-200"
+                      className="w-full justify-start hover:bg-muted border-border"
                       onClick={() => setSelectedFolderId(null)}
                     >
                       <span className="text-base leading-none mr-2">📄</span>
@@ -218,7 +218,7 @@ export function MoveToFolderDialog({
                       <Button
                         key={folder.id}
                         variant={selectedFolderId === folder.id ? "default" : "outline"}
-                        className="w-full justify-start gap-2 hover:bg-slate-50 border-slate-200"
+                        className="w-full justify-start gap-2 hover:bg-muted border-border"
                         style={{ paddingLeft: folder.depth * 12 + 12 }}
                         onClick={() => setSelectedFolderId(folder.id)}
                       >
@@ -233,7 +233,7 @@ export function MoveToFolderDialog({
                     ))}
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
                     <Button variant="outline" onClick={onClose} disabled={moving}>
                       取消
                     </Button>

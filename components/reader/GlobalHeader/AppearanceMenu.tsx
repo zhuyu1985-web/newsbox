@@ -43,7 +43,7 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
           {contentType === "article" ? (
             <>
               {currentView !== "reader" ? (
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   提示：字号/行高/字体仅在“沉浸阅读”视图下生效（切到“阅读”即可看到变化）
                 </div>
               ) : null}
@@ -52,7 +52,7 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium">字号</label>
                   <button
-                    className="text-[11px] text-slate-500 hover:text-slate-700"
+                    className="text-[11px] text-muted-foreground hover:text-popover-foreground"
                     onClick={() => reset()}
                     type="button"
                   >
@@ -140,13 +140,13 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                   ))}
                 </div>
                 {!hasCustomFont ? (
-                  <div className="mt-2 text-[11px] text-slate-500">提示：可在“设置 → 外观”中导入自定义字体</div>
+                  <div className="mt-2 text-[11px] text-muted-foreground">提示：可在“设置 → 外观”中导入自定义字体</div>
                 ) : null}
               </div>
             </>
           ) : (
             <>
-              <div className="text-sm text-slate-500">该内容类型的外观设置暂未接入。</div>
+              <div className="text-sm text-muted-foreground">该内容类型的外观设置暂未接入。</div>
             </>
           )}
         </div>

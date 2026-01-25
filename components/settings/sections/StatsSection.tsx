@@ -48,9 +48,9 @@ export function StatsSection() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <h3 className="text-base font-bold text-card-foreground flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
             用量统计
           </h3>
@@ -58,14 +58,14 @@ export function StatsSection() {
 
         <div className="p-6">
           {loading ? (
-            <div className="flex items-center gap-2 text-slate-500">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               加载中…
             </div>
           ) : error ? (
             <div className="text-sm text-red-600">{error}</div>
           ) : !stats ? (
-            <div className="text-sm text-slate-500">暂无数据</div>
+            <div className="text-sm text-muted-foreground">暂无数据</div>
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -81,22 +81,22 @@ export function StatsSection() {
 
               <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-[#f5f5f7] rounded-2xl p-6">
-                  <div className="text-sm font-semibold text-slate-900 mb-4">
+                  <div className="text-sm font-semibold text-card-foreground mb-4">
                     收藏卡片类型统计（柱状）
                   </div>
                   <div className="space-y-3">
                     {Object.entries(stats.contentType).map(([k, v]) => (
                       <div key={k} className="flex items-center gap-3">
-                        <div className="w-14 text-xs text-slate-600 capitalize">
+                        <div className="w-14 text-xs text-card-foreground capitalize">
                           {k}
                         </div>
-                        <div className="flex-1 h-2.5 bg-white rounded-full overflow-hidden border border-black/5">
+                        <div className="flex-1 h-2.5 bg-card rounded-full overflow-hidden border border-black/5">
                           <div
                             className="h-full bg-[#2F6BFF] rounded-full"
                             style={{ width: `${Math.round((v / maxType) * 100)}%` }}
                           />
                         </div>
-                        <div className="w-10 text-right text-xs text-slate-600">
+                        <div className="w-10 text-right text-xs text-card-foreground">
                           {v}
                         </div>
                       </div>
@@ -104,22 +104,22 @@ export function StatsSection() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-black/5 p-6">
-                  <div className="text-sm font-semibold text-slate-900 mb-4">
+                <div className="bg-card rounded-2xl border border-black/5 p-6">
+                  <div className="text-sm font-semibold text-card-foreground mb-4">
                     收藏的网站来源 TOP 10
                   </div>
                   <TopList rows={stats.topSavedDomains} />
                 </div>
 
-                <div className="bg-white rounded-2xl border border-black/5 p-6 lg:col-span-2">
-                  <div className="text-sm font-semibold text-slate-900 mb-4">
+                <div className="bg-card rounded-2xl border border-black/5 p-6 lg:col-span-2">
+                  <div className="text-sm font-semibold text-card-foreground mb-4">
                     访问的网站来源 TOP 10
                   </div>
                   <TopList rows={stats.topVisitedDomains} />
                 </div>
               </div>
 
-              <div className="mt-4 text-[11px] text-slate-400">
+              <div className="mt-4 text-[11px] text-muted-foreground/70">
                 统计口径：包含已归档与已删除笔记；访问次数基于访问事件表 `note_visit_events`。
               </div>
             </>
@@ -133,24 +133,24 @@ export function StatsSection() {
 function Metric({ label, value }: { label: string; value: any }) {
   return (
     <div className="bg-[#f5f5f7] rounded-2xl p-5">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="text-lg font-bold text-slate-900 mt-2">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-lg font-bold text-card-foreground mt-2">{value}</div>
     </div>
   );
 }
 
 function TopList({ rows }: { rows: Array<{ domain: string; count: number }> }) {
   if (!rows?.length) {
-    return <div className="text-sm text-slate-500">暂无数据</div>;
+    return <div className="text-sm text-muted-foreground">暂无数据</div>;
   }
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
     <div className="space-y-2">
       {rows.map((r, idx) => (
         <div key={r.domain} className="flex items-center gap-3">
-          <div className="w-5 text-xs text-slate-400">{idx + 1}</div>
+          <div className="w-5 text-xs text-muted-foreground/70">{idx + 1}</div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-slate-800 truncate">{r.domain}</div>
+            <div className="text-sm text-card-foreground truncate">{r.domain}</div>
             <div className="h-2 bg-[#f5f5f7] rounded-full overflow-hidden mt-1 border border-black/5">
               <div
                 className={cn("h-full rounded-full", idx < 3 ? "bg-[#2F6BFF]" : "bg-slate-300")}
@@ -158,7 +158,7 @@ function TopList({ rows }: { rows: Array<{ domain: string; count: number }> }) {
               />
             </div>
           </div>
-          <div className="w-10 text-right text-xs text-slate-600">{r.count}</div>
+          <div className="w-10 text-right text-xs text-card-foreground">{r.count}</div>
         </div>
       ))}
     </div>

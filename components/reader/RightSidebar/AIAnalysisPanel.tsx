@@ -312,24 +312,24 @@ export function AIAnalysisPanel({
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-sm text-slate-400">加载 AI 数据中...</div>;
+    return <div className="p-8 text-center text-sm text-muted-foreground/70">加载 AI 数据中...</div>;
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/30 dark:bg-slate-900/30 text-[15px]">
+    <div className="flex flex-col h-full bg-muted/30 dark:bg-slate-900/30 text-[15px]">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <div className="px-4 py-3 border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-blue-500" />
-            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">AI 智能解读</span>
+            <span className="text-sm font-bold text-card-foreground dark:text-slate-200">AI 智能解读</span>
           </div>
 
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold px-3"
+              className="h-9 text-xs text-card-foreground dark:text-muted-foreground/70 hover:bg-muted dark:hover:bg-slate-800 font-semibold px-3"
               onClick={() => handleGenerate({ force: true })}
               disabled={generating}
               title="忽略缓存重新生成"
@@ -365,7 +365,7 @@ export function AIAnalysisPanel({
                 onClick={() => setSubTab(t.id)}
                 className={cn(
                   "relative flex-1 py-2 text-[13px] rounded-xl transition-all duration-200",
-                  isActive ? "text-blue-600 dark:text-blue-400 font-bold" : "text-slate-500 dark:text-slate-400 hover:text-blue-500 hover:bg-white/50 dark:hover:bg-slate-800/50"
+                  isActive ? "text-blue-600 dark:text-blue-400 font-bold" : "text-muted-foreground dark:text-muted-foreground/70 hover:text-blue-500 hover:bg-card/50 dark:hover:bg-slate-800/50"
                 )}
               >
                 {isActive && (
@@ -391,11 +391,11 @@ export function AIAnalysisPanel({
       >
         {!analysis ? (
           <div className="py-10 text-center">
-            <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-card dark:bg-slate-800 rounded-2xl shadow-sm border border-border dark:border-slate-700 flex items-center justify-center mx-auto mb-4">
               <Sparkles className="h-8 w-8 text-blue-400 animate-pulse" />
             </div>
-            <h3 className="text-[15px] font-bold text-slate-700 dark:text-slate-200 mb-2">把这篇文章变成你的外脑</h3>
-            <p className="text-[13px] text-slate-400 dark:text-slate-500 mb-6 max-w-[260px] mx-auto leading-relaxed">
+            <h3 className="text-[15px] font-bold text-popover-foreground dark:text-slate-200 mb-2">把这篇文章变成你的外脑</h3>
+            <p className="text-[13px] text-muted-foreground/70 dark:text-muted-foreground mb-6 max-w-[260px] mx-auto leading-relaxed">
               先给你 30 秒快读 + 3 个关键问题，帮助你决定是否继续深读。
             </p>
             <Button
@@ -419,29 +419,29 @@ export function AIAnalysisPanel({
             >
               {subTab === "overview" && (
                 <div className="space-y-4">
-                  <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
+                  <section className="bg-card dark:bg-slate-900 rounded-2xl border border-border dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
                     <div className="px-4 py-3 flex items-center justify-between border-b border-slate-50 dark:border-slate-800">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-blue-50/80 dark:bg-blue-900/30 flex items-center justify-center">
                           <Sparkles className="h-3.5 w-3.5 text-blue-500" />
                         </div>
-                        <span className="text-[14px] font-bold text-slate-800 dark:text-slate-200">⚡ AI 快读</span>
+                        <span className="text-[14px] font-bold text-card-foreground dark:text-slate-200">⚡ AI 快读</span>
                       </div>
-                      <div className="flex items-center gap-2 text-[12px] text-slate-400 dark:text-slate-500 font-bold">
+                      <div className="flex items-center gap-2 text-[12px] text-muted-foreground/70 dark:text-muted-foreground font-bold">
                         <Clock className="h-3.5 w-3.5" />
                         {fastRead?.read_time_minutes ? `${fastRead.read_time_minutes} 分钟` : "-"}
                       </div>
                     </div>
 
                     <div className="px-4 py-4 space-y-3">
-                      <div className="text-[14.5px] font-bold text-slate-800 dark:text-slate-200 leading-relaxed">
+                      <div className="text-[14.5px] font-bold text-card-foreground dark:text-slate-200 leading-relaxed">
                         {fastRead?.hook || analysis.summary}
                       </div>
 
                       {takeaways.length > 0 && (
                         <ul className="space-y-1.5">
                           {takeaways.slice(0, 5).map((pt: any, i: number) => (
-                            <li key={i} className="text-[14px] text-slate-600 dark:text-slate-400 flex gap-2">
+                            <li key={i} className="text-[14px] text-card-foreground dark:text-muted-foreground/70 flex gap-2">
                               <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-300 dark:bg-blue-600 flex-shrink-0" />
                               {String(pt)}
                             </li>
@@ -451,14 +451,14 @@ export function AIAnalysisPanel({
 
                       {fastRead?.sentiment && (
                         <div className="flex flex-wrap items-center gap-2 pt-1">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[12px] font-bold">
+                          <span className="px-2 py-0.5 rounded-md bg-muted dark:bg-slate-800 text-card-foreground dark:text-muted-foreground/70 text-[12px] font-bold">
                             #{fastRead.sentiment}
                           </span>
                         </div>
                       )}
 
                       {(!fastRead?.hook || takeaways.length === 0) && (
-                        <div className="text-[13px] text-slate-400">
+                        <div className="text-[13px] text-muted-foreground/70">
                           当前仅有旧版解读数据，建议点击右上角“更新解读”生成新版快读。
                         </div>
                       )}
@@ -467,35 +467,35 @@ export function AIAnalysisPanel({
 
                   <button
                     type="button"
-                    className="w-full text-left bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="w-full text-left bg-card dark:bg-slate-900 rounded-2xl border border-border dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] px-4 py-3 hover:bg-muted dark:hover:bg-slate-800 transition-colors"
                     onClick={() => setSubTab("qa")}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="text-[14.5px] font-bold text-slate-800 dark:text-slate-200">❓ 进入关键问题</div>
-                      <ChevronRight className="h-4 w-4 text-slate-400" />
+                      <div className="text-[14.5px] font-bold text-card-foreground dark:text-slate-200">❓ 进入关键问题</div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/70" />
                     </div>
-                    <div className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">用 3 个问题带你把文章读“透”。</div>
+                    <div className="mt-1 text-[13px] text-muted-foreground dark:text-muted-foreground/70">用 3 个问题带你把文章读“透”。</div>
                   </button>
                 </div>
               )}
 
               {subTab === "qa" && (
-                <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
+                <section className="bg-card dark:bg-slate-900 rounded-2xl border border-border dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800">
-                    <div className="text-[14.5px] font-bold text-slate-800 dark:text-slate-200">❓ 关键问题</div>
-                    <div className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">每个问题都尽量用原文作答，并附带证据片段。</div>
+                    <div className="text-[14.5px] font-bold text-card-foreground dark:text-slate-200">❓ 关键问题</div>
+                    <div className="mt-1 text-[13px] text-muted-foreground dark:text-muted-foreground/70">每个问题都尽量用原文作答，并附带证据片段。</div>
                   </div>
 
                   <div className="p-4 space-y-4">
                     {keyQuestions.length === 0 ? (
-                      <div className="text-[13px] text-slate-400">暂无关键问题数据，点击右上角“更新解读”生成。</div>
+                      <div className="text-[13px] text-muted-foreground/70">暂无关键问题数据，点击右上角“更新解读”生成。</div>
                     ) : (
                       keyQuestions.slice(0, 8).map((qa: any, i: number) => (
-                        <div key={i} className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40 p-3">
-                          <div className="text-[13.5px] font-black text-slate-800 dark:text-slate-200">Q{i + 1}: {qa.q || qa.question}</div>
-                          <div className="mt-2 text-[14px] text-slate-600 dark:text-slate-400 leading-relaxed">{qa.a || qa.answer}</div>
+                        <div key={i} className="rounded-xl border border-border dark:border-slate-800 bg-muted/40 dark:bg-slate-800/40 p-3">
+                          <div className="text-[13.5px] font-black text-card-foreground dark:text-slate-200">Q{i + 1}: {qa.q || qa.question}</div>
+                          <div className="mt-2 text-[14px] text-card-foreground dark:text-muted-foreground/70 leading-relaxed">{qa.a || qa.answer}</div>
                           {(qa.evidence || qa.evidence_snippet) && (
-                            <div className="mt-2 text-[12px] text-slate-400 dark:text-slate-500 border-l-2 border-slate-200 dark:border-slate-700 pl-2">
+                            <div className="mt-2 text-[12px] text-muted-foreground/70 dark:text-muted-foreground border-l-2 border-border dark:border-slate-700 pl-2">
                               “{qa.evidence || qa.evidence_snippet}”
                             </div>
                           )}
@@ -505,13 +505,13 @@ export function AIAnalysisPanel({
 
                     {keyQuestionsMissing.length > 0 && (
                       <div className="pt-2">
-                        <div className="flex items-center gap-2 text-[13.5px] font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        <div className="flex items-center gap-2 text-[13.5px] font-bold text-popover-foreground dark:text-muted-foreground/50 mb-2">
                           <AlertCircle className="h-4 w-4 text-amber-500" />
                           未解之谜 / 逻辑缺口
                         </div>
                         <ul className="space-y-1.5">
                           {keyQuestionsMissing.slice(0, 5).map((m: any, idx: number) => (
-                            <li key={idx} className="text-[13.5px] text-slate-600 dark:text-slate-400 flex gap-2">
+                            <li key={idx} className="text-[13.5px] text-card-foreground dark:text-muted-foreground/70 flex gap-2">
                               <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
                               {String(m)}
                             </li>
@@ -525,22 +525,22 @@ export function AIAnalysisPanel({
 
               {subTab === "deep" && (
                 <div className="space-y-4">
-                  <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
+                  <section className="bg-card dark:bg-slate-900 rounded-2xl border border-border dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800">
-                      <div className="text-[14.5px] font-bold text-slate-800 dark:text-slate-200">🧐 AI 精读（建设中）</div>
-                      <div className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">当前先复用旧版“深度透视/时间线”，后续会升级为结构大纲与利益相关方表格。</div>
+                      <div className="text-[14.5px] font-bold text-card-foreground dark:text-slate-200">🧐 AI 精读（建设中）</div>
+                      <div className="mt-1 text-[13px] text-muted-foreground dark:text-muted-foreground/70">当前先复用旧版“深度透视/时间线”，后续会升级为结构大纲与利益相关方表格。</div>
                     </div>
                     <div className="p-4 space-y-4">
                       {analysis.journalist_view ? (
-                        <pre className="text-[12px] text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+                        <pre className="text-[12px] text-card-foreground dark:text-muted-foreground/70 whitespace-pre-wrap break-words bg-muted dark:bg-slate-800 rounded-xl p-3 border border-border dark:border-slate-700">
                           {JSON.stringify(analysis.journalist_view, null, 2)}
                         </pre>
                       ) : (
-                        <div className="text-[13px] text-slate-400">暂无深度透视数据。</div>
+                        <div className="text-[13px] text-muted-foreground/70">暂无深度透视数据。</div>
                       )}
 
                       {analysis.timeline ? (
-                        <pre className="text-[12px] text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+                        <pre className="text-[12px] text-card-foreground dark:text-muted-foreground/70 whitespace-pre-wrap break-words bg-muted dark:bg-slate-800 rounded-xl p-3 border border-border dark:border-slate-700">
                           {JSON.stringify(analysis.timeline, null, 2)}
                         </pre>
                       ) : null}
@@ -550,14 +550,14 @@ export function AIAnalysisPanel({
               )}
 
               {subTab === "annotation" && (
-                <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
+                <section className="bg-card dark:bg-slate-900 rounded-2xl border border-border dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800">
-                    <div className="text-[14.5px] font-bold text-slate-800 dark:text-slate-200">📝 AI 批注（伴读）</div>
-                    <div className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
+                    <div className="text-[14.5px] font-bold text-card-foreground dark:text-slate-200">📝 AI 批注（伴读）</div>
+                    <div className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground/70">
                       在正文中选中文本 → 点击浮动菜单的“闪光”按钮，即可在这里得到解释与延展。
                     </div>
                   </div>
-                  <div className="p-4 text-[13.5px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <div className="p-4 text-[13.5px] text-muted-foreground dark:text-muted-foreground/70 leading-relaxed">
                     你也可以直接在下方输入框继续追问，例如：这段话的前提假设是什么？作者可能遗漏了什么？
                   </div>
                 </section>
@@ -568,7 +568,7 @@ export function AIAnalysisPanel({
 
         {/* Chat history */}
         {messages.length > 0 && (
-          <div className="pt-2 flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest px-1">
+          <div className="pt-2 flex items-center gap-2 text-[12px] font-bold text-muted-foreground/70 uppercase tracking-widest px-1">
             <MessageSquare className="h-3 w-3" />
             AI 追问
           </div>
@@ -588,7 +588,7 @@ export function AIAnalysisPanel({
                   "px-4 py-2.5 rounded-2xl text-[14.5px] leading-relaxed whitespace-pre-wrap",
                   msg.role === "user"
                     ? "bg-blue-600/90 text-white backdrop-blur-sm rounded-tr-none shadow-sm"
-                    : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-tl-none shadow-sm"
+                    : "bg-card dark:bg-slate-900 border border-border dark:border-slate-700 text-popover-foreground dark:text-muted-foreground/50 rounded-tl-none shadow-sm"
                 )}
               >
                 {msg.content}
@@ -600,21 +600,21 @@ export function AIAnalysisPanel({
       </div>
 
       {/* Footer input */}
-      <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+      <div className="p-4 bg-card dark:bg-slate-900 border-t border-border dark:border-slate-800">
         <div className="relative group">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleChat()}
             placeholder={contentType === "article" ? "对解读有疑问？继续追问 AI..." : "向 AI 追问更多细节..."}
-            className="pr-12 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-300 dark:focus:border-blue-500 transition-all text-[14.5px] dark:text-slate-200 dark:placeholder-slate-500"
+            className="pr-12 h-11 rounded-xl bg-muted dark:bg-slate-800 border-border dark:border-slate-700 focus:bg-card dark:focus:bg-slate-900 focus:border-blue-300 dark:focus:border-blue-500 transition-all text-[14.5px] dark:text-slate-200 dark:placeholder-slate-500"
           />
           <Button
             size="icon"
             variant="ghost"
             className={cn(
               "absolute right-1.5 top-1.5 h-8 w-8 rounded-lg transition-all",
-              input.trim() ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30" : "text-slate-300 dark:text-slate-600"
+              input.trim() ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30" : "text-muted-foreground/50 dark:text-card-foreground"
             )}
             onClick={() => handleChat()}
             disabled={!input.trim() || chatLoading}

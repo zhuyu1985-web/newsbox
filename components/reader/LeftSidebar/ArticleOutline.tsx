@@ -80,11 +80,11 @@ export function ArticleOutline({ content }: ArticleOutlineProps) {
   if (outline.length === 0) {
     return (
       <div className="p-8 text-center">
-        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
           <span className="text-xl">📄</span>
         </div>
-        <p className="text-sm font-medium text-slate-500">文章较短</p>
-        <p className="text-xs text-slate-400 mt-1">无需目录大纲</p>
+        <p className="text-sm font-medium text-muted-foreground">文章较短</p>
+        <p className="text-xs text-muted-foreground/70 mt-1">无需目录大纲</p>
       </div>
     );
   }
@@ -103,8 +103,8 @@ export function ArticleOutline({ content }: ArticleOutlineProps) {
                   "w-full text-left transition-all duration-200 group flex items-start",
                   item.level === 1 ? "text-[13px] font-medium" : item.level === 2 ? "pl-4 text-[12px]" : "pl-8 text-[11px]",
                   isActive
-                    ? "text-slate-900"
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "text-card-foreground"
+                    : "text-muted-foreground/70 hover:text-card-foreground"
                 )}
               >
                 <span className={cn(

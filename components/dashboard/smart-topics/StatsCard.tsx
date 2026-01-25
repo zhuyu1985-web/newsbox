@@ -34,7 +34,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 "text-[11px] font-bold px-1.5 py-0.5 rounded-md",
                 changeType === "positive" ? "bg-emerald-500/10 text-emerald-500" :
                 changeType === "negative" ? "bg-rose-500/10 text-rose-500" :
-                "bg-slate-500/10 text-slate-500"
+                "bg-muted0/10 text-muted-foreground"
               )}>
                 {change}
               </span>
@@ -42,8 +42,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           </div>
           
           <div className="mt-4">
-            <p className="text-xs text-slate-500">{title}</p>
-            <p className="text-[10px] text-slate-600 uppercase tracking-tight">{subtitle}</p>
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className="text-[10px] text-card-foreground uppercase tracking-tight">{subtitle}</p>
           </div>
           
           <div className="text-3xl font-bold text-slate-100 mt-1">

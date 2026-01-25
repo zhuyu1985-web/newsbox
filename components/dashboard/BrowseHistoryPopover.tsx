@@ -76,7 +76,7 @@ export function BrowseHistoryPopover({
       >
         <div className="px-6 pt-5 pb-3 border-b border-black/5">
           <div className="flex items-center justify-between gap-4">
-            <div className="text-base font-semibold tracking-tight text-slate-900">
+            <div className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
               浏览历史
             </div>
 
@@ -116,7 +116,7 @@ export function BrowseHistoryPopover({
                   <FileText className="h-4 w-4 text-slate-700" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-slate-900 truncate">
+                  <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
                     {it.title || "无标题"}
                   </div>
                   <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">

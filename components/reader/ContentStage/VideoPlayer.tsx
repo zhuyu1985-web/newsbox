@@ -159,8 +159,8 @@ export function VideoPlayer({ note }: { note: Note }) {
 
   if (!note.media_url) {
     return (
-      <div className="flex items-center justify-center h-96 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
-        <p className="text-slate-400">暂无视频内容</p>
+      <div className="flex items-center justify-center h-96 bg-muted rounded-2xl border-2 border-dashed border-border">
+        <p className="text-muted-foreground/70">暂无视频内容</p>
       </div>
     );
   }
@@ -190,7 +190,7 @@ export function VideoPlayer({ note }: { note: Note }) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-white hover:bg-white/20 rounded-full h-9 w-9"
+                className="text-white hover:bg-card/20 rounded-full h-9 w-9"
                 onClick={handleCapture}
                 title="截取当前帧"
               >
@@ -199,7 +199,7 @@ export function VideoPlayer({ note }: { note: Note }) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-white hover:bg-white/20 rounded-full h-9 w-9"
+                className="text-white hover:bg-card/20 rounded-full h-9 w-9"
               >
                 <Settings className="h-5 w-5" />
               </Button>
@@ -209,8 +209,8 @@ export function VideoPlayer({ note }: { note: Note }) {
 
         {/* 底部功能提示 (当为 iframe 模式时) */}
         {!isVideoJs && (
-          <div className="bg-slate-900/80 backdrop-blur-sm p-3 text-center">
-            <p className="text-[11px] text-slate-400 font-medium">
+          <div className="bg-slate-100/95 dark:bg-slate-900/80 backdrop-blur-sm p-3 text-center border-t border-slate-200 dark:border-slate-700">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
               当前为嵌入播放模式。部分高级功能（如一键截帧、播放器内批注）仅支持直接视频链接。
             </p>
           </div>
@@ -219,8 +219,8 @@ export function VideoPlayer({ note }: { note: Note }) {
 
       {/* 视频元信息 */}
       <div className="mt-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">{note.title}</h1>
-        <div className="flex items-center gap-4 text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-card-foreground mb-2">{note.title}</h1>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {note.media_duration && (
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" />

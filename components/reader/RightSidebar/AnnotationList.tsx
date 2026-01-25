@@ -687,7 +687,7 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
                 onClick={(e) => handleCompactClick(item.id, e)}
               >
                 {hasAnnotation && (
-                  <MessageSquare className="w-3.5 h-3.5 text-slate-900/30" strokeWidth={2.5} />
+                  <MessageSquare className="w-3.5 h-3.5 text-card-foreground/30" strokeWidth={2.5} />
                 )}
               </motion.div>
             );
@@ -696,7 +696,7 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
       ) : (
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-xs text-slate-400">共 {items.length} 条</div>
+            <div className="text-xs text-muted-foreground/70">共 {items.length} 条</div>
             <Button
               type="button"
               variant="outline"
@@ -891,7 +891,7 @@ function AnnotationCard({
   return (
     <div
       className={cn(
-        "group relative bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] transition-all duration-300 overflow-hidden",
+        "group relative bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] transition-all duration-300 overflow-hidden",
         isFloating ? "opacity-40 grayscale pointer-events-none" : "hover:shadow-[0_12px_24px_rgb(0,0,0,0.04)] cursor-pointer"
       )}
       onClick={() => !isFloating && onJump(item.id)}
@@ -911,7 +911,7 @@ function AnnotationCard({
               {Object.entries(COLOR_MAP).map(([name, hex]) => (
                 <button
                   key={name}
-                  className="w-5 h-5 rounded-full border border-slate-100 dark:border-slate-700"
+                  className="w-5 h-5 rounded-full border border-border dark:border-slate-700"
                   style={{ backgroundColor: hex }}
                   onClick={() => onColorChange(item.id, name)}
                 />
@@ -923,14 +923,14 @@ function AnnotationCard({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-7 w-7 text-slate-500 hover:text-red-500"
+            className="h-7 w-7 text-muted-foreground hover:text-red-500"
             onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300" onClick={e => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-popover-foreground dark:hover:text-muted-foreground/50" onClick={e => e.stopPropagation()}>
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -949,7 +949,7 @@ function AnnotationCard({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-7 w-7 text-slate-500 hover:text-slate-700"
+            className="h-7 w-7 text-muted-foreground hover:text-popover-foreground"
             onClick={(e) => { e.stopPropagation(); onTogglePin(item.id); }}
           >
             {isFloating ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
@@ -963,7 +963,7 @@ function AnnotationCard({
         {(item.timecode !== null || item.screenshot_url) && (
           <div className="mb-3 flex items-start gap-2">
             {item.screenshot_url && (
-              <div className="w-20 h-12 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 border border-slate-100 dark:border-slate-700">
+              <div className="w-20 h-12 rounded bg-muted dark:bg-slate-800 overflow-hidden shrink-0 border border-border dark:border-slate-700">
                 <img src={item.screenshot_url} alt="Screenshot" className="w-full h-full object-cover" />
               </div>
             )}
@@ -985,10 +985,10 @@ function AnnotationCard({
         )}
 
         <div 
-          className="bg-slate-50/80 dark:bg-slate-800/80 rounded-lg p-3 border-l-[3px] mb-4"
+          className="bg-muted/80 dark:bg-slate-800/80 rounded-lg p-3 border-l-[3px] mb-4"
           style={{ borderLeftColor: hexColor }}
         >
-          <blockquote className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-6">
+          <blockquote className="text-[13px] text-popover-foreground dark:text-muted-foreground/50 leading-relaxed line-clamp-6">
             {item.quote}
           </blockquote>
         </div>
@@ -1025,11 +1025,11 @@ function AnnotationCard({
           />
           {/* 轻量提示：保存中 */}
           {isNoteSaving && (
-            <div className="text-[10px] text-slate-300 px-1">保存中...</div>
+            <div className="text-[10px] text-muted-foreground/50 px-1">保存中...</div>
           )}
         </div>
 
-        <div className="mt-2 px-1 text-[10px] text-slate-300">
+        <div className="mt-2 px-1 text-[10px] text-muted-foreground/50">
           {new Date(item.created_at).toLocaleString("zh-CN", {
             month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
           })}
@@ -1109,13 +1109,13 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
           onClick();
         }
       }}
-      className="fixed w-[320px] bg-white dark:bg-slate-900 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 overflow-hidden cursor-move relative"
+      className="fixed w-[320px] bg-card dark:bg-slate-900 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-border dark:border-slate-800 overflow-hidden cursor-move relative"
     >
       {/* 关闭按钮 - 右上角 */}
       <Button 
         variant="ghost" 
         size="icon" 
-        className="absolute top-2 right-2 h-7 w-7 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 z-10" 
+        className="absolute top-2 right-2 h-7 w-7 text-muted-foreground/70 hover:text-card-foreground dark:hover:text-slate-200 z-10" 
         onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -1124,10 +1124,10 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
         <X className="h-4 w-4" />
       </Button>
       
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 dark:bg-slate-800/50 border-b border-border dark:border-slate-800">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: hexColor }} />
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Floating Note</span>
+          <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Floating Note</span>
         </div>
       </div>
       
@@ -1136,7 +1136,7 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
         {(item.timecode !== null || item.screenshot_url) && (
           <div className="mb-4 flex items-center gap-3">
             {item.screenshot_url && (
-              <img src={item.screenshot_url} alt="Screenshot" className="w-24 h-14 rounded-lg object-cover shadow-sm border border-slate-100 dark:border-slate-700" />
+              <img src={item.screenshot_url} alt="Screenshot" className="w-24 h-14 rounded-lg object-cover shadow-sm border border-border dark:border-slate-700" />
             )}
             {item.timecode !== null && (
               <button 
@@ -1152,15 +1152,15 @@ function FloatingCard({ item, position, zIndex = 10000, onClick, onClose, onColo
             )}
           </div>
         )}
-        <div className="text-[13px] text-slate-500 dark:text-slate-400 border-l-2 pl-3 mb-4 leading-relaxed" style={{ borderLeftColor: hexColor }}>
+        <div className="text-[13px] text-muted-foreground dark:text-muted-foreground/70 border-l-2 pl-3 mb-4 leading-relaxed" style={{ borderLeftColor: hexColor }}>
           {item.quote}
         </div>
         {annotation ? (
-          <p className="text-[14px] text-slate-800 dark:text-slate-200 font-semibold leading-relaxed">
+          <p className="text-[14px] text-card-foreground dark:text-slate-200 font-semibold leading-relaxed">
             {annotation.content}
           </p>
         ) : (
-          <p className="text-[13px] text-slate-300 italic">暂无笔记</p>
+          <p className="text-[13px] text-muted-foreground/50 italic">暂无笔记</p>
         )}
       </div>
     </motion.div>
