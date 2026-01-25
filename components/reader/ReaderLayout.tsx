@@ -540,7 +540,7 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
   // ========================================================================
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-blue-100 selection:text-blue-900 dark:selection:bg-blue-900/30 dark:selection:text-blue-200">
       {/* ========================================================================
           顶部导航栏 (Global Header)
           ========================================================================
@@ -720,7 +720,7 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
                     {noteTags.map((tag) => (
                       <span
                         key={tag.id}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all bg-sky-400/15 text-sky-600 border border-sky-400/25 backdrop-blur-sm shadow-sm hover:bg-sky-400/25"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all bg-sky-400/15 text-sky-600 border border-sky-400/25 backdrop-blur-sm shadow-sm hover:bg-sky-400/25 dark:bg-sky-400/20 dark:text-sky-300 dark:border-sky-400/30 dark:hover:bg-sky-400/30"
                         title={tag.name}
                       >
                         {tag.name}
@@ -729,7 +729,7 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
                             e.stopPropagation();
                             handleRemoveTag(tag.id);
                           }}
-                          className="ml-0.5 hover:text-sky-800 transition-colors"
+                          className="ml-0.5 hover:text-sky-800 transition-colors dark:hover:text-sky-200"
                         >
                           <X className="h-3 w-3" />
                         </button>

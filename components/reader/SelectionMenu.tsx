@@ -228,9 +228,9 @@ export function SelectionMenu({
             className={cn(
               "h-6 w-6 rounded-full transition-transform hover:scale-110 active:scale-95",
               color.class,
-              lastUsedColor === color.id && "ring-2 ring-offset-1 ring-black/10",
+              lastUsedColor === color.id && "ring-2 ring-offset-1 ring-black/10 dark:ring-white/20",
               // 如果是当前颜色的高亮，且在编辑模式，显示选中状态
-              editingHighlightId && lastUsedColor === color.id && "ring-2 ring-offset-1 ring-black/20"
+              editingHighlightId && lastUsedColor === color.id && "ring-2 ring-offset-1 ring-black/20 dark:ring-white/30"
             )}
           />
         ))}
@@ -285,7 +285,7 @@ export function SelectionMenu({
           <Sparkles className="h-5 w-5 text-pink-500" />
         </Button>
 
-        <div className="w-px h-6 bg-slate-200 mx-1" />
+        <div className="w-px h-6 bg-slate-200 mx-1 dark:bg-slate-700" />
 
         <Button
           variant="ghost"
