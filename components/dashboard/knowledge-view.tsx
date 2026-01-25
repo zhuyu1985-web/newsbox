@@ -2607,7 +2607,7 @@ export function KnowledgeView({
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-slate-50/30">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-slate-50/30 dark:bg-black">
               {quoteMaterialsError ? (
                 <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-xl p-4 text-sm">
                   {quoteMaterialsError}
@@ -2633,9 +2633,9 @@ export function KnowledgeView({
                     const title = it.notes?.title?.trim() || "未命名笔记";
                     const site = it.notes?.site_name?.trim() || "";
                     const typeLabel = it.source_type === "llm" ? "自动" : "手动";
-                    
+
                     const borderColors = [
-                      "border-blue-300", "border-emerald-300", "border-amber-300", "border-rose-300", 
+                      "border-blue-300", "border-emerald-300", "border-amber-300", "border-rose-300",
                       "border-violet-300", "border-indigo-300", "border-cyan-300", "border-fuchsia-300"
                     ];
                     const textColors = [
@@ -2646,7 +2646,7 @@ export function KnowledgeView({
                       "bg-blue-50", "bg-emerald-50", "bg-amber-50", "bg-rose-50",
                       "bg-violet-50", "bg-indigo-50", "bg-cyan-50", "bg-fuchsia-50"
                     ];
-                    
+
                     const idx = i % borderColors.length;
                     const borderColor = borderColors[idx];
                     const textColor = textColors[idx];
@@ -2654,21 +2654,25 @@ export function KnowledgeView({
 
                     return (
                       <div key={it.id} className="break-inside-avoid mb-4">
-                        <Card className={cn("group rounded-2xl border shadow-sm bg-white hover:shadow-md transition-all duration-300", borderColor)}>
+                        <Card className={cn("group rounded-2xl border shadow-sm bg-white dark:bg-slate-900 hover:shadow-md dark:hover:shadow-black/20 transition-all duration-300", borderColor, "dark:border-opacity-40")}>
                           <div className="p-5 flex flex-col gap-4">
-                            <blockquote className="text-base text-slate-800 leading-relaxed font-medium font-serif">
-                              <span className={cn("mr-1 font-sans font-bold opacity-60", textColor)}>“</span>
+                            <blockquote className="text-base text-slate-800 dark:text-slate-200 leading-relaxed font-medium font-serif">
+                              <span className={cn("mr-1 font-sans font-bold opacity-60", textColor, "dark:opacity-80")}>"</span>
                               {it.content}
-                              <span className={cn("ml-1 font-sans font-bold opacity-60", textColor)}>”</span>
+                              <span className={cn("ml-1 font-sans font-bold opacity-60", textColor, "dark:opacity-80")}>""</span>
                             </blockquote>
 
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800/50">
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
                               <div className="min-w-0 flex-1 mr-3">
                                 <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                                   {site ? `${site} · ` : ""}{title}
                                 </div>
                                 <div className="mt-2 flex items-center gap-2">
-                                  <span className={cn("inline-flex items-center text-[10px] px-2 py-0.5 rounded-full font-medium opacity-90", tagBg, textColor)}>
+                                  <span className={cn(
+                                    "inline-flex items-center text-[10px] px-2 py-0.5 rounded-full font-medium",
+                                    tagBg, textColor,
+                                    "dark:bg-slate-800 dark:text-slate-300"
+                                  )}>
                                     {typeLabel}
                                   </span>
                                 </div>
@@ -2679,7 +2683,7 @@ export function KnowledgeView({
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                                   onClick={() => {
                                     navigator.clipboard.writeText(it.content);
                                     toast.success("已复制");
@@ -2692,7 +2696,7 @@ export function KnowledgeView({
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-blue-600"
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                                   onClick={() => {
                                     window.location.href = `/notes/${it.note_id}`;
                                   }}

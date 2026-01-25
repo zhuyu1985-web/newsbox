@@ -4867,12 +4867,12 @@ ${
                     </div>
                     <span className={cn(
                       "text-sm font-bold",
-                      knowledgeSubView === item.id ? "text-blue-600" : "text-gray-800"
+                      knowledgeSubView === item.id ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-slate-300"
                     )}>
                       {item.label}
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 leading-normal pl-0.5">
+                  <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-normal pl-0.5">
                     {item.desc}
                   </p>
                 </button>

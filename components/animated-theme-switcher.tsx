@@ -103,7 +103,7 @@ export function AnimatedThemeSwitcher({ variant = "default" }: AnimatedThemeSwit
                 stiffness: 400,
                 damping: 25,
               }}
-              className="absolute top-full mt-2 right-0 z-50"
+              className="absolute top-full mt-2 left-0 z-50"
             >
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden min-w-[140px]">
                 {themes.map((item, index) => {
