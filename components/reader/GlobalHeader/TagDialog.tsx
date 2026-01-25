@@ -234,9 +234,9 @@ export function TagDialog({
             onClick={(e) => e.stopPropagation()}
           >
             <Card
-              className="w-full p-6 max-h-[80vh] overflow-hidden flex flex-col shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl"
+              className="w-full p-6 max-h-[80vh] overflow-hidden flex flex-col shadow-xl border-border/60 bg-card/95 backdrop-blur-xl"
             >
-              <h3 className="text-lg font-semibold mb-4 text-slate-800">管理标签</h3>
+              <h3 className="text-lg font-semibold mb-4 text-card-foreground">管理标签</h3>
 
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -247,7 +247,7 @@ export function TagDialog({
                   {/* 已选标签 */}
                   {selectedTags.length > 0 && (
                     <div className="mb-4">
-                      <div className="text-sm text-slate-500 mb-2">已选标签</div>
+                      <div className="text-sm text-muted-foreground mb-2">已选标签</div>
                       <div className="flex flex-wrap gap-2">
                         {selectedTags.map((tag) => (
                           <Badge
@@ -271,19 +271,19 @@ export function TagDialog({
 
                   {/* 搜索框 */}
                   <div className="relative mb-4">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
                     <Input
                       placeholder="搜索标签..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 bg-slate-50 border-slate-200"
+                      className="pl-9 bg-muted border-border"
                     />
                   </div>
 
                   {/* 标签列表 */}
                   <div className="flex-1 overflow-y-auto mb-4 pr-1 custom-scrollbar">
                     {filteredTags.length === 0 ? (
-                      <div className="text-center py-4 text-slate-400 text-sm">
+                      <div className="text-center py-4 text-muted-foreground/70 text-sm">
                         {searchQuery ? "没有找到匹配的标签" : "暂无标签"}
                       </div>
                     ) : (
@@ -297,7 +297,7 @@ export function TagDialog({
                                 "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors",
                                 isSelected
                                   ? "bg-blue-50 text-blue-700"
-                                  : "hover:bg-slate-50 text-slate-700"
+                                  : "hover:bg-muted text-popover-foreground"
                               )}
                               onClick={() => toggleTag(tag.id)}
                             >
@@ -318,14 +318,14 @@ export function TagDialog({
                   </div>
 
                   {/* 添加新标签 */}
-                  <div className="mb-4 pt-4 border-t border-slate-100">
-                    <div className="text-sm text-slate-500 mb-2">创建新标签</div>
+                  <div className="mb-4 pt-4 border-t border-border">
+                    <div className="text-sm text-muted-foreground mb-2">创建新标签</div>
                     <div className="flex gap-2">
                       <Input
                         placeholder="输入标签名称..."
                         value={newTagName}
                         onChange={(e) => setNewTagName(e.target.value)}
-                        className="bg-slate-50 border-slate-200"
+                        className="bg-muted border-border"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
@@ -345,7 +345,7 @@ export function TagDialog({
                   </div>
 
                   {/* 操作按钮 */}
-                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                  <div className="flex justify-end gap-2 pt-4 border-t border-border">
                     <Button variant="outline" onClick={onClose} disabled={updating}>
                       取消
                     </Button>

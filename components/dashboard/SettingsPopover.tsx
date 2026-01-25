@@ -29,52 +29,52 @@ export function SettingsPopover({
       <PopoverContent
         side="right"
         align="end"
-        className="w-[280px] p-2 bg-white/95 backdrop-blur-md border-black/5 shadow-2xl rounded-2xl"
+        className="w-[280px] p-2 bg-popover/95 backdrop-blur-md border-border shadow-2xl rounded-2xl"
       >
         {/* User Info */}
         <div className="flex items-center gap-3 px-3 py-3 mb-1">
-          <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-medium text-lg border border-black/5">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-medium text-lg border border-border">
             {initial}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-slate-900 truncate">
+            <div className="text-sm font-semibold text-foreground truncate">
               {email.split("@")[0]}
             </div>
-            <div className="text-xs text-slate-400 truncate">{email}</div>
+            <div className="text-xs text-muted-foreground/70 truncate">{email}</div>
           </div>
         </div>
 
-        <div className="h-px bg-black/5 mx-2 my-1" />
+        <div className="h-px bg-border mx-2 my-1" />
 
         {/* Menu Items */}
         <div className="space-y-0.5">
-          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-black/5 transition-colors text-left text-sm text-slate-700">
+          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent transition-colors text-left text-sm text-popover-foreground">
             <SettingsIcon className="h-4 w-4" />
             偏好设置
           </button>
-          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-black/5 transition-colors text-left text-sm text-slate-700">
+          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent transition-colors text-left text-sm text-popover-foreground">
             <Keyboard className="h-4 w-4" />
             快捷键
           </button>
-          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-black/5 transition-colors text-left text-sm text-slate-700">
+          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent transition-colors text-left text-sm text-popover-foreground">
             <Shield className="h-4 w-4" />
             隐私与安全
           </button>
         </div>
 
-        <div className="h-px bg-black/5 mx-2 my-1" />
+        <div className="h-px bg-border mx-2 my-1" />
 
         {/* Theme Switcher */}
         <div className="px-3 py-2">
-          <div className="text-xs font-medium text-slate-400 mb-2">外观</div>
-          <div className="flex bg-slate-100 p-1 rounded-lg">
+          <div className="text-xs font-medium text-muted-foreground/70 mb-2">外观</div>
+          <div className="flex bg-muted p-1 rounded-lg">
             <button
               onClick={() => setTheme("light")}
               className={cn(
                 "flex-1 flex items-center justify-center py-1 rounded-md text-xs transition-all",
                 theme === "light"
-                  ? "bg-white shadow-sm text-slate-900"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-card shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-popover-foreground"
               )}
             >
               <Sun className="h-3.5 w-3.5 mr-1" />
@@ -85,8 +85,8 @@ export function SettingsPopover({
               className={cn(
                 "flex-1 flex items-center justify-center py-1 rounded-md text-xs transition-all",
                 theme === "dark"
-                  ? "bg-white shadow-sm text-slate-900"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-card shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-popover-foreground"
               )}
             >
               <Moon className="h-3.5 w-3.5 mr-1" />
@@ -97,8 +97,8 @@ export function SettingsPopover({
               className={cn(
                 "flex-1 flex items-center justify-center py-1 rounded-md text-xs transition-all",
                 theme === "system"
-                  ? "bg-white shadow-sm text-slate-900"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-card shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-popover-foreground"
               )}
             >
               <Monitor className="h-3.5 w-3.5 mr-1" />
@@ -107,7 +107,7 @@ export function SettingsPopover({
           </div>
         </div>
 
-        <div className="h-px bg-black/5 mx-2 my-1" />
+        <div className="h-px bg-border mx-2 my-1" />
 
         {/* Sign Out */}
         <button
@@ -115,7 +115,7 @@ export function SettingsPopover({
             setOpen(false);
             onSignOut();
           }}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors text-left text-sm text-slate-700"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors text-left text-sm text-popover-foreground"
         >
           <LogOut className="h-4 w-4" />
           退出登录

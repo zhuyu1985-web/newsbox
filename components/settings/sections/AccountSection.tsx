@@ -59,18 +59,18 @@ export function AccountSection({ user }: { user: User }) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-black/5">
-          <h3 className="text-base font-bold text-slate-900">我的账户</h3>
+          <h3 className="text-base font-bold text-card-foreground">我的账户</h3>
         </div>
 
         <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-[#f5f5f7] rounded-2xl p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <div className="text-xs text-slate-500 mb-2">用户名</div>
+                <div className="text-xs text-muted-foreground mb-2">用户名</div>
                 <div className="flex items-center justify-between gap-4">
-                  <div className="text-sm font-medium text-slate-900 truncate">
+                  <div className="text-sm font-medium text-card-foreground truncate">
                     {user.email?.split("@")[0] ?? "用户"}
                   </div>
                   <Button variant="outline" size="sm" disabled>
@@ -79,9 +79,9 @@ export function AccountSection({ user }: { user: User }) {
                 </div>
               </div>
               <div>
-                <div className="text-xs text-slate-500 mb-2">密码</div>
+                <div className="text-xs text-muted-foreground mb-2">密码</div>
                 <div className="flex items-center justify-between gap-4">
-                  <div className="text-sm font-medium text-slate-900">••••••••</div>
+                  <div className="text-sm font-medium text-card-foreground">••••••••</div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -95,7 +95,7 @@ export function AccountSection({ user }: { user: User }) {
               <div className="md:col-span-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs text-slate-500">新密码</Label>
+                    <Label className="text-xs text-muted-foreground">新密码</Label>
                     <div className="relative mt-2">
                       <Input
                         type={showNew ? "text" : "password"}
@@ -105,11 +105,11 @@ export function AccountSection({ user }: { user: User }) {
                           setNewPassword(e.target.value);
                           setMsg(null);
                         }}
-                        className="bg-white pr-10"
+                        className="bg-card pr-10"
                       />
                       <button
                         type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-popover-foreground"
                         onClick={() => setShowNew((v) => !v)}
                         aria-label={showNew ? "隐藏密码" : "显示密码"}
                       >
@@ -119,7 +119,7 @@ export function AccountSection({ user }: { user: User }) {
                   </div>
 
                   <div>
-                    <Label className="text-xs text-slate-500">确认密码</Label>
+                    <Label className="text-xs text-muted-foreground">确认密码</Label>
                     <div className="relative mt-2">
                       <Input
                         type={showConfirm ? "text" : "password"}
@@ -129,11 +129,11 @@ export function AccountSection({ user }: { user: User }) {
                           setConfirmPassword(e.target.value);
                           setMsg(null);
                         }}
-                        className="bg-white pr-10"
+                        className="bg-card pr-10"
                       />
                       <button
                         type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-popover-foreground"
                         onClick={() => setShowConfirm((v) => !v)}
                         aria-label={showConfirm ? "隐藏密码" : "显示密码"}
                       >
@@ -143,7 +143,7 @@ export function AccountSection({ user }: { user: User }) {
                   </div>
                 </div>
 
-                <div className="mt-3 text-[11px] text-slate-500">
+                <div className="mt-3 text-[11px] text-muted-foreground">
                   建议使用更强的密码（包含字母/数字/符号）。
                 </div>
 
@@ -162,16 +162,16 @@ export function AccountSection({ user }: { user: User }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-black/5 p-6">
+          <div className="bg-card rounded-2xl border border-black/5 p-6">
             <MembershipCard />
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-black/5">
-          <h3 className="text-base font-bold text-slate-900">账户绑定</h3>
-          <p className="text-xs text-slate-500 mt-1">
+          <h3 className="text-base font-bold text-card-foreground">账户绑定</h3>
+          <p className="text-xs text-muted-foreground mt-1">
             绑定更多账号后可以使用任意账号快捷登录（本期：UI入口占位，不做真实微信/短信接入）
           </p>
         </div>
@@ -196,7 +196,7 @@ export function AccountSection({ user }: { user: User }) {
             action={<Button size="sm">绑定（占位）</Button>}
           />
           <BindingRow
-            icon={<ShieldCheck className="h-5 w-5 text-slate-700" />}
+            icon={<ShieldCheck className="h-5 w-5 text-popover-foreground" />}
             label="安全"
             sub="建议开启更多保护（占位）"
             action={<Button size="sm" variant="outline" disabled>设置</Button>}
@@ -208,7 +208,7 @@ export function AccountSection({ user }: { user: User }) {
             <LogOut className="h-4 w-4 mr-2" />
             退出登录 / 切换账号
           </Button>
-          <Button variant="ghost" className="text-slate-400 hover:text-slate-600" disabled>
+          <Button variant="ghost" className="text-muted-foreground/70 hover:text-card-foreground" disabled>
             删除账户（占位）
           </Button>
         </div>
@@ -231,12 +231,12 @@ function BindingRow({
   return (
     <div className="flex items-center justify-between gap-4 bg-[#f5f5f7] rounded-2xl p-5">
       <div className="flex items-center gap-4 min-w-0">
-        <div className="w-10 h-10 rounded-full bg-white border border-black/5 flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-full bg-card border border-black/5 flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-slate-900">{label}</div>
-          <div className="text-xs text-slate-500 truncate mt-0.5">{sub}</div>
+          <div className="text-sm font-semibold text-card-foreground">{label}</div>
+          <div className="text-xs text-muted-foreground truncate mt-0.5">{sub}</div>
         </div>
       </div>
       <div className="shrink-0">{action}</div>
@@ -307,9 +307,9 @@ function MembershipCard() {
           name: "未订阅",
           icon: Crown,
           gradient: "from-slate-300 to-slate-400",
-          textColor: "text-slate-500",
-          bgColor: "bg-slate-50",
-          borderColor: "border-slate-200",
+          textColor: "text-muted-foreground",
+          bgColor: "bg-muted",
+          borderColor: "border-border",
           badgeText: "免费",
           shadowColor: "shadow-slate-500/10",
           isAI: false,
@@ -363,7 +363,7 @@ function MembershipCard() {
 
       {/* 到期信息 */}
       {status.isActive ? (
-        <div className="text-xs text-slate-500 mb-4">
+        <div className="text-xs text-muted-foreground mb-4">
           {status.isTrial ? (
             <>
               试用期剩余 <span className="font-semibold text-blue-600">{status.daysRemaining}</span> 天
@@ -372,7 +372,7 @@ function MembershipCard() {
             </>
           ) : (
             <>
-              <span className="font-medium text-slate-700">{status.daysRemaining}</span> 天后到期
+              <span className="font-medium text-popover-foreground">{status.daysRemaining}</span> 天后到期
               <span className="mx-1">·</span>
               {formatExpiryDate()}
             </>
@@ -390,7 +390,7 @@ function MembershipCard() {
             status.isActive 
               ? info.isAI
                 ? "border-purple-300 hover:border-purple-400 hover:bg-purple-50 text-purple-600"
-                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50" 
+                : "border-border hover:border-slate-300 hover:bg-muted" 
               : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25"
           }`}
           variant={status.isActive ? "outline" : "default"}

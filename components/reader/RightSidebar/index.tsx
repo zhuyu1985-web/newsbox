@@ -37,7 +37,7 @@ export function RightSidebar({
     if (isCompact) {
       return (
         <div className="flex flex-col items-center py-4 gap-4 border-b border-slate-50">
-          <div className="w-8 h-px bg-slate-100" />
+          <div className="w-8 h-px bg-muted" />
         </div>
       );
     }
@@ -46,7 +46,7 @@ export function RightSidebar({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800">
+    <div className="h-full flex flex-col bg-card dark:bg-slate-900 border-l border-border dark:border-slate-800">
       {renderHeader()}
       
       {/* Tab内容区 */}

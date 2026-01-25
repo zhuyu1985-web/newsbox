@@ -174,7 +174,7 @@ export function SnapshotModal({ isOpen, onClose, noteId, title, content }: Snaps
         <div className="space-y-4">
           {/* 模版选择器 */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">选择风格</label>
+            <label className="text-sm font-medium text-popover-foreground">选择风格</label>
             <div className="grid grid-cols-3 gap-3">
               {templates.map((template) => (
                 <button
@@ -184,23 +184,23 @@ export function SnapshotModal({ isOpen, onClose, noteId, title, content }: Snaps
                     "flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all",
                     selectedTemplate === template.id
                       ? "border-blue-500 bg-blue-50 shadow-sm"
-                      : "border-slate-200 hover:border-slate-300 bg-white"
+                      : "border-border hover:border-slate-300 bg-card"
                   )}
                 >
                   <span className="font-medium text-sm">{template.name}</span>
-                  <span className="text-xs text-slate-500">{template.description}</span>
+                  <span className="text-xs text-muted-foreground">{template.description}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* 图片预览区 */}
-          <div className="relative w-full aspect-[3/4] bg-slate-100 rounded-lg overflow-hidden border-2 border-slate-200">
+          <div className="relative w-full aspect-[3/4] bg-muted rounded-lg overflow-hidden border-2 border-border">
             {isGenerating && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm z-10">
                 <Loader2 className="h-8 w-8 text-blue-600 animate-spin mb-3" />
-                <p className="text-sm text-slate-600">正在生成快照...</p>
-                <p className="text-xs text-slate-400 mt-1">AI 正在提炼核心内容</p>
+                <p className="text-sm text-card-foreground">正在生成快照...</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">AI 正在提炼核心内容</p>
               </div>
             )}
 

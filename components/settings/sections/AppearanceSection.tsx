@@ -44,9 +44,9 @@ export function AppearanceSection() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-black/5">
-          <h3 className="text-base font-bold text-slate-900">外观主题</h3>
+          <h3 className="text-base font-bold text-card-foreground">外观主题</h3>
         </div>
         <div className="p-6">
           <div className="flex bg-[#f5f5f7] p-1 rounded-xl w-[360px] max-w-full">
@@ -66,12 +66,12 @@ export function AppearanceSection() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-black/5">
-          <h3 className="text-base font-bold text-slate-900">阅读器自定义字体</h3>
+          <h3 className="text-base font-bold text-card-foreground">阅读器自定义字体</h3>
         </div>
         <div className="p-6">
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-muted-foreground">
             导入后字体文件仅缓存在浏览器本地，不会云端同步。支持格式：ttf/otf/ttc。
           </div>
           <div className="mt-4 flex items-center gap-3">
@@ -90,11 +90,11 @@ export function AppearanceSection() {
                 导入字体…
               </Button>
             </label>
-            <div className="text-sm text-slate-700">
+            <div className="text-sm text-popover-foreground">
               {fontName ? `已导入：${fontName}` : "未导入"}
             </div>
           </div>
-          {msg ? <div className="mt-3 text-xs text-slate-500">{msg}</div> : null}
+          {msg ? <div className="mt-3 text-xs text-muted-foreground">{msg}</div> : null}
         </div>
       </div>
     </div>
@@ -116,8 +116,8 @@ function ThemeBtn({
       className={cn(
         "flex-1 flex items-center justify-center py-2 rounded-lg text-xs transition-all",
         active
-          ? "bg-white shadow-sm text-slate-900"
-          : "text-slate-500 hover:text-slate-700"
+          ? "bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white"
+          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       )}
     >
       {children}

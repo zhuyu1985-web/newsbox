@@ -220,6 +220,46 @@ Services in `lib/services/` encapsulate external API integrations:
 - **knowledge-graph.ts**: Graph visualization data preparation
 - **snapshot.ts**: HTML snapshot creation and persistence
 
+### Theme System Architecture
+
+**Theme Provider**: Uses `next-themes` library with class-based strategy
+- **Provider Location**: `app/providers.tsx`
+- **Configuration**: `attribute="class"`, `defaultTheme="system"`, `enableSystem`
+- **Theme Persistence**: Automatically managed by `next-themes` (stored in localStorage)
+
+**Theme Switcher Component**: `components/animated-theme-switcher.tsx`
+- **Variants**: `default` (standard size for landing page) and `compact` (Dashboard size)
+- **Features**:
+  - Single button with icon showing current theme (sun/moon/laptop)
+  - Click to open popover menu with 3 options
+  - Framer Motion animations for smooth menu appearance
+  - Visual indicator for currently selected theme
+
+**Usage**:
+```tsx
+import { AnimatedThemeSwitcher } from "@/components/animated-theme-switcher";
+
+// Landing page
+<AnimatedThemeSwitcher variant="default" />
+
+// Dashboard
+<AnimatedThemeSwitcher variant="compact" />
+```
+
+**Dark Mode Styling**:
+- **Configuration**: `tailwind.config.ts` has `darkMode: ["class"]`
+- **Usage**: Add `dark:` prefix to any Tailwind class
+- **Examples**:
+  - Background: `bg-white dark:bg-slate-900`
+  - Text: `text-slate-900 dark:text-white`
+  - Border: `border-slate-200 dark:border-slate-800`
+
+**Best Practices**:
+1. Always use semantic Tailwind colors (slate, gray, blue, etc.) instead of fixed hex values
+2. Add `dark:` variants to all color-related classes
+3. Use CSS variables for theme-aware values: `bg-background`, `text-foreground`
+4. Test in both light and dark modes to ensure proper contrast
+
 ## Environment Variables
 
 Required variables (see `.env.example`):

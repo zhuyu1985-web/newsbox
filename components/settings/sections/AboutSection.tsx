@@ -10,9 +10,9 @@ export function AboutSection() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-black/5">
-          <h3 className="text-base font-bold text-slate-900">关于 NewsBox</h3>
+          <h3 className="text-base font-bold text-card-foreground">关于 NewsBox</h3>
         </div>
 
         <div className="p-6">
@@ -21,7 +21,7 @@ export function AboutSection() {
               label="使用指南"
               right={
                 <a
-                  className="text-slate-500 hover:text-slate-900 inline-flex items-center gap-2"
+                  className="text-muted-foreground hover:text-card-foreground inline-flex items-center gap-2"
                   href="https://help.newsbox.pro"
                   target="_blank"
                   rel="noreferrer"
@@ -34,7 +34,7 @@ export function AboutSection() {
               label="帮助文档"
               right={
                 <a
-                  className="text-slate-500 hover:text-slate-900 inline-flex items-center gap-2"
+                  className="text-muted-foreground hover:text-card-foreground inline-flex items-center gap-2"
                   href="https://help.newsbox.pro"
                   target="_blank"
                   rel="noreferrer"
@@ -47,7 +47,7 @@ export function AboutSection() {
               label="产品反馈"
               right={
                 <a
-                  className="text-slate-500 hover:text-slate-900 inline-flex items-center gap-2"
+                  className="text-muted-foreground hover:text-card-foreground inline-flex items-center gap-2"
                   href="https://newsbox.canny.io"
                   target="_blank"
                   rel="noreferrer"
@@ -60,7 +60,7 @@ export function AboutSection() {
               label="联系邮箱"
               right={
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500">hi@newsbox.pro</span>
+                  <span className="text-muted-foreground">hi@newsbox.pro</span>
                   <Button variant="outline" size="sm" onClick={() => copy("hi@newsbox.pro")}>
                     <Copy className="h-4 w-4 mr-2" />
                     复制
@@ -70,7 +70,7 @@ export function AboutSection() {
             />
             <Row
               label="联系微信"
-              right={<span className="text-slate-500">（占位：后续可补二维码/微信号）</span>}
+              right={<span className="text-muted-foreground">（占位：后续可补二维码/微信号）</span>}
             />
           </div>
         </div>
@@ -82,7 +82,7 @@ export function AboutSection() {
 function Row({ label, right }: { label: string; right: React.ReactNode }) {
   return (
     <div className="bg-[#f5f5f7] rounded-2xl p-6 flex items-center justify-between gap-6">
-      <div className="text-sm font-medium text-slate-900">{label}</div>
+      <div className="text-sm font-medium text-card-foreground">{label}</div>
       <div className="text-sm">{right}</div>
     </div>
   );

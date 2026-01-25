@@ -129,8 +129,8 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
                 className={cn(
                   "w-full text-left py-2 pr-3 pl-8 transition-all duration-200 rounded-lg group flex items-start gap-3",
                   isActive
-                    ? "text-slate-900 bg-white shadow-sm ring-1 ring-slate-200/50"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/80"
+                    ? "text-card-foreground bg-card shadow-sm ring-1 ring-slate-200/50"
+                    : "text-muted-foreground hover:text-card-foreground hover:bg-muted/80"
                 )}
               >
                 <div className="flex-1 min-w-0">
@@ -140,7 +140,7 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
                   )}>
                     {chapter.title}
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+                  <div className="text-[11px] text-muted-foreground/70 mt-1 flex items-center gap-1.5">
                     <Clock className="h-3 w-3" />
                     <span>{formatTime(chapter.start_time)}</span>
                     {chapter.end_time && (
@@ -154,7 +154,7 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
                 {chapter.generated_by_ai && (
                   <Sparkles className={cn(
                     "h-3 w-3 shrink-0 mt-1",
-                    isActive ? "text-pink-500" : "text-slate-300 group-hover:text-pink-400"
+                    isActive ? "text-pink-500" : "text-muted-foreground/50 group-hover:text-pink-400"
                   )} />
                 )}
               </button>

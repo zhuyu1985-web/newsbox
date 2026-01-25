@@ -214,7 +214,7 @@ export function SelectionMenu({
       }}
     >
       {/* Top Bubble: Colors */}
-      <div className="bg-white border rounded-full shadow-xl px-3 py-1.5 flex items-center gap-2">
+      <div className="bg-card border rounded-full shadow-xl px-3 py-1.5 flex items-center gap-2">
         {[
           { id: "yellow", class: "bg-[#fef08a]" },
           { id: "green", class: "bg-[#bbf7d0]" },
@@ -237,11 +237,11 @@ export function SelectionMenu({
       </div>
 
       {/* Bottom Bubble: Actions */}
-      <div className="bg-white border rounded-2xl shadow-xl p-1 flex items-center">
+      <div className="bg-card border rounded-2xl shadow-xl p-1 flex items-center">
         <Button
           variant="ghost"
           size="sm"
-          className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100"
+          className="h-10 w-10 p-0 rounded-xl hover:bg-muted"
           onClick={() => handleHighlight(lastUsedColor)}
         >
           <Pen className={cn(
@@ -257,29 +257,29 @@ export function SelectionMenu({
         <Button
           variant="ghost"
           size="sm"
-          className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100"
+          className="h-10 w-10 p-0 rounded-xl hover:bg-muted"
           onClick={handleAnnotate}
         >
-          <MessageSquare className="h-5 w-5 text-slate-600" />
+          <MessageSquare className="h-5 w-5 text-card-foreground" />
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100"
+          className="h-10 w-10 p-0 rounded-xl hover:bg-muted"
           onClick={handleCopy}
         >
           {copied ? (
             <Check className="h-5 w-5 text-green-500" />
           ) : (
-            <Copy className="h-5 w-5 text-slate-600" />
+            <Copy className="h-5 w-5 text-card-foreground" />
           )}
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100"
+          className="h-10 w-10 p-0 rounded-xl hover:bg-muted"
           onClick={handleAIExplain}
         >
           <Sparkles className="h-5 w-5 text-pink-500" />
@@ -290,10 +290,10 @@ export function SelectionMenu({
         <Button
           variant="ghost"
           size="sm"
-          className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100"
+          className="h-10 w-10 p-0 rounded-xl hover:bg-muted"
           onClick={handleSearch}
         >
-          <MoreHorizontal className="h-5 w-5 text-slate-600" />
+          <MoreHorizontal className="h-5 w-5 text-card-foreground" />
         </Button>
       </div>
     </div>

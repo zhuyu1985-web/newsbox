@@ -1708,17 +1708,17 @@ export function KnowledgeView({
   );
 
   return (
-    <div className={cn("flex flex-1 min-h-0", subView === "topics" ? "bg-[#F8FAFC]" : "bg-slate-50/30", className)}>
+    <div className={cn("flex flex-1 min-h-0", subView === "topics" ? "bg-[#F8FAFC] dark:bg-slate-950" : "bg-slate-50/30", className)}>
       {/* Sidebar - 只在 chat 模式下显示列表，topics 采用沉浸式仪表盘 */}
       {subView === "chat" ? (
         <div
           className={cn(
-            "w-[280px] border-r border-slate-200/70 bg-white/70 backdrop-blur flex-shrink-0 flex flex-col",
+            "w-[280px] border-r border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/70 backdrop-blur flex-shrink-0 flex flex-col",
             sidebarOpen ? "" : "hidden md:flex",
           )}
         >
-          <div className="h-14 px-4 flex items-center justify-between border-b border-slate-200/70">
-            <h3 className="text-sm font-bold text-slate-800">
+          <div className="h-14 px-4 flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/70">
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">
               {subView === "chat" ? "历史对话" : "专题列表"}
             </h3>
 
@@ -1727,7 +1727,7 @@ export function KnowledgeView({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+                className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20"
                 onClick={handleNewConversation}
                 disabled={!userId}
                 title="新建对话"
@@ -1739,7 +1739,7 @@ export function KnowledgeView({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50"
+                className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
                 onClick={rebuildTopics}
                 disabled={rebuildingTopics || !userId}
                 title="生成/刷新专题"
@@ -1753,7 +1753,7 @@ export function KnowledgeView({
             {uiError && <div className="px-2 py-2 text-xs text-red-600">{uiError}</div>}
 
             {(subView === "chat" ? loadingConversations && conversations.length > 0 : loadingTopics && topics.length > 0) && (
-              <div className="pointer-events-none absolute top-2 right-2 z-10 text-[11px] text-slate-400 bg-white/80 backdrop-blur border border-slate-200/70 rounded-full px-2 py-0.5 shadow-sm">
+              <div className="pointer-events-none absolute top-2 right-2 z-10 text-[11px] text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-slate-800/80 backdrop-blur border border-slate-200/70 dark:border-slate-700/70 rounded-full px-2 py-0.5 shadow-sm">
                 同步中...
               </div>
             )}
@@ -1762,12 +1762,12 @@ export function KnowledgeView({
               <div>
                 {conversations.length === 0 ? (
                   loadingConversations ? (
-                    <div className="px-2 py-2 text-xs text-slate-500">加载对话列表中...</div>
+                    <div className="px-2 py-2 text-xs text-slate-500 dark:text-slate-400">加载对话列表中...</div>
                   ) : (
-                    <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                    <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                       <div className="p-4">
-                        <div className="text-sm font-semibold text-slate-900">还没有对话</div>
-                        <div className="mt-1 text-xs text-slate-500">点击右上角 “+” 新建一个对话。</div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">还没有对话</div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">点击右上角 "+" 新建一个对话。</div>
                       </div>
                     </Card>
                   )
@@ -1789,8 +1789,8 @@ export function KnowledgeView({
                           className={cn(
                             "group flex items-stretch rounded-xl border transition-colors overflow-hidden",
                             active
-                              ? "bg-blue-50/60 border-blue-200/60"
-                              : "bg-white/60 border-transparent hover:bg-white hover:border-slate-200/70",
+                              ? "bg-blue-50/60 dark:bg-blue-950/40 border-blue-200/60 dark:border-blue-800/60"
+                              : "bg-white/60 dark:bg-slate-800/60 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200/70 dark:hover:border-slate-700/70",
                           )}
                         >
                           <button
@@ -1801,11 +1801,11 @@ export function KnowledgeView({
                             <div className="flex items-center gap-2">
                               {Boolean(c.pinned) && <Pin className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
                               <div className="min-w-0 flex-1">
-                                <div className="text-[13px] font-semibold text-slate-900 truncate">{title}</div>
+                                <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">{title}</div>
                                 <div
                                   className={cn(
                                     "mt-0.5 text-[12px] truncate break-all",
-                                    preview ? "text-slate-500" : "text-slate-400",
+                                    preview ? "text-slate-500 dark:text-slate-400" : "text-slate-400 dark:text-slate-500",
                                   )}
                                 >
                                   {preview || "暂无消息"}
@@ -1819,8 +1819,8 @@ export function KnowledgeView({
                               <button
                                 type="button"
                                 className={cn(
-                                  "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors",
-                                  active ? "bg-blue-50/30" : "bg-transparent",
+                                  "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors",
+                                  active ? "bg-blue-50/30 dark:bg-blue-950/20" : "bg-transparent",
                                 )}
                                 onClick={(e) => e.stopPropagation()}
                                 aria-label="对话操作"
@@ -1873,12 +1873,12 @@ export function KnowledgeView({
               <div>
                 {topics.length === 0 ? (
                   loadingTopics ? (
-                    <div className="px-2 py-2 text-xs text-slate-500">加载专题列表中...</div>
+                    <div className="px-2 py-2 text-xs text-slate-500 dark:text-slate-400">加载专题列表中...</div>
                   ) : (
-                    <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                    <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                       <div className="p-4">
-                        <div className="text-sm font-semibold text-slate-900">还没有智能专题</div>
-                        <div className="mt-1 text-xs text-slate-500">点击右上角刷新按钮，按需生成/刷新专题。</div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">还没有智能专题</div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">点击右上角刷新按钮，按需生成/刷新专题。</div>
                       </div>
                     </Card>
                   )
@@ -1912,8 +1912,8 @@ export function KnowledgeView({
                                 className={cn(
                                   "group flex items-stretch rounded-xl border transition-colors overflow-hidden",
                                   active
-                                    ? "bg-amber-50/60 border-amber-200/60"
-                                    : "bg-white/60 border-transparent hover:bg-white hover:border-slate-200/70",
+                                    ? "bg-amber-50/60 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-800/60"
+                                    : "bg-white/60 dark:bg-slate-800/60 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200/70 dark:hover:border-slate-700/70",
                                   draggingTopicId === t.id && "opacity-70",
                                   dragOverTopicId === t.id && "ring-2 ring-amber-400/60",
                                 )}
@@ -1927,14 +1927,14 @@ export function KnowledgeView({
                                     <Pin className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2">
-                                        <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 truncate">{title}</div>
+                                        <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 dark:text-white truncate">{title}</div>
                                         {isNew && (
-                                          <div className="shrink-0 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200/70 rounded-full px-2 py-0.5">
+                                          <div className="shrink-0 text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/70 rounded-full px-2 py-0.5">
                                             New
                                           </div>
                                         )}
                                         {count !== null && (
-                                          <div className="shrink-0 text-[11px] text-slate-500 bg-white/60 border border-slate-200/70 rounded-full px-2 py-0.5">
+                                          <div className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 bg-white/60 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-full px-2 py-0.5">
                                             {count}
                                           </div>
                                         )}
@@ -1942,7 +1942,7 @@ export function KnowledgeView({
                                       <div
                                         className={cn(
                                           "mt-0.5 text-[12px] truncate break-all",
-                                          preview ? "text-slate-500" : "text-slate-400",
+                                          preview ? "text-slate-500 dark:text-slate-400" : "text-slate-400 dark:text-slate-500",
                                         )}
                                       >
                                         {preview ? toPreview(preview, 70) : "暂无报告"}
@@ -1956,8 +1956,8 @@ export function KnowledgeView({
                                     <button
                                       type="button"
                                       className={cn(
-                                        "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors",
-                                        active ? "bg-amber-50/30" : "bg-transparent",
+                                        "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors",
+                                        active ? "bg-amber-50/30 dark:bg-amber-950/20" : "bg-transparent",
                                       )}
                                       onClick={(e) => e.stopPropagation()}
                                       aria-label="专题操作"
@@ -2031,8 +2031,8 @@ export function KnowledgeView({
                                 className={cn(
                                   "group flex items-stretch rounded-xl border transition-colors overflow-hidden",
                                   active
-                                    ? "bg-amber-50/60 border-amber-200/60"
-                                    : "bg-white/60 border-transparent hover:bg-white hover:border-slate-200/70",
+                                    ? "bg-amber-50/60 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-800/60"
+                                    : "bg-white/60 dark:bg-slate-800/60 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200/70 dark:hover:border-slate-700/70",
                                   draggingTopicId === t.id && "opacity-70",
                                   dragOverTopicId === t.id && "ring-2 ring-amber-400/60",
                                 )}
@@ -2046,14 +2046,14 @@ export function KnowledgeView({
                                     {Boolean(t.pinned) && <Pin className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2">
-                                        <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 truncate">{title}</div>
+                                        <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 dark:text-white truncate">{title}</div>
                                         {isNew && (
-                                          <div className="shrink-0 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200/70 rounded-full px-2 py-0.5">
+                                          <div className="shrink-0 text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/70 rounded-full px-2 py-0.5">
                                             New
                                           </div>
                                         )}
                                         {count !== null && (
-                                          <div className="shrink-0 text-[11px] text-slate-500 bg-white/60 border border-slate-200/70 rounded-full px-2 py-0.5">
+                                          <div className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 bg-white/60 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-full px-2 py-0.5">
                                             {count}
                                           </div>
                                         )}
@@ -2061,7 +2061,7 @@ export function KnowledgeView({
                                       <div
                                         className={cn(
                                           "mt-0.5 text-[12px] truncate break-all",
-                                          preview ? "text-slate-500" : "text-slate-400",
+                                          preview ? "text-slate-500 dark:text-slate-400" : "text-slate-400 dark:text-slate-500",
                                         )}
                                       >
                                         {preview ? toPreview(preview, 70) : "暂无报告"}
@@ -2075,8 +2075,8 @@ export function KnowledgeView({
                                     <button
                                       type="button"
                                       className={cn(
-                                        "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors",
-                                        active ? "bg-amber-50/30" : "bg-transparent",
+                                        "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors",
+                                        active ? "bg-amber-50/30 dark:bg-amber-950/20" : "bg-transparent",
                                       )}
                                       onClick={(e) => e.stopPropagation()}
                                       aria-label="专题操作"
@@ -2155,8 +2155,8 @@ export function KnowledgeView({
                                   className={cn(
                                     "group flex items-stretch rounded-xl border transition-colors overflow-hidden",
                                     active
-                                      ? "bg-amber-50/40 border-amber-200/60"
-                                      : "bg-white/50 border-transparent hover:bg-white hover:border-slate-200/70",
+                                      ? "bg-amber-50/40 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-800/60"
+                                      : "bg-white/50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200/70 dark:hover:border-slate-700/70",
                                     draggingTopicId === t.id && "opacity-70",
                                     dragOverTopicId === t.id && "ring-2 ring-amber-400/60",
                                   )}
@@ -2170,9 +2170,9 @@ export function KnowledgeView({
                                       <Archive className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
-                                          <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 truncate">{title}</div>
+                                          <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 dark:text-white truncate">{title}</div>
                                           {count !== null && (
-                                            <div className="shrink-0 text-[11px] text-slate-500 bg-white/60 border border-slate-200/70 rounded-full px-2 py-0.5">
+                                            <div className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 bg-white/60 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-full px-2 py-0.5">
                                               {count}
                                             </div>
                                           )}
@@ -2180,7 +2180,7 @@ export function KnowledgeView({
                                         <div
                                           className={cn(
                                             "mt-0.5 text-[12px] truncate break-all",
-                                            preview ? "text-slate-500" : "text-slate-400",
+                                            preview ? "text-slate-500 dark:text-slate-400" : "text-slate-400 dark:text-slate-500",
                                           )}
                                         >
                                           {preview ? toPreview(preview, 70) : "暂无报告"}
@@ -2194,8 +2194,8 @@ export function KnowledgeView({
                                       <button
                                         type="button"
                                         className={cn(
-                                          "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-white/70 transition-colors",
-                                          active ? "bg-amber-50/20" : "bg-transparent",
+                                          "w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors",
+                                          active ? "bg-amber-50/20 dark:bg-amber-950/10" : "bg-transparent",
                                         )}
                                         onClick={(e) => e.stopPropagation()}
                                         aria-label="专题操作"
@@ -2259,8 +2259,8 @@ export function KnowledgeView({
           </DialogHeader>
 
           <div className="space-y-2">
-            <div className="text-xs text-slate-500">
-              当前：<span className="text-slate-700">{renameConversation?.title?.trim() || "新对话"}</span>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              当前：<span className="text-slate-700 dark:text-slate-300">{renameConversation?.title?.trim() || "新对话"}</span>
             </div>
             <Input
               value={renameTitle}
@@ -2326,12 +2326,12 @@ export function KnowledgeView({
           </DialogHeader>
 
           <div className="space-y-2">
-            <div className="text-xs text-slate-500">
-              目标：<span className="text-slate-700">{topicDetail?.topic?.title?.trim() || "当前专题"}</span>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              目标：<span className="text-slate-700 dark:text-slate-300">{topicDetail?.topic?.title?.trim() || "当前专题"}</span>
             </div>
 
             <select
-              className="w-full h-10 rounded-xl border border-slate-200/90 bg-white px-3 text-sm text-slate-800"
+              className="w-full h-10 rounded-xl border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 px-3 text-sm text-gray-800 dark:text-gray-200"
               value={mergeSourceTopicId ?? ""}
               onChange={(e) => setMergeSourceTopicId(e.target.value || null)}
               disabled={!activeTopicId}
@@ -2348,7 +2348,7 @@ export function KnowledgeView({
                 ))}
             </select>
 
-            <div className="text-xs text-slate-400">提示：合并后会重算事件节点与条目计数。</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">提示：合并后会重算事件节点与条目计数。</div>
           </div>
 
           <DialogFooter>
@@ -2387,13 +2387,13 @@ export function KnowledgeView({
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="text-sm text-slate-700">
+            <div className="text-sm text-slate-700 dark:text-slate-300">
               目标：<span className="font-semibold">{dragMergeTargetTopic?.title?.trim() || "目标专题"}</span>
             </div>
-            <div className="text-sm text-slate-700">
+            <div className="text-sm text-slate-700 dark:text-slate-300">
               来源：<span className="font-semibold">{dragMergeSourceTopic?.title?.trim() || "来源专题"}</span>
             </div>
-            <div className="text-xs text-slate-400">提示：合并后会重算事件节点与条目计数。</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">提示：合并后会重算事件节点与条目计数。</div>
           </div>
 
           <DialogFooter>
@@ -2436,7 +2436,7 @@ export function KnowledgeView({
             <DialogDescription>来自条目来源链接的快速预览。</DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-2xl border border-slate-200/90 overflow-hidden bg-black">
+          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 overflow-hidden bg-black">
             {videoPreview?.url ? (
               videoPreview.kind === "direct" ? (
                 <video
@@ -2455,7 +2455,7 @@ export function KnowledgeView({
                 />
               )
             ) : (
-              <div className="aspect-video flex items-center justify-center text-sm text-slate-400">暂无可预览视频</div>
+              <div className="aspect-video flex items-center justify-center text-sm text-slate-400 dark:text-slate-500">暂无可预览视频</div>
             )}
           </div>
         </DialogContent>
@@ -2479,10 +2479,10 @@ export function KnowledgeView({
           </DialogHeader>
 
           <div className="space-y-2">
-            <div className="text-xs text-slate-500">条目：{addToTopicNoteId ? addToTopicNoteId.slice(0, 8) : "-"}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">条目：{addToTopicNoteId ? addToTopicNoteId.slice(0, 8) : "-"}</div>
 
             <select
-              className="w-full h-10 rounded-xl border border-slate-200/90 bg-white px-3 text-sm text-slate-800"
+              className="w-full h-10 rounded-xl border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 px-3 text-sm text-gray-800 dark:text-gray-200"
               value={addToTopicTargetTopicId ?? ""}
               onChange={(e) => setAddToTopicTargetTopicId(e.target.value || null)}
             >
@@ -2539,14 +2539,14 @@ export function KnowledgeView({
           </DialogHeader>
 
           <div className="space-y-2">
-            <div className="text-xs text-slate-500">条目：{correctTimeNoteId ? correctTimeNoteId.slice(0, 8) : "-"}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">条目：{correctTimeNoteId ? correctTimeNoteId.slice(0, 8) : "-"}</div>
             <Input
               type="datetime-local"
               value={correctTimeValue}
               onChange={(e) => setCorrectTimeValue(e.target.value)}
               className="rounded-xl"
             />
-            <div className="text-xs text-slate-400">按你的本地时区填写；保存后会重算该条目的事件指纹。</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">按你的本地时区填写；保存后会重算该条目的事件指纹。</div>
           </div>
 
           <DialogFooter>
@@ -2570,19 +2570,19 @@ export function KnowledgeView({
         </DialogContent>
       </Dialog>
 
-      <div className={cn("flex-1 flex flex-col min-w-0 overflow-hidden", subView === "topics" ? "bg-[#F8FAFC]" : "bg-white")}>
+      <div className={cn("flex-1 flex flex-col min-w-0 overflow-hidden", subView === "topics" ? "bg-[#F8FAFC] dark:bg-slate-950" : "bg-white dark:bg-slate-900")}>
         {subView === "graph" ? (
           <KnowledgeGraphView userId={userId || ""} />
         ) : subView === "quotes" ? (
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="h-14 px-4 md:px-8 border-b border-slate-200/70 bg-white/60 backdrop-blur flex items-center gap-3 sticky top-0 z-10">
+            <div className="h-14 px-4 md:px-8 border-b border-slate-200/70 dark:border-slate-700/70 bg-white/60 dark:bg-slate-900/60 backdrop-blur flex items-center gap-3 sticky top-0 z-10">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="h-9 w-9 rounded-xl border bg-rose-50 border-rose-100 flex items-center justify-center shrink-0">
+                <div className="h-9 w-9 rounded-xl border bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/30 flex items-center justify-center shrink-0">
                   <Quote className="h-4 w-4 text-rose-600" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold text-slate-900">金句素材</div>
-                  <div className="text-[11px] text-slate-400 truncate">记者的灵魂弹药库，在这里发现引人深思的观点、犀利的反讽和精准的数据</div>
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">金句素材</div>
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">记者的灵魂弹药库，在这里发现引人深思的观点、犀利的反讽和精准的数据</div>
                 </div>
               </div>
 
@@ -2609,22 +2609,22 @@ export function KnowledgeView({
 
             <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 bg-slate-50/30">
               {quoteMaterialsError ? (
-                <div className="bg-red-50 text-red-600 border border-red-100 rounded-xl p-4 text-sm">
+                <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-xl p-4 text-sm">
                   {quoteMaterialsError}
                 </div>
               ) : quoteMaterialsLoading && quoteMaterials.length === 0 ? (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   加载中…
                 </div>
               ) : quoteMaterials.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center">
-                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-slate-100">
-                    <Quote className="h-8 w-8 text-slate-300" />
+                  <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-slate-100 dark:border-slate-700">
+                    <Quote className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
-                  <div className="text-slate-900 font-semibold">暂无金句素材</div>
-                  <div className="mt-1 text-xs text-slate-400 max-w-sm">
-                    你可以在批注卡片里选择“设为金句素材”，或在阅读侧栏点“自动提取金句”。
+                  <div className="text-slate-900 dark:text-white font-semibold">暂无金句素材</div>
+                  <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 max-w-sm">
+                    你可以在批注卡片里选择"设为金句素材"，或在阅读侧栏点"自动提取金句"。
                   </div>
                 </div>
               ) : (
@@ -2662,9 +2662,9 @@ export function KnowledgeView({
                               <span className={cn("ml-1 font-sans font-bold opacity-60", textColor)}>”</span>
                             </blockquote>
 
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800/50">
                               <div className="min-w-0 flex-1 mr-3">
-                                <div className="text-xs text-slate-500 font-medium truncate">
+                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                                   {site ? `${site} · ` : ""}{title}
                                 </div>
                                 <div className="mt-2 flex items-center gap-2">
@@ -2679,7 +2679,7 @@ export function KnowledgeView({
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-700"
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                                   onClick={() => {
                                     navigator.clipboard.writeText(it.content);
                                     toast.success("已复制");
@@ -2706,7 +2706,7 @@ export function KnowledgeView({
                                       type="button"
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-700"
+                                      className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                                     >
                                       <MoreHorizontal className="h-3.5 w-3.5" />
                                     </Button>
@@ -2791,13 +2791,13 @@ export function KnowledgeView({
         ) : (
           <div className="flex-1 min-h-0 flex flex-col">
             {/* Main Header */}
-            <div className="h-14 px-4 md:px-8 border-b border-slate-200/70 bg-white/50 backdrop-blur flex items-center justify-between gap-3 sticky top-0 z-10">
+            <div className="h-14 px-4 md:px-8 border-b border-slate-200/70 dark:border-slate-700/70 bg-white/50 dark:bg-slate-900/50 backdrop-blur flex items-center justify-between gap-3 sticky top-0 z-10">
               <div className="flex items-center gap-3 min-w-0">
                 <Button
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="md:hidden text-slate-600"
+                  className="md:hidden text-slate-600 dark:text-slate-400"
                   onClick={() => setSidebarOpen((v) => !v)}
                 >
                   <List className="h-4 w-4" />
@@ -2806,7 +2806,7 @@ export function KnowledgeView({
                 <div
                   className={cn(
                     "h-9 w-9 rounded-xl border flex items-center justify-center shrink-0",
-                    subView === "chat" ? "bg-blue-50 border-blue-100" : "bg-amber-50 border-amber-100",
+                    subView === "chat" ? "bg-blue-50 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/30" : "bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/30",
                   )}
                 >
                   {subView === "chat" ? (
@@ -2817,10 +2817,10 @@ export function KnowledgeView({
                 </div>
 
                 <div className="min-w-0">
-                  <div className="text-sm font-bold text-slate-900 truncate">
+                  <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
                     {subView === "chat" ? activeConversation?.title?.trim() || "新对话" : topicDetail?.topic?.title?.trim() || "智能专题"}
                   </div>
-                  <div className="text-[11px] text-slate-500 truncate">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                     {subView === "chat"
                       ? "P0 语料：笔记正文 + 高亮 + 批注 + 逐字稿"
                       : "P1：语义聚类 → 专题报告 → 来源追溯"}
@@ -2834,7 +2834,7 @@ export function KnowledgeView({
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="text-slate-500 hover:text-blue-600 transition-colors"
+                    className="text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-colors"
                     onClick={() => void exportActiveConversationMarkdown()}
                     disabled={!activeConversationId || exportingMarkdown}
                     title="导出 Markdown"
@@ -2847,7 +2847,7 @@ export function KnowledgeView({
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="text-slate-500 hover:text-blue-600 transition-colors"
+                    className="text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-colors"
                     onClick={() => loadConversations()}
                     disabled={loadingConversations}
                   >
@@ -2860,7 +2860,7 @@ export function KnowledgeView({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="text-slate-500 hover:text-amber-600 transition-colors"
+                  className="text-slate-500 dark:text-slate-400 hover:text-amber-600 transition-colors"
                   onClick={rebuildTopics}
                   disabled={rebuildingTopics}
                 >
@@ -2880,7 +2880,7 @@ export function KnowledgeView({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="bg-white"
+                          className="bg-white dark:bg-slate-900"
                           disabled={!hasMoreHistory || loadingOlderMessages}
                           onClick={() => void loadOlderMessages()}
                         >
@@ -2889,20 +2889,20 @@ export function KnowledgeView({
                       </div>
                     )}
                     {loadingMessages && messages.length === 0 ? (
-                      <div className="text-sm text-slate-500">加载对话中...</div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">加载对话中...</div>
                     ) : messages.length === 0 ? (
-                      <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                      <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                         <div className="p-6">
                           <div className="flex items-start gap-3">
-                            <div className="mt-0.5 h-9 w-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                            <div className="mt-0.5 h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 flex items-center justify-center">
                               <Sparkles className="h-4 w-4 text-amber-600" />
                             </div>
                             <div className="flex-1">
-                              <div className="text-sm font-semibold text-slate-900">从你的收藏里提问</div>
-                              <div className="mt-1 text-sm text-slate-600 leading-relaxed">
-                                例如：“最近 AI 监管相关的要点是什么？”、“把我标注过的观点按正反两面总结”。
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white">从你的收藏里提问</div>
+                              <div className="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                例如："最近 AI 监管相关的要点是什么？"、"把我标注过的观点按正反两面总结"。
                               </div>
-                              <div className="mt-4 text-xs text-slate-400">
+                              <div className="mt-4 text-xs text-slate-400 dark:text-slate-500">
                                 提示：回答会附带引用 [note:...]，你可以点击引用跳转到原笔记。
                               </div>
                             </div>
@@ -2915,7 +2915,7 @@ export function KnowledgeView({
                         className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-200 motion-reduce:animate-none"
                       >
                         {loadingMessages && (
-                          <div className="pointer-events-none absolute -top-1 right-0 text-[11px] text-slate-400 bg-white/80 backdrop-blur border border-slate-200/70 rounded-full px-2 py-0.5 shadow-sm">
+                          <div className="pointer-events-none absolute -top-1 right-0 text-[11px] text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-slate-800/80 backdrop-blur border border-slate-200/70 dark:border-slate-700/70 rounded-full px-2 py-0.5 shadow-sm">
                             同步中...
                           </div>
                         )}
@@ -2928,13 +2928,13 @@ export function KnowledgeView({
                               key={m.id}
                               className={cn(
                                 "rounded-2xl border shadow-none",
-                                m.role === "user" ? "border-slate-200/90 bg-white" : "border-blue-100 bg-blue-50/50",
+                                m.role === "user" ? "border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900" : "border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-950/20",
                               )}
                             >
                               <div className="p-4">
-                                <div className="text-[11px] font-semibold text-slate-500">{m.role === "user" ? "你" : "知识库"}</div>
+                                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{m.role === "user" ? "你" : "知识库"}</div>
 
-                                <div className="mt-2 text-sm text-slate-800 leading-relaxed whitespace-pre-line break-words">
+                                <div className="mt-2 text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line break-words">
                                   {m.content || (m.role === "assistant" && sending ? "生成中..." : "")}
                                 </div>
 
@@ -2948,7 +2948,7 @@ export function KnowledgeView({
                                         <button
                                           key={id}
                                           type="button"
-                                          className="text-[11px] px-2 py-1 rounded-full border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
+                                          className="text-[11px] px-2 py-1 rounded-full border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
                                           onClick={() => {
                                             window.location.href = `/notes/${id}`;
                                           }}
@@ -2965,16 +2965,16 @@ export function KnowledgeView({
                                 <div className="mt-3 flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1">
                                     <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-7 w-7 rounded-lg text-slate-500 hover:text-slate-800"
-                                      onClick={() => void copyMessageContent(m)}
-                                      disabled={messageActionBusyId === m.id}
-                                      title="复制"
-                                    >
-                                      {copiedMessageId === m.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                    </Button>
+                                              type="button"
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-7 w-7 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                              onClick={() => void copyMessageContent(m)}
+                                              disabled={messageActionBusyId === m.id}
+                                              title="复制"
+                                            >
+                                              {copiedMessageId === m.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                            </Button>
 
                                     {m.role === "assistant" && (
                                       <>
@@ -2982,7 +2982,7 @@ export function KnowledgeView({
                                           type="button"
                                           size="icon"
                                           variant="ghost"
-                                          className="h-7 w-7 rounded-lg text-slate-500 hover:text-slate-800"
+                                          className="h-7 w-7 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                                           disabled={sending || messageActionBusyId === m.id || m.id === "temp"}
                                           onClick={() => {
                                             setShowRegenerateConfirmId(m.id);
@@ -3010,7 +3010,7 @@ export function KnowledgeView({
                                           variant="ghost"
                                           className={cn(
                                             "h-7 w-7 rounded-lg",
-                                            m.rating === 1 ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" : "text-slate-500 hover:text-slate-800",
+                                            m.rating === 1 ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200",
                                           )}
                                           disabled={messageActionBusyId === m.id || m.id === "temp"}
                                           onClick={() => {
@@ -3028,7 +3028,7 @@ export function KnowledgeView({
                                           variant="ghost"
                                           className={cn(
                                             "h-7 w-7 rounded-lg",
-                                            m.rating === -1 ? "text-amber-700 bg-amber-50 hover:bg-amber-100" : "text-slate-500 hover:text-slate-800",
+                                            m.rating === -1 ? "text-amber-700 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/30" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200",
                                           )}
                                           disabled={messageActionBusyId === m.id || m.id === "temp"}
                                           onClick={() => {
@@ -3047,7 +3047,7 @@ export function KnowledgeView({
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    className="h-7 w-7 rounded-lg text-slate-500 hover:text-red-700 hover:bg-red-50"
+                                    className="h-7 w-7 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                                     disabled={sending || messageActionBusyId === m.id || m.id === "temp"}
                                     onClick={() => {
                                       setShowDeleteConfirmId(m.id);
@@ -3081,7 +3081,7 @@ export function KnowledgeView({
                 </div>
 
                 {/* Composer */}
-                <div className="shrink-0 border-t border-slate-200/70 bg-slate-50/80 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60">
+                <div className="shrink-0 border-t border-slate-200/70 dark:border-slate-700/70 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60 dark:supports-[backdrop-filter]:bg-slate-900/60">
                   <div className="px-4 py-4 md:px-8">
                     <div className="mx-auto w-full max-w-3xl">
                       {!autoScrollEnabled && messages.length > 0 && (
@@ -3090,7 +3090,7 @@ export function KnowledgeView({
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="bg-white/80"
+                            className="bg-white/80 dark:bg-slate-800/80"
                             onClick={() => {
                               autoScrollEnabledRef.current = true;
                               setAutoScrollEnabled(true);
@@ -3102,13 +3102,13 @@ export function KnowledgeView({
                         </div>
                       )}
 
-                      <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                      <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                         <div className="p-3">
                           <Textarea
                             value={draft}
                             onChange={(e) => setDraft(e.target.value)}
                             placeholder="输入你的问题（支持追问，Enter 发送）..."
-                            className="min-h-[96px] border-slate-200/90 rounded-xl resize-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="min-h-[96px] border-slate-200/90 dark:border-slate-700/90 rounded-xl resize-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
@@ -3121,7 +3121,7 @@ export function KnowledgeView({
                               type="button"
                               size="sm"
                               variant="ghost"
-                              className="text-slate-500"
+                              className="text-slate-500 dark:text-slate-400"
                               onClick={handleNewConversation}
                               disabled={sending}
                             >
@@ -3133,7 +3133,7 @@ export function KnowledgeView({
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="text-slate-500"
+                                className="text-slate-500 dark:text-slate-400"
                                 onClick={() => setDraft("")}
                                 disabled={draft.length === 0 || sending}
                               >
@@ -3160,18 +3160,18 @@ export function KnowledgeView({
               <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8">
                 <div className="mx-auto w-full max-w-3xl py-6">
                   {loadingTopicDetail ? (
-                    <div className="text-sm text-slate-500">加载专题中...</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">加载专题中...</div>
                   ) : !topicDetail ? (
-                    <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                    <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                       <div className="p-6">
                         <div className="flex items-start gap-3">
-                          <div className="mt-0.5 h-9 w-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                          <div className="mt-0.5 h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 flex items-center justify-center">
                             <Sparkles className="h-4 w-4 text-amber-600" />
                           </div>
                           <div className="flex-1">
-                            <div className="text-sm font-semibold text-slate-900">智能专题（P1）</div>
-                            <div className="mt-1 text-sm text-slate-600 leading-relaxed">
-                              点击左侧专题，查看条目时间线与专题报告；或先点击“生成/刷新专题”。
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">智能专题（P1）</div>
+                            <div className="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                              点击左侧专题，查看条目时间线与专题报告；或先点击"生成/刷新专题"。
                             </div>
                           </div>
                         </div>
@@ -3179,14 +3179,14 @@ export function KnowledgeView({
                     </Card>
                   ) : (
                     <div className="space-y-4">
-                      <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                      <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                         <div className="p-5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="text-base font-semibold text-slate-900 truncate">
+                              <div className="text-base font-semibold text-slate-900 dark:text-white truncate">
                                 {topicDetail.topic.title || "未命名专题"}
                               </div>
-                              <div className="mt-1 text-xs text-slate-500">
+                              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                 {topicDetail.topic.updated_at ? `更新于 ${formatDay(topicDetail.topic.updated_at)}` : ""}
                                 {typeof topicDetail.topic.member_count === "number" ? ` · ${topicDetail.topic.member_count} 条` : ""}
                               </div>
@@ -3196,7 +3196,7 @@ export function KnowledgeView({
                                   {topicDetail.topic.keywords.slice(0, 8).map((k) => (
                                     <span
                                       key={k}
-                                      className="text-[11px] px-2 py-1 rounded-full border border-slate-200/90 bg-slate-50 text-slate-600"
+                                      className="text-[11px] px-2 py-1 rounded-full border border-slate-200/90 dark:border-slate-700/90 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                                     >
                                       {k}
                                     </span>
@@ -3210,7 +3210,7 @@ export function KnowledgeView({
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                className="bg-white"
+                                className="bg-white dark:bg-slate-900"
                                 onClick={rebuildTopics}
                                 disabled={rebuildingTopics}
                               >
@@ -3223,7 +3223,7 @@ export function KnowledgeView({
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    className="bg-white"
+                                    className="bg-white dark:bg-slate-900"
                                     disabled={topicActionBusyId === topicDetail.topic.id}
                                     title="专题操作"
                                   >
@@ -3278,11 +3278,11 @@ export function KnowledgeView({
                       </Card>
 
                       {topicVideos.length > 0 && (
-                        <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                        <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                           <div className="p-5">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-slate-900">视频预览</div>
-                              <div className="text-xs text-slate-500">{topicVideos.length} 条</div>
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white">视频预览</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">{topicVideos.length} 条</div>
                             </div>
 
                             <div className="mt-3 space-y-2">
@@ -3292,26 +3292,26 @@ export function KnowledgeView({
                                 return (
                                   <div
                                     key={item.noteId}
-                                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white p-3"
+                                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 p-3"
                                   >
                                     <div className="flex items-center gap-3 min-w-0">
                                       <div
                                         className={cn(
-                                          "h-10 w-16 rounded-lg border border-slate-200/70 bg-slate-50 shrink-0 overflow-hidden",
+                                          "h-10 w-16 rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800 shrink-0 overflow-hidden",
                                           cover ? "bg-cover bg-center" : "",
                                         )}
                                         style={cover ? { backgroundImage: `url(${cover})` } : undefined}
                                       />
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-2">
-                                          <div className="text-[13px] font-semibold text-slate-900 truncate">
+                                          <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
                                             {n.title || n.site_name || "视频"}
                                           </div>
-                                          <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 rounded-full px-2 py-0.5">
+                                          <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/70 rounded-full px-2 py-0.5">
                                             视频
                                           </div>
                                         </div>
-                                        <div className="mt-0.5 text-[11px] text-slate-500 truncate">
+                                        <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 truncate">
                                           {n.site_name || ""}{n.published_at ? ` · ${formatDay(n.published_at)}` : ""}
                                         </div>
                                       </div>
@@ -3321,7 +3321,7 @@ export function KnowledgeView({
                                       type="button"
                                       size="sm"
                                       variant="outline"
-                                      className="bg-white"
+                                      className="bg-white dark:bg-slate-900"
                                       onClick={() => openVideoPreviewForNote(n)}
                                       disabled={!n.source_url}
                                     >
@@ -3333,28 +3333,28 @@ export function KnowledgeView({
                             </div>
 
                             {topicVideos.length > 3 && (
-                              <div className="mt-2 text-[11px] text-slate-400">仅展示 Top 3，可在时间轴中继续查看。</div>
+                              <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">仅展示 Top 3，可在时间轴中继续查看。</div>
                             )}
                           </div>
                         </Card>
                       )}
 
-                      <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                      <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                         <div className="p-5">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-semibold text-slate-900">专题报告（Markdown）</div>
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">专题报告（Markdown）</div>
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="bg-white"
+                              className="bg-white dark:bg-slate-900"
                               disabled={topicActionBusyId === topicDetail.topic.id}
                               onClick={() => void rewriteTopicReport(topicDetail.topic.id, "report_only")}
                             >
                               <Sparkles className="h-4 w-4 mr-1" /> 重写
                             </Button>
                           </div>
-                          <div className="mt-2 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                          <div className="mt-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                             {topicDetail.topic.summary_markdown?.trim()
                               ? topicDetail.topic.summary_markdown
                               : "暂无报告（可点击刷新专题生成）"}
@@ -3370,7 +3370,7 @@ export function KnowledgeView({
                                     <button
                                       key={id}
                                       type="button"
-                                      className="text-[11px] px-2 py-1 rounded-full border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
+                                      className="text-[11px] px-2 py-1 rounded-full border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
                                       onClick={() => {
                                         window.location.href = `/notes/${id}`;
                                       }}
@@ -3386,11 +3386,11 @@ export function KnowledgeView({
                       </Card>
 
                       {topicVideos.length > 0 && (
-                        <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                        <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                           <div className="p-5">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-slate-900">视频预览</div>
-                              <div className="text-xs text-slate-500">{topicVideos.length} 条</div>
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white">视频预览</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">{topicVideos.length} 条</div>
                             </div>
 
                             <div className="mt-3 space-y-2">
@@ -3400,26 +3400,26 @@ export function KnowledgeView({
                                 return (
                                   <div
                                     key={item.noteId}
-                                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white p-3"
+                                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 p-3"
                                   >
                                     <div className="flex items-center gap-3 min-w-0">
                                       <div
                                         className={cn(
-                                          "h-10 w-16 rounded-lg border border-slate-200/70 bg-slate-50 shrink-0 overflow-hidden",
+                                          "h-10 w-16 rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800 shrink-0 overflow-hidden",
                                           cover ? "bg-cover bg-center" : "",
                                         )}
                                         style={cover ? { backgroundImage: `url(${cover})` } : undefined}
                                       />
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-2">
-                                          <div className="text-[13px] font-semibold text-slate-900 truncate">
+                                          <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
                                             {n.title || n.site_name || "视频"}
                                           </div>
-                                          <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 rounded-full px-2 py-0.5">
+                                          <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/70 rounded-full px-2 py-0.5">
                                             视频
                                           </div>
                                         </div>
-                                        <div className="mt-0.5 text-[11px] text-slate-500 truncate">
+                                        <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 truncate">
                                           {n.site_name || ""}{n.published_at ? ` · ${formatDay(n.published_at)}` : ""}
                                         </div>
                                       </div>
@@ -3429,7 +3429,7 @@ export function KnowledgeView({
                                       type="button"
                                       size="sm"
                                       variant="outline"
-                                      className="bg-white"
+                                      className="bg-white dark:bg-slate-900"
                                       onClick={() => openVideoPreviewForNote(n)}
                                       disabled={!n.source_url}
                                     >
@@ -3441,15 +3441,15 @@ export function KnowledgeView({
                             </div>
 
                             {topicVideos.length > 3 && (
-                              <div className="mt-2 text-[11px] text-slate-400">仅展示 Top 3，可在时间轴中继续查看。</div>
+                              <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">仅展示 Top 3，可在时间轴中继续查看。</div>
                             )}
                           </div>
                         </Card>
                       )}
 
-                      <Card className="rounded-2xl border border-slate-200/90 shadow-none bg-white">
+                      <Card className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 shadow-none bg-white dark:bg-slate-900">
                         <div className="p-5">
-                          <div className="text-sm font-semibold text-slate-900">智能时间轴（事件节点）</div>
+                          <div className="text-sm font-semibold text-slate-900 dark:text-white">智能时间轴（事件节点）</div>
 
                           {Array.isArray(topicDetail.events) && topicDetail.events.length > 0 ? (
                             <div className="mt-3 space-y-2">
@@ -3458,17 +3458,17 @@ export function KnowledgeView({
                                 const best = evidence[0];
 
                                 return (
-                                  <div key={ev.id} className="rounded-xl border border-slate-200/90 bg-white p-3">
+                                  <div key={ev.id} className="rounded-xl border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 p-3">
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0">
-                                        <div className="text-[13px] font-semibold text-slate-900 truncate">
+                                        <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
                                           {ev.title || best?.note?.title || best?.note?.site_name || "事件节点"}
                                         </div>
-                                        <div className="mt-0.5 text-[11px] text-slate-500">
+                                        <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                                           {formatDay(ev.event_time)} · {evidence.length} 条证据
                                         </div>
                                       </div>
-                                      <div className="shrink-0 text-[11px] text-slate-500 bg-slate-50 border border-slate-200/70 rounded-full px-2 py-0.5">
+                                      <div className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 rounded-full px-2 py-0.5">
                                         {typeof ev.importance === "number" ? `重要度 ${ev.importance.toFixed(2)}` : ""}
                                       </div>
                                     </div>
@@ -3480,7 +3480,7 @@ export function KnowledgeView({
                                             key={item.noteId}
                                             role="button"
                                             tabIndex={0}
-                                            className="w-full text-left rounded-lg border border-slate-200/80 bg-white hover:bg-slate-50 transition-colors px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                            className="w-full text-left rounded-lg border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                             onContextMenu={(e) => openTopicItemContextMenu(e, topicDetail.topic.id, item)}
                                             onClick={() => {
                                               window.location.href = `/notes/${item.noteId}`;
@@ -3495,16 +3495,16 @@ export function KnowledgeView({
                                             <div className="flex items-center justify-between gap-3">
                                               <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2 min-w-0">
-                                                  <div className="min-w-0 flex-1 text-[12px] font-semibold text-slate-900 truncate">
+                                                  <div className="min-w-0 flex-1 text-[12px] font-semibold text-slate-900 dark:text-white truncate">
                                                     {item.note?.title || item.note?.site_name || "无标题"}
                                                   </div>
                                                   {item.manual_state === "confirmed" && (
-                                                    <div className="shrink-0 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/70 rounded-full px-2 py-0.5">
+                                                    <div className="shrink-0 text-[10px] font-semibold text-amber-700 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/70 rounded-full px-2 py-0.5">
                                                       已确认
                                                     </div>
                                                   )}
                                                   {item.note?.content_type === "video" && (
-                                                    <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 rounded-full px-2 py-0.5">
+                                                    <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/70 rounded-full px-2 py-0.5">
                                                       视频
                                                     </div>
                                                   )}
@@ -3512,13 +3512,13 @@ export function KnowledgeView({
                                               </div>
 
                                               <div className="shrink-0 flex items-center gap-2">
-                                                <div className="text-[11px] text-slate-500">{formatDay(item.time)}</div>
+                                                <div className="text-[11px] text-slate-500 dark:text-slate-400">{formatDay(item.time)}</div>
 
                                                 <DropdownMenu>
                                                   <DropdownMenuTrigger asChild>
                                                     <button
                                                       type="button"
-                                                      className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-slate-200/70 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+                                                      className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                                                       onClick={(e) => e.stopPropagation()}
                                                       aria-label="条目操作"
                                                     >
@@ -3594,7 +3594,7 @@ export function KnowledgeView({
                                         ))}
 
                                         {evidence.length > 3 && (
-                                          <div className="text-[11px] text-slate-400 px-1">还有 {evidence.length - 3} 条证据（先展示 Top 3）</div>
+                                          <div className="text-[11px] text-slate-400 dark:text-slate-500 px-1">还有 {evidence.length - 3} 条证据（先展示 Top 3）</div>
                                         )}
                                       </div>
                                     )}
@@ -3611,7 +3611,7 @@ export function KnowledgeView({
                                     key={item.noteId}
                                     role="button"
                                     tabIndex={0}
-                                    className="w-full text-left rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 transition-colors p-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="w-full text-left rounded-xl border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors p-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                     onContextMenu={(e) => openTopicItemContextMenu(e, topicDetail.topic.id, item)}
                                     onClick={() => {
                                       window.location.href = `/notes/${item.noteId}`;
@@ -3626,16 +3626,16 @@ export function KnowledgeView({
                                     <div className="flex items-center justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 min-w-0">
-                                          <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 truncate">
+                                          <div className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900 dark:text-white truncate">
                                             {n?.title || n?.site_name || "无标题"}
                                           </div>
                                           {item.manual_state === "confirmed" && (
-                                            <div className="shrink-0 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/70 rounded-full px-2 py-0.5">
+                                            <div className="shrink-0 text-[10px] font-semibold text-amber-700 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/70 rounded-full px-2 py-0.5">
                                               已确认
                                             </div>
                                           )}
                                           {n?.content_type === "video" && (
-                                            <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 rounded-full px-2 py-0.5">
+                                            <div className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/70 rounded-full px-2 py-0.5">
                                               视频
                                             </div>
                                           )}
@@ -3643,13 +3643,13 @@ export function KnowledgeView({
                                       </div>
 
                                       <div className="shrink-0 flex items-center gap-2">
-                                        <div className="text-[11px] text-slate-500">{formatDay(item.time)}</div>
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400">{formatDay(item.time)}</div>
 
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
                                             <button
                                               type="button"
-                                              className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-slate-200/70 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+                                              className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                                               onClick={(e) => e.stopPropagation()}
                                               aria-label="条目操作"
                                             >
@@ -3719,13 +3719,13 @@ export function KnowledgeView({
                                       </div>
                                     </div>
                                     {n?.excerpt && (
-                                      <div className="mt-1 text-[12px] text-slate-600 line-clamp-2">{n.excerpt}</div>
+                                      <div className="mt-1 text-[12px] text-slate-600 dark:text-slate-400 line-clamp-2">{n.excerpt}</div>
                                     )}
                                   </div>
                                 );
                               })}
 
-                              {topicDetail.timeline.length === 0 && <div className="text-sm text-slate-500">暂无条目</div>}
+                              {topicDetail.timeline.length === 0 && <div className="text-sm text-slate-500 dark:text-slate-400">暂无条目</div>}
                             </div>
                           )}
                         </div>
@@ -3749,14 +3749,14 @@ export function KnowledgeView({
           }}
         >
           <div
-            className="absolute min-w-[220px] rounded-2xl border border-slate-200/90 bg-white shadow-lg p-1"
+            className="absolute min-w-[220px] rounded-2xl border border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-lg p-1"
             style={{ left: contextMenu.x, top: contextMenu.y }}
             onClick={(e) => e.stopPropagation()}
           >
             {contextMenu.note?.content_type === "video" && contextMenu.note?.source_url ? (
               <button
                 type="button"
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 text-slate-700"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                 onClick={() => {
                   setContextMenu(null);
                   openVideoPreviewForNote(contextMenu.note);
@@ -3768,7 +3768,7 @@ export function KnowledgeView({
 
             <button
               type="button"
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 text-slate-700"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
               onClick={() => {
                 setContextMenu(null);
                 void topicMemberAction(contextMenu.topicId, contextMenu.noteId, "confirm");
@@ -3779,7 +3779,7 @@ export function KnowledgeView({
 
             <button
               type="button"
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 text-slate-700"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
               onClick={() => {
                 setContextMenu(null);
                 openAddToTopicDialog(contextMenu.noteId);
@@ -3790,7 +3790,7 @@ export function KnowledgeView({
 
             <button
               type="button"
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 text-slate-700"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
               onClick={() => {
                 setContextMenu(null);
                 openCorrectTimeDialog(contextMenu.topicId, contextMenu.noteId, contextMenu.timeIso ?? null);
@@ -3799,11 +3799,11 @@ export function KnowledgeView({
               <Pencil className="h-4 w-4" /> 纠错时间
             </button>
 
-            <div className="my-1 h-px bg-slate-200/80" />
+            <div className="my-1 h-px bg-slate-200/80 dark:bg-slate-700/80" />
 
             <button
               type="button"
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-red-50 text-red-600"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400"
               onClick={() => {
                 setContextMenu(null);
                 void topicMemberAction(contextMenu.topicId, contextMenu.noteId, "remove");

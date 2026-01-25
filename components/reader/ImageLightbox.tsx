@@ -140,7 +140,7 @@ export function ImageLightbox({
               e.stopPropagation();
               handleZoomOut();
             }}
-            className="text-white hover:bg-white/20"
+            className="text-white hover:bg-card/20"
           >
             <ZoomOut className="h-5 w-5" />
           </Button>
@@ -152,7 +152,7 @@ export function ImageLightbox({
               e.stopPropagation();
               handleZoomIn();
             }}
-            className="text-white hover:bg-white/20"
+            className="text-white hover:bg-card/20"
           >
             <ZoomIn className="h-5 w-5" />
           </Button>
@@ -164,7 +164,7 @@ export function ImageLightbox({
               e.stopPropagation();
               handleRotate();
             }}
-            className="text-white hover:bg-white/20"
+            className="text-white hover:bg-card/20"
           >
             <RotateCw className="h-5 w-5" />
           </Button>
@@ -176,12 +176,12 @@ export function ImageLightbox({
               e.stopPropagation();
               handleDownload();
             }}
-            className="text-white hover:bg-white/20"
+            className="text-white hover:bg-card/20"
           >
             <Download className="h-5 w-5" />
           </Button>
 
-          <div className="w-px h-6 bg-white/20 mx-1" />
+          <div className="w-px h-6 bg-card/20 mx-1" />
 
           <Button
             variant="ghost"
@@ -190,7 +190,7 @@ export function ImageLightbox({
               e.stopPropagation();
               onClose();
             }}
-            className="text-white hover:bg-white/20"
+            className="text-white hover:bg-card/20"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -232,7 +232,7 @@ export function ImageLightbox({
               e.stopPropagation();
               handlePrevious();
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-card/20 h-12 w-12"
           >
             <ChevronLeft className="h-8 w-8" />
           </Button>
@@ -244,7 +244,7 @@ export function ImageLightbox({
               e.stopPropagation();
               handleNext();
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-card/20 h-12 w-12"
           >
             <ChevronRight className="h-8 w-8" />
           </Button>

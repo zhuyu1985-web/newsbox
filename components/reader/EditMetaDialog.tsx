@@ -344,7 +344,7 @@ export function EditMetaDialog({
         <DialogTitle className="sr-only">编辑信息</DialogTitle>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-card">
           <span className="font-semibold text-base text-gray-900">编辑信息</span>
           
           <div className="flex items-center gap-1 mr-6">
@@ -370,7 +370,7 @@ export function EditMetaDialog({
         </div>
 
         {/* Content */}
-        <div className="px-5 py-5 min-h-[380px] max-h-[60vh] overflow-y-auto bg-white">
+        <div className="px-5 py-5 min-h-[380px] max-h-[60vh] overflow-y-auto bg-card">
           {loading ? (
             <div className="flex justify-center items-center h-[300px]">
               <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -430,7 +430,7 @@ export function EditMetaDialog({
               {/* Folder Selector */}
               <div className="relative">
                 <div 
-                  className="flex items-center justify-between p-2.5 bg-white border border-gray-200 rounded-lg hover:border-blue-400 transition-all cursor-pointer"
+                  className="flex items-center justify-between p-2.5 bg-card border border-gray-200 rounded-lg hover:border-blue-400 transition-all cursor-pointer"
                   onClick={() => setShowFolderSelect(!showFolderSelect)}
                 >
                   <div className="flex items-center gap-2">
@@ -441,7 +441,7 @@ export function EditMetaDialog({
                 </div>
                 
                 {showFolderSelect && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1 max-h-40 overflow-y-auto z-20">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-gray-200 rounded-lg shadow-lg p-1 max-h-40 overflow-y-auto z-20">
                     <div 
                       className={cn(
                         "flex items-center gap-2 px-2.5 py-2 text-sm rounded cursor-pointer hover:bg-gray-50",
@@ -500,7 +500,7 @@ export function EditMetaDialog({
                 {/* Tag input area */}
                 <div className="relative">
                   <div 
-                    className="flex flex-wrap gap-1.5 p-2.5 border border-gray-200 rounded-lg bg-white min-h-[40px] cursor-text"
+                    className="flex flex-wrap gap-1.5 p-2.5 border border-gray-200 rounded-lg bg-card min-h-[40px] cursor-text"
                     onClick={() => tagInputRef.current?.focus()}
                   >
                     {tags.map(tag => (
@@ -531,7 +531,7 @@ export function EditMetaDialog({
 
                   {/* Tag dropdown - positioned above */}
                   {showTagDropdown && filteredTags.length > 0 && (
-                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-200 rounded-lg shadow-lg p-1 max-h-36 overflow-y-auto z-20">
+                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-card border border-gray-200 rounded-lg shadow-lg p-1 max-h-36 overflow-y-auto z-20">
                       {filteredTags.slice(0, 8).map(tag => (
                         <div
                           key={tag.id}
@@ -551,7 +551,7 @@ export function EditMetaDialog({
 
         {/* Footer */}
         <div className="flex justify-end items-center px-5 py-3 border-t border-gray-100 bg-gray-50/50 gap-2">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-gray-600 border-gray-200 hover:bg-white">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-gray-600 border-gray-200 hover:bg-card">
             取消
           </Button>
           <Button 

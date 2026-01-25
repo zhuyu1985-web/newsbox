@@ -137,20 +137,20 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
       <PopoverContent
         side="right"
         align="end"
-        className="w-[360px] p-0 overflow-hidden bg-white/95 backdrop-blur-md border-black/5 shadow-2xl rounded-2xl"
+        className="w-[360px] p-0 overflow-hidden bg-popover/95 backdrop-blur-md border-border shadow-2xl rounded-2xl"
       >
-        <div className="px-5 pt-4 pb-3 border-b border-black/5">
+        <div className="px-5 pt-4 pb-3 border-b border-border">
           <div className="flex items-center gap-2 h-7">
             {activeNote ? (
               <button
                 onClick={handleBack}
-                className="flex items-center text-slate-500 hover:text-slate-900 transition-colors -ml-1 pr-2"
+                className="flex items-center text-muted-foreground hover:text-foreground transition-colors -ml-1 pr-2"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 返回
               </button>
             ) : (
-              <div className="text-base font-semibold text-slate-900">系统通知</div>
+              <div className="text-base font-semibold text-foreground">系统通知</div>
             )}
             
             {!activeNote && unreadCount > 0 && (
@@ -161,14 +161,14 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
           </div>
         </div>
 
-        <div className="h-[400px] overflow-y-auto bg-slate-50/50">
+        <div className="h-[400px] overflow-y-auto bg-muted/50">
           {activeNote ? (
             <div className="p-6 animate-in slide-in-from-right-4 duration-200">
-              <h3 className="text-lg font-bold text-slate-900 mb-2 leading-tight">
+              <h3 className="text-lg font-bold text-foreground mb-2 leading-tight">
                 {activeNote.title}
               </h3>
-              <div className="text-xs text-slate-400 mb-6">{formatDate(activeNote.created_at)}</div>
-              <div className="prose prose-sm prose-slate max-w-none text-slate-600 whitespace-pre-wrap leading-relaxed">
+              <div className="text-xs text-muted-foreground/70 mb-6">{formatDate(activeNote.created_at)}</div>
+              <div className="prose prose-sm prose-slate max-w-none text-card-foreground whitespace-pre-wrap leading-relaxed">
                 {activeNote.message}
               </div>
               {activeNote.link && (
@@ -189,8 +189,8 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
                   onClick={() => handleClickItem(note)}
                   className={cn(
                     "w-full flex gap-3 px-3 py-3 rounded-xl transition-all text-left group relative overflow-hidden",
-                    "hover:bg-white hover:shadow-sm hover:scale-[1.02] active:scale-[0.98]",
-                    !note.is_read ? "bg-white/50" : "opacity-80 hover:opacity-100"
+                    "hover:bg-card hover:shadow-sm hover:scale-[1.02] active:scale-[0.98]",
+                    !note.is_read ? "bg-card/50" : "opacity-80 hover:opacity-100"
                   )}
                 >
                   <div
@@ -205,17 +205,17 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
                         className={cn(
                           "text-sm truncate",
                           !note.is_read
-                            ? "font-semibold text-slate-900"
-                            : "font-medium text-slate-700"
+                            ? "font-semibold text-foreground"
+                            : "font-medium text-popover-foreground"
                         )}
                       >
                         {note.title}
                       </span>
-                      <span className="text-[10px] text-slate-400 shrink-0">
+                      <span className="text-[10px] text-muted-foreground/70 shrink-0">
                         {formatDate(note.created_at)}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                       {note.message}
                     </p>
                   </div>

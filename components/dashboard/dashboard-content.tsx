@@ -87,6 +87,7 @@ import { EditAnnotationDialog } from "./edit-annotation-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BrowseHistoryPopover } from "@/components/dashboard/BrowseHistoryPopover";
 import { NotificationsPopover } from "@/components/dashboard/NotificationsPopover";
+import { AnimatedThemeSwitcher } from "@/components/animated-theme-switcher";
 import { useRouter } from "next/navigation";
 import { AccountSection } from "@/components/settings/sections/AccountSection";
 import { RewardsSection } from "@/components/settings/sections/RewardsSection";
@@ -3127,7 +3128,7 @@ ${
                 ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10 font-medium"
                 : isChain
                 ? "bg-blue-500/5 text-blue-900/70"
-                : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
             )}
             style={{ paddingLeft: depth * 16 + 8 }}
           >
@@ -3212,7 +3213,7 @@ ${
               "flex items-center justify-between rounded-lg px-3 py-1.5 text-xs transition-all duration-200 group relative",
               isActive
                 ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10 font-medium"
-                : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
             )}
             style={{ paddingLeft: depth * 16 + 8 }}
           >
@@ -3324,7 +3325,7 @@ ${
     return (
       <Card
         key={note.id}
-        className="group relative bg-white backdrop-blur-none ring-0 border border-slate-200/90 shadow-none hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden h-full flex flex-col rounded-[14px]"
+        className="group relative bg-card backdrop-blur-none ring-0 border border-border shadow-none hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden h-full flex flex-col rounded-[14px]"
       >
         {/* 选择遮罩层 (选中时显示) */}
         <div
@@ -3339,14 +3340,14 @@ ${
           <Checkbox
             checked={selectedNotes.has(note.id)}
             onCheckedChange={() => toggleSelectNote(note.id)}
-            className="h-6 w-6 rounded-md bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+            className="h-6 w-6 rounded-md bg-card/80 backdrop-blur-sm border-border shadow-sm data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
           />
           <Button
             variant="ghost"
             size="icon"
             className={cn(
-              "h-6 w-6 rounded-md bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-all duration-200",
-              note.is_starred ? "text-yellow-500" : "text-slate-400 hover:text-yellow-500",
+              "h-6 w-6 rounded-md bg-card/80 backdrop-blur-sm shadow-sm hover:bg-card transition-all duration-200",
+              note.is_starred ? "text-yellow-500" : "text-muted-foreground/70 hover:text-yellow-500",
               starringNotes.has(note.id) && "opacity-70 pointer-events-none"
             )}
             onClick={(e) => {
@@ -3373,22 +3374,22 @@ ${
             <div className="flex gap-4 mb-3">
               {/* 左侧文字区 */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-[15px] font-bold text-slate-800 leading-snug line-clamp-2 mb-1.5 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-[15px] font-bold text-card-foreground leading-snug line-clamp-2 mb-1.5 group-hover:text-blue-600 transition-colors">
                   {note.title || "无标题"}
                 </h3>
                 
                 {note.excerpt ? (
-                  <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                     {note.excerpt}
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-400 italic">暂无摘要</p>
+                  <p className="text-xs text-muted-foreground/70 italic">暂无摘要</p>
                 )}
               </div>
 
               {/* 右侧图片区 (如果有) */}
               {note.cover_image_url && (
-                <div className="shrink-0 w-24 h-16 rounded-[10px] overflow-hidden bg-slate-50 border border-slate-200/90">
+                <div className="shrink-0 w-24 h-16 rounded-[10px] overflow-hidden bg-muted border border-border">
                   <img
                     src={note.cover_image_url}
                     alt=""
@@ -3401,18 +3402,18 @@ ${
           </div>
 
           {/* 底部信息栏 (采用淡灰色背景) */}
-          <div className="px-4 py-2.5 bg-blue-50/25 border-t border-slate-200/90 flex items-center justify-between mt-auto">
+          <div className="px-4 py-2.5 bg-blue-50/25 border-t border-border flex items-center justify-between mt-auto">
             {/* 左侧：来源与时间 */}
-            <div className="flex items-center gap-2 text-[11px] text-slate-500 overflow-hidden">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground overflow-hidden">
               <div className="flex items-center gap-1.5 shrink-0">
                 {source.favicon ? (
                   <img src={source.favicon} alt="" className="w-3.5 h-3.5 rounded-sm" />
                 ) : (
-                  <Globe className="w-3 h-3 text-slate-400" />
+                  <Globe className="w-3 h-3 text-muted-foreground/70" />
                 )}
                 <span className="truncate max-w-[80px]" title={source.name}>{source.name}</span>
               </div>
-              <span className="text-slate-300 shrink-0">•</span>
+              <span className="text-muted-foreground/50 shrink-0">•</span>
               <span className="shrink-0">{formatDate(note.created_at)}</span>
             </div>
 
@@ -3436,7 +3437,7 @@ ${
     
     return (
       <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
-        <span className="font-medium text-gray-600">
+        <span className="font-medium text-muted-foreground">
           已选择 {selectedNotes.size} 条
         </span>
         <Button
@@ -3576,17 +3577,17 @@ ${
               className="w-full max-w-2xl"
             >
               <Card
-                className="w-full p-6 space-y-4 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl"
+                className="w-full p-6 space-y-4 shadow-xl border-border/60 bg-card/95 backdrop-blur-xl"
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">添加笔记</h2>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-muted"
                     onClick={() => setShowAddNoteDialog(false)}
                   >
-                    <X className="h-4 w-4 text-slate-500" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
                 <div className="flex gap-2">
@@ -3691,16 +3692,16 @@ ${
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md"
             >
-              <Card className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl">
+              <Card className="w-full p-6 shadow-xl border-border/60 bg-card/95 backdrop-blur-xl">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-800">移动到收藏夹</h3>
+                  <h3 className="text-lg font-semibold text-card-foreground">移动到收藏夹</h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-muted"
                     onClick={() => setShowMoveDialog(false)}
                   >
-                    <X className="h-4 w-4 text-slate-500" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
                 {/* Fixed height container to prevent jitter */}
@@ -3709,7 +3710,7 @@ ${
                     variant={moveTargetFolder === null ? "default" : "outline"}
                     className={cn(
                       "w-full justify-start h-11 px-4 rounded-xl transition-all duration-200 border-transparent",
-                      moveTargetFolder === null ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-50 text-slate-700 hover:border-slate-100"
+                      moveTargetFolder === null ? "bg-blue-600 text-white shadow-md" : "hover:bg-muted text-slate-700 hover:border-slate-100"
                     )}
                     onClick={() => setMoveTargetFolder(null)}
                   >
@@ -3722,7 +3723,7 @@ ${
                       variant={moveTargetFolder === folder.id ? "default" : "outline"}
                       className={cn(
                         "w-full justify-start h-11 px-4 gap-3 rounded-xl transition-all duration-200 border-transparent",
-                        moveTargetFolder === folder.id ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-50 text-slate-700 hover:border-slate-100"
+                        moveTargetFolder === folder.id ? "bg-blue-600 text-white shadow-md" : "hover:bg-muted text-slate-700 hover:border-slate-100"
                       )}
                       style={{ paddingLeft: folder.depth * 16 + 16 }}
                       onClick={() => setMoveTargetFolder(folder.id)}
@@ -3733,7 +3734,7 @@ ${
                       <span className="truncate font-medium text-sm">{folder.name}</span>
                       <span className={cn(
                         "ml-auto text-[10px] px-1.5 py-0.5 rounded-md border opacity-60",
-                        moveTargetFolder === folder.id ? "bg-blue-500/20 border-white/20" : "bg-white/50 border-slate-100"
+                        moveTargetFolder === folder.id ? "bg-blue-500/20 border-white/20" : "bg-card/50 border-slate-100"
                       )}>
                         {folder.note_count}
                       </span>
@@ -3804,16 +3805,16 @@ ${
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md"
             >
-              <Card className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl">
+              <Card className="w-full p-6 shadow-xl border-border/60 bg-card/95 backdrop-blur-xl">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-800">设置标签</h3>
+                  <h3 className="text-lg font-semibold text-card-foreground">设置标签</h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-muted"
                     onClick={() => setShowTagDialog(false)}
                   >
-                    <X className="h-4 w-4 text-slate-500" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
                 
@@ -3823,8 +3824,8 @@ ${
                     <div className="space-y-1 py-1">
                       {[1, 2, 3, 4, 5, 6].map((i) => (
                         <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-transparent">
-                          <div className="h-4 w-4 rounded bg-slate-100 animate-pulse" />
-                          <div className="h-4 w-32 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-4 w-4 rounded bg-muted animate-pulse" />
+                          <div className="h-4 w-32 rounded bg-muted animate-pulse" />
                         </div>
                       ))}
                     </div>
@@ -3836,8 +3837,8 @@ ${
                       className="space-y-1 py-1 flex-1"
                     >
                       {tags.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 min-h-[260px]">
-                          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground/70 min-h-[260px]">
+                          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                             <Tag className="h-8 w-8 opacity-20" />
                           </div>
                           <p className="text-sm font-medium">暂无标签</p>
@@ -3851,7 +3852,7 @@ ${
                               "flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all duration-200 border border-transparent",
                               tagDialogSelection.includes(tag.id) 
                                 ? "bg-blue-50/50 border-blue-100/50 text-blue-700" 
-                                : "hover:bg-slate-50 text-slate-700 hover:border-slate-100"
+                                : "hover:bg-muted text-slate-700 hover:border-slate-100"
                             )}
                           >
                             <Checkbox
@@ -3868,7 +3869,7 @@ ${
                             />
                             <span className="text-sm font-medium">{tag.name}</span>
                             {tag.note_count !== undefined && (
-                              <span className="ml-auto text-[10px] bg-white/50 px-1.5 py-0.5 rounded-md border border-slate-100 opacity-60">
+                              <span className="ml-auto text-[10px] bg-card/50 px-1.5 py-0.5 rounded-md border border-slate-100 opacity-60">
                                 {tag.note_count}
                               </span>
                             )}
@@ -3952,35 +3953,35 @@ ${
               className="w-full max-w-md"
             >
               <Card
-                className="w-full p-6 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl"
+                className="w-full p-6 shadow-xl border-border/60 bg-card/95 backdrop-blur-xl"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-slate-800">
+                  <h3 className="text-lg font-semibold text-card-foreground">
                     {folderDialogMode === "create" ? "新建收藏夹" : "编辑收藏夹"}
                   </h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-muted"
                     onClick={closeFolderDialog}
                     disabled={folderActionLoading}
                   >
-                    <X className="h-4 w-4 text-slate-500" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
                 {/* Fixed height container to prevent jitter */}
                 <div className="h-[380px] overflow-y-auto pr-2 custom-scrollbar space-y-6">
                   <div className="space-y-2">
-                    <Label className="text-slate-500 text-xs font-medium uppercase tracking-wider ml-1">名称</Label>
+                    <Label className="text-muted-foreground text-xs font-medium uppercase tracking-wider ml-1">名称</Label>
                     <Input
                       value={folderDialogName}
                       onChange={(e) => setFolderDialogName(e.target.value)}
                       placeholder="例如：行业资讯"
-                      className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all"
+                      className="h-11 rounded-xl bg-muted/50 border-border focus:bg-card transition-all"
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-slate-500 text-xs font-medium uppercase tracking-wider ml-1">图标</Label>
+                    <Label className="text-muted-foreground text-xs font-medium uppercase tracking-wider ml-1">图标</Label>
                     <div className="flex flex-wrap gap-2">
                       {folderIconOptions.map((icon) => (
                         <Button
@@ -3992,7 +3993,7 @@ ${
                           size="sm"
                           className={cn(
                             "h-10 w-11 text-lg rounded-xl transition-all duration-200",
-                            folderDialogIcon === icon ? "bg-blue-600 border-blue-600 shadow-md scale-110" : "hover:bg-slate-50 hover:scale-105"
+                            folderDialogIcon === icon ? "bg-blue-600 border-blue-600 shadow-md scale-110" : "hover:bg-muted hover:scale-105"
                           )}
                           onClick={() => setFolderDialogIcon(icon)}
                         >
@@ -4005,7 +4006,7 @@ ${
                         size="sm"
                         className={cn(
                           "h-10 px-4 rounded-xl transition-all",
-                          !folderDialogIcon ? "bg-blue-600 border-blue-600" : "hover:bg-slate-50"
+                          !folderDialogIcon ? "bg-blue-600 border-blue-600" : "hover:bg-muted"
                         )}
                         onClick={() => setFolderDialogIcon("")}
                       >
@@ -4014,9 +4015,9 @@ ${
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-500 text-xs font-medium uppercase tracking-wider ml-1">父级（可选）</Label>
+                    <Label className="text-muted-foreground text-xs font-medium uppercase tracking-wider ml-1">父级（可选）</Label>
                     <select
-                      className="w-full h-11 border border-slate-200 rounded-xl px-4 text-sm bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                      className="w-full h-11 border border-border rounded-xl px-4 text-sm bg-muted/50 focus:bg-card focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                       value={folderDialogParent ?? ""}
                       onChange={(e) =>
                         setFolderDialogParent(e.target.value || null)
@@ -4124,20 +4125,20 @@ ${
               className="w-full max-w-md"
             >
               <Card
-                className="w-full p-6 space-y-4 shadow-xl border-slate-200/60 bg-white/95 backdrop-blur-xl"
+                className="w-full p-6 space-y-4 shadow-xl border-border/60 bg-card/95 backdrop-blur-xl"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-800">
+                  <h3 className="text-lg font-semibold text-card-foreground">
                     {tagDialogMode === "create" ? "新建标签" : "编辑标签"}
                   </h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-muted"
                     onClick={closeTagDialog2}
                     disabled={tagActionLoading}
                   >
-                    <X className="h-4 w-4 text-slate-500" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
                 <div className="space-y-4">
@@ -4189,7 +4190,7 @@ ${
                   <div className="space-y-2">
                     <Label>父级（可选）</Label>
                     <select
-                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-card"
                       value={tagDialogParent ?? ""}
                       onChange={(e) =>
                         setTagDialogParent(e.target.value || null)
@@ -4243,9 +4244,9 @@ ${
   }
 
   return (
-    <div className="h-screen bg-[#f5f5f7] flex font-sans text-sm overflow-hidden">
+    <div className="h-screen bg-[#f5f5f7] dark:bg-slate-950 flex font-sans text-sm overflow-hidden">
       {/* Primary Sidebar */}
-      <aside className="w-[64px] h-screen bg-[#EBECEE] flex flex-col items-center py-5 gap-0 flex-shrink-0 z-50 border-r border-black/5">
+      <aside className="w-[64px] h-screen bg-[#EBECEE] dark:bg-slate-900 flex flex-col items-center py-5 gap-0 flex-shrink-0 z-50 border-r border-black/5 dark:border-white/10">
         {/* Top Logo */}
         <Link
           href="/"
@@ -4310,6 +4311,8 @@ ${
 
         {/* Bottom Actions */}
         <div className="flex flex-col gap-1 w-full px-2 items-center pb-6">
+          <AnimatedThemeSwitcher variant="compact" />
+
           {user ? (
             <BrowseHistoryPopover
               userId={user.id}
@@ -4371,9 +4374,9 @@ ${
       </aside>
 
       {/* Secondary Sidebar */}
-      <aside className="w-60 h-screen bg-[#fbfbfd] border-r border-black/[0.03] flex flex-col flex-shrink-0">
-        <div className="h-14 flex items-center justify-between px-5 border-b border-black/[0.03] bg-white/50">
-          <h2 className="text-base font-bold text-gray-800 tracking-tight">
+      <aside className="w-60 h-screen bg-[#fbfbfd] dark:bg-slate-900/50 border-r border-black/[0.03] dark:border-white/5 flex flex-col flex-shrink-0">
+        <div className="h-14 flex items-center justify-between px-5 border-b border-black/[0.03] dark:border-white/5 bg-card/50">
+          <h2 className="text-base font-bold text-gray-800 dark:text-gray-100 tracking-tight">
             {activePrimary === "collections"
               ? "我的收藏"
               : activePrimary === "tags"
@@ -4409,7 +4412,7 @@ ${
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group",
                     settingsTab === id
                       ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10"
-                      : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                      : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
                   )}
                   onClick={() => setSettingsTab(id)}
                 >
@@ -4432,7 +4435,7 @@ ${
                 "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 group relative",
                 category === "uncategorized"
                   ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10"
-                  : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                  : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
               )}
               onClick={() => {
                 setCategory("uncategorized");
@@ -4451,7 +4454,7 @@ ${
                 "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 group",
                 category === "all"
                   ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10"
-                  : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                  : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
               )}
               onClick={() => {
                 setCategory("all");
@@ -4470,7 +4473,7 @@ ${
                 "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 group",
                 category === "starred"
                   ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10"
-                  : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                  : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
               )}
               onClick={() => {
                 setCategory("starred");
@@ -4489,7 +4492,7 @@ ${
                 "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 group",
                 category === "today"
                   ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10"
-                  : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                  : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
               )}
               onClick={() => {
                 setCategory("today");
@@ -4531,7 +4534,7 @@ ${
                       "w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group",
                       selectedSmartList?.id === list.id && category === "smart"
                         ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10"
-                        : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                        : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
                     )}
                     onClick={() => {
                       setSelectedSmartList(list);
@@ -4586,7 +4589,7 @@ ${
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                   <Input
                     placeholder="搜索标签 ⌘B"
-                    className="pl-9 h-9 text-xs rounded-xl border-none bg-black/[0.03] focus:bg-white focus:ring-0 focus-visible:ring-0 transition-all"
+                    className="pl-9 h-9 text-xs rounded-xl border-none bg-black/[0.03] focus:bg-card focus:ring-0 focus-visible:ring-0 transition-all"
                   />
                 </div>
               </div>
@@ -4598,7 +4601,7 @@ ${
                     "flex-1 px-3 py-1.5 text-xs rounded-xl transition-all duration-200",
                     tagSortMode === "custom"
                       ? "bg-blue-500/10 text-blue-600 border border-blue-500/10 font-medium"
-                      : "text-gray-500 hover:bg-white hover:text-blue-500"
+                      : "text-gray-500 hover:bg-card hover:text-blue-500"
                   )}
                   onClick={() => setTagSortMode("custom")}
                 >
@@ -4609,7 +4612,7 @@ ${
                     "flex-1 px-3 py-1.5 text-xs rounded-xl transition-all duration-200",
                     tagSortMode !== "custom"
                       ? "bg-blue-500/10 text-blue-600 border border-blue-500/10 font-medium"
-                      : "text-gray-500 hover:bg-white hover:text-blue-500"
+                      : "text-gray-500 hover:bg-card hover:text-blue-500"
                   )}
                   onClick={() => setTagSortMode(tagSortMode === "name-asc" ? "name-desc" : "name-asc")}
                 >
@@ -4624,7 +4627,7 @@ ${
                     "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 group",
                     !selectedTag
                       ? "bg-blue-500/10 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.08)] border border-blue-500/10 font-medium"
-                      : "text-gray-600 hover:bg-white hover:text-blue-500 hover:shadow-sm",
+                      : "text-muted-foreground hover:bg-card hover:text-blue-500 hover:shadow-sm",
                   )}
                   onClick={() => {
                     setSelectedTag(null);
@@ -4664,7 +4667,7 @@ ${
                     placeholder="搜索批注的新闻"
                     value={annotationNoteSearch}
                     onChange={(e) => setAnnotationNoteSearch(e.target.value)}
-                    className="pl-9 h-9 text-xs rounded-xl border-none bg-black/[0.04] focus:bg-white focus:ring-1 focus:ring-slate-200 focus-visible:ring-1 transition-all"
+                    className="pl-9 h-9 text-xs rounded-xl border-none bg-black/[0.04] focus:bg-card focus:ring-1 focus:ring-slate-200 focus-visible:ring-1 transition-all"
                   />
                 </div>
               </div>
@@ -4675,14 +4678,14 @@ ${
                     "w-[calc(100%-8px)] mx-1 flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group mb-3",
                     !selectedAnnotationNoteId
                       ? "bg-[#FFD700] text-black shadow-[0_4px_12px_rgba(255,215,0,0.25)] font-semibold"
-                      : "text-gray-600 hover:bg-white hover:shadow-sm",
+                      : "text-muted-foreground hover:bg-card hover:shadow-sm",
                   )}
                   onClick={() => setSelectedAnnotationNoteId(null)}
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                      !selectedAnnotationNoteId ? "bg-white/30" : "bg-black/[0.04]"
+                      !selectedAnnotationNoteId ? "bg-card/30" : "bg-black/[0.04]"
                     )}>
                       <span className="text-sm">📝</span>
                     </div>
@@ -4707,14 +4710,14 @@ ${
                     {[...Array(5)].map((_, i) => (
                       <div key={i} className="flex gap-3 px-3 py-2.5 rounded-xl border border-transparent">
                         <div className="flex-1 min-w-0 space-y-2">
-                          <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
-                          <div className="h-3 bg-slate-100 rounded animate-pulse w-1/2" />
+                          <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+                          <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
                           <div className="flex items-center justify-between mt-2">
-                            <div className="h-4 w-12 bg-slate-100 rounded animate-pulse" />
-                            <div className="h-3 w-3 bg-slate-100 rounded animate-pulse" />
+                            <div className="h-4 w-12 bg-muted rounded animate-pulse" />
+                            <div className="h-3 w-3 bg-muted rounded animate-pulse" />
                           </div>
                         </div>
-                        <div className="w-14 h-14 rounded-lg bg-slate-100 animate-pulse shrink-0" />
+                        <div className="w-14 h-14 rounded-lg bg-muted animate-pulse shrink-0" />
                       </div>
                     ))}
                   </div>
@@ -4730,13 +4733,13 @@ ${
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group relative overflow-hidden",
                           selectedAnnotationNoteId === note.id
-                            ? "bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-slate-200/50"
-                            : "text-gray-700 hover:bg-white hover:shadow-sm border border-transparent",
+                            ? "bg-card shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-border/50"
+                            : "text-gray-700 hover:bg-card hover:shadow-sm border border-transparent",
                         )}
                         onClick={() => setSelectedAnnotationNoteId(note.id)}
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-semibold truncate text-slate-800 leading-tight">
+                          <div className="text-[13px] font-semibold truncate text-card-foreground leading-tight">
                             {note.title || "无标题"}
                           </div>
                           <div className="text-[11px] text-gray-400 truncate mt-1 leading-normal">
@@ -4761,7 +4764,7 @@ ${
                         </div>
                         
                         {note.cover_image_url ? (
-                          <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-100 shadow-sm">
+                          <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted shrink-0 border border-slate-100 shadow-sm">
                             <img 
                               src={note.cover_image_url} 
                               alt="" 
@@ -4770,7 +4773,7 @@ ${
                             />
                           </div>
                         ) : (
-                          <div className="w-14 h-14 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                          <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-slate-100">
                              <span className="text-xl">📄</span>
                           </div>
                         )}
@@ -4793,7 +4796,7 @@ ${
 
           {activePrimary === "archive" && (
             <div className="px-2">
-              <div className="rounded-2xl border border-black/[0.04] bg-white/70 p-3">
+              <div className="rounded-2xl border border-black/[0.04] bg-card/70 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
                     <Archive className="h-4 w-4 text-blue-600" />
@@ -4849,8 +4852,8 @@ ${
                   className={cn(
                     "w-full text-left p-3 rounded-2xl transition-all duration-200 border group",
                     knowledgeSubView === item.id
-                      ? "bg-white border-blue-200 shadow-[0_4px_12px_rgba(59,130,246,0.08)]"
-                      : "bg-white/40 border-black/[0.03] hover:bg-white hover:border-black/[0.08] hover:shadow-sm"
+                      ? "bg-card border-blue-200 shadow-[0_4px_12px_rgba(59,130,246,0.08)]"
+                      : "bg-card/40 border-black/[0.03] hover:bg-card hover:border-black/[0.08] hover:shadow-sm"
                   )}
                   onClick={() => setKnowledgeSubView(item.id)}
                 >
@@ -4895,10 +4898,10 @@ ${
             variant={confirmDialog.variant}
           />
         )}
-        <div className="h-14 bg-white/80 backdrop-blur-md z-40 border-b border-black/[0.03] flex items-center px-6 justify-between flex-shrink-0">
+        <div className="h-14 bg-card/80 backdrop-blur-md z-40 border-b border-black/[0.03] flex items-center px-6 justify-between flex-shrink-0">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
             {activePrimary === "settings" ? (
-              <div className="text-sm font-semibold text-slate-800">
+              <div className="text-sm font-semibold text-card-foreground">
                 系统设置
               </div>
             ) : null}
@@ -4943,7 +4946,7 @@ ${
                     setIsSearchFocused(false);
                   }, 200);
                 }}
-                className="pl-10 h-10 rounded-xl border-none bg-black/[0.04] focus:bg-white focus:ring-0 focus-visible:ring-0 shadow-none focus:shadow-[0_8px_20px_rgba(0,0,0,0.04)] transition-all duration-300 placeholder:text-gray-400 text-sm"
+                className="pl-10 h-10 rounded-xl border-none bg-black/[0.04] focus:bg-card focus:ring-0 focus-visible:ring-0 shadow-none focus:shadow-[0_8px_20px_rgba(0,0,0,0.04)] transition-all duration-300 placeholder:text-gray-400 text-sm"
               />
 
               {/* Search History Dropdown */}
@@ -4954,7 +4957,7 @@ ${
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 5, scale: 0.98 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-full left-0 w-full bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-black/[0.03] mt-2 py-4 z-50 overflow-hidden"
+                    className="absolute top-full left-0 w-full bg-card rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-black/[0.03] mt-2 py-4 z-50 overflow-hidden"
                   >
                     <div className="max-h-[80vh] overflow-y-auto custom-scrollbar">
                       {/* Recently Visited Section */}
@@ -5209,7 +5212,7 @@ ${
         </div>
 
         {activePrimary === "settings" ? (
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/30">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-muted/30">
             {settingsTab === "account" && <AccountSection user={user} />}
             {settingsTab === "rewards" && <RewardsSection />}
             {settingsTab === "stats" && <StatsSection />}
@@ -5218,13 +5221,13 @@ ${
             {settingsTab === "about" && <AboutSection />}
           </div>
         ) : activePrimary === "annotations" ? (
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/30">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-muted/30">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   {selectedAnnotationNote ? selectedAnnotationNote.title : "所有"}
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground/70 mt-1">
                   {selectedAnnotationNote
                     ? `${selectedAnnotationNote.annotation_count ?? 0} 条批注`
                     : `共 ${annotations.length} 条批注`}
@@ -5233,22 +5236,22 @@ ${
               <div className="flex items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 px-3 gap-2 text-slate-600 hover:bg-white hover:shadow-sm transition-all rounded-xl">
+                    <Button variant="ghost" size="sm" className="h-9 px-3 gap-2 text-slate-600 hover:bg-card hover:shadow-sm transition-all rounded-xl">
                       <Filter className="h-4 w-4" />
                       <span className="text-sm font-medium">筛选</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40 rounded-xl">
                     <DropdownMenuItem 
-                      className={cn(annotationTypeFilter === "all" && "bg-slate-100 font-semibold")}
+                      className={cn(annotationTypeFilter === "all" && "bg-muted font-semibold")}
                       onClick={() => setAnnotationTypeFilter("all")}
                     >所有类型</DropdownMenuItem>
                     <DropdownMenuItem 
-                      className={cn(annotationTypeFilter === "article" && "bg-slate-100 font-semibold")}
+                      className={cn(annotationTypeFilter === "article" && "bg-muted font-semibold")}
                       onClick={() => setAnnotationTypeFilter("article")}
                     >文章</DropdownMenuItem>
                     <DropdownMenuItem 
-                      className={cn(annotationTypeFilter === "video" && "bg-slate-100 font-semibold")}
+                      className={cn(annotationTypeFilter === "video" && "bg-muted font-semibold")}
                       onClick={() => setAnnotationTypeFilter("video")}
                     >视频</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -5256,7 +5259,7 @@ ${
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 px-3 gap-2 text-slate-600 hover:bg-white hover:shadow-sm transition-all rounded-xl">
+                    <Button variant="ghost" size="sm" className="h-9 px-3 gap-2 text-slate-600 hover:bg-card hover:shadow-sm transition-all rounded-xl">
                       <ArrowUpDown className="h-4 w-4" />
                       <span className="text-sm font-medium">
                         {annotationSort === "updated_at_desc" ? "按更新日期 从新到旧" :
@@ -5301,25 +5304,25 @@ ${
 
             {annotationsLoading ? (
               <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                <div className="h-8 w-8 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
-                <p className="text-slate-400 text-sm font-medium tracking-wide">同步云端批注中...</p>
+                <div className="h-8 w-8 border-4 border-border border-t-blue-500 rounded-full animate-spin" />
+                <p className="text-muted-foreground/70 text-sm font-medium tracking-wide">同步云端批注中...</p>
               </div>
             ) : annotations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                <div className="w-20 h-20 bg-slate-50/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
-                  <PenLine className="h-9 w-9 text-slate-300" />
+                <div className="w-20 h-20 bg-muted/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
+                  <PenLine className="h-9 w-9 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-slate-900 font-semibold text-lg">暂无批注</h3>
-                <p className="text-slate-400 text-sm max-w-sm text-center leading-relaxed px-4">
+                <h3 className="text-slate-900 dark:text-white font-semibold text-lg">暂无批注</h3>
+                <p className="text-muted-foreground/70 text-sm max-w-sm text-center leading-relaxed px-4">
                   阅读文章时，选中文字即可添加高亮和批注。所有记录将在这里自动聚合。
                 </p>
               </div>
             ) : filteredAnnotationRecords.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                <div className="w-20 h-20 bg-slate-50/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
-                  <Search className="h-9 w-9 text-slate-300" />
+                <div className="w-20 h-20 bg-muted/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
+                  <Search className="h-9 w-9 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-slate-900 font-semibold text-lg">没有找到匹配的批注</h3>
+                <h3 className="text-slate-900 dark:text-white font-semibold text-lg">没有找到匹配的批注</h3>
                 <Button 
                   variant="outline" 
                   className="mt-2 rounded-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 px-6"
@@ -5343,7 +5346,7 @@ ${
                     return (
                       <Card
                         key={a.id}
-                        className="group bg-white ring-0 border border-slate-200/90 shadow-none hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-slate-300 transition-all duration-300 rounded-xl overflow-hidden flex flex-col border-l-4 aspect-[4/3] cursor-pointer"
+                        className="group bg-card ring-0 border border-border shadow-none hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-slate-300 transition-all duration-300 rounded-xl overflow-hidden flex flex-col border-l-4 aspect-[4/3] cursor-pointer"
                         style={{ borderLeftColor: highlightColor }}
                         onClick={() => setEditingAnnotation(a)}
                       >
@@ -5355,7 +5358,7 @@ ${
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-slate-400 hover:text-slate-700"
+                                  className="h-7 w-7 text-muted-foreground/70 hover:text-slate-700"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
@@ -5378,18 +5381,18 @@ ${
                           <div className="flex-1 min-h-0 overflow-hidden">
                             {a.highlights?.quote ? (
                               <div className="mb-2">
-                                <div className="text-slate-500 text-[12px] leading-relaxed line-clamp-2 bg-slate-50/80 rounded-lg px-3 py-2 border border-slate-100/50">
+                                <div className="text-muted-foreground text-[12px] leading-relaxed line-clamp-2 bg-muted/80 rounded-lg px-3 py-2 border border-slate-100/50">
                                   {a.highlights.quote}
                                 </div>
                               </div>
                             ) : null}
 
-                            <div className="text-slate-800 text-[13px] leading-relaxed font-medium break-words whitespace-pre-line line-clamp-5">
+                            <div className="text-card-foreground text-[13px] leading-relaxed font-medium break-words whitespace-pre-line line-clamp-5">
                               {a.content}
                             </div>
 
                             {a.screenshot_url ? (
-                              <div className="mt-2 rounded-lg overflow-hidden border border-slate-100 shadow-sm group-hover:border-slate-200 transition-colors">
+                              <div className="mt-2 rounded-lg overflow-hidden border border-slate-100 shadow-sm group-hover:border-border transition-colors">
                                 <img
                                   src={a.screenshot_url}
                                   alt=""
@@ -5408,20 +5411,20 @@ ${
                                 setSelectedAnnotationNoteId(a.note_id);
                               }}
                             >
-                              <div className="shrink-0 w-4 h-4 rounded bg-slate-100 flex items-center justify-center group-hover/note:bg-blue-50 transition-colors">
+                              <div className="shrink-0 w-4 h-4 rounded bg-muted flex items-center justify-center group-hover/note:bg-blue-50 transition-colors">
                                 {note?.content_type === "article" ? (
-                                  <FileText className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
+                                  <FileText className="h-2.5 w-2.5 text-muted-foreground/70 group-hover/note:text-blue-500" />
                                 ) : note?.content_type === "video" ? (
-                                  <Video className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
+                                  <Video className="h-2.5 w-2.5 text-muted-foreground/70 group-hover/note:text-blue-500" />
                                 ) : (
-                                  <Music className="h-2.5 w-2.5 text-slate-400 group-hover/note:text-blue-500" />
+                                  <Music className="h-2.5 w-2.5 text-muted-foreground/70 group-hover/note:text-blue-500" />
                                 )}
                               </div>
-                              <span className="text-[10px] text-slate-400 font-medium truncate group-hover/note:text-blue-500 transition-colors">
+                              <span className="text-[10px] text-muted-foreground/70 font-medium truncate group-hover/note:text-blue-500 transition-colors">
                                 {note?.title || "未知来源"}
                               </span>
                             </div>
-                            <div className="shrink-0 text-[10px] text-slate-300 font-medium tabular-nums">
+                            <div className="shrink-0 text-[10px] text-muted-foreground/50 font-medium tabular-nums">
                               {new Date(a.created_at).toLocaleDateString("zh-CN", {
                                 month: "numeric",
                                 day: "numeric"
@@ -5441,12 +5444,12 @@ ${
                       <span>加载更多批注...</span>
                     </div>
                   ) : hasMoreAnnotations ? (
-                    <div className="flex items-center gap-2 text-xs text-slate-400 opacity-60">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground/70 opacity-60">
                       <ChevronDown className="h-3.5 w-3.5" />
                       <span>继续滚动加载更多</span>
                     </div>
                   ) : (
-                    <div className="text-xs text-slate-300">
+                    <div className="text-xs text-muted-foreground/50">
                       — 已加载全部 {annotations.length} 条批注 —
                     </div>
                   )}
@@ -5519,15 +5522,15 @@ ${
               {viewMode === "compact-card" ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {[...Array(8)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-[14px] border border-slate-200/90 overflow-hidden">
-                      <div className="aspect-[1.91/1] w-full bg-slate-100 animate-pulse" />
+                    <div key={i} className="bg-card rounded-[14px] border border-border overflow-hidden">
+                      <div className="aspect-[1.91/1] w-full bg-muted animate-pulse" />
                       <div className="p-3 space-y-2">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="h-3 w-3 bg-slate-100 rounded-full animate-pulse" />
-                          <div className="h-3 bg-slate-100 rounded animate-pulse w-1/3" />
+                          <div className="h-3 w-3 bg-muted rounded-full animate-pulse" />
+                          <div className="h-3 bg-muted rounded animate-pulse w-1/3" />
                         </div>
-                        <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
-                        <div className="h-4 bg-slate-100 rounded animate-pulse w-1/2" />
+                        <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+                        <div className="h-4 bg-muted rounded animate-pulse w-1/2" />
                       </div>
                     </div>
                   ))}
@@ -5535,24 +5538,24 @@ ${
               ) : (
                 <div className="space-y-2">
                   {[...Array(8)].map((_, i) => (
-                    <div key={i} className={cn("flex items-center gap-4 bg-white rounded-lg border border-slate-200/90", viewMode === "title-list" ? "p-3" : "p-4")}>
-                      <div className="h-4 w-4 bg-slate-100 rounded animate-pulse" />
+                    <div key={i} className={cn("flex items-center gap-4 bg-card rounded-lg border border-border", viewMode === "title-list" ? "p-3" : "p-4")}>
+                      <div className="h-4 w-4 bg-muted rounded animate-pulse" />
                       {viewMode !== "title-list" && (
-                        <div className={cn("bg-slate-100 rounded animate-pulse shrink-0", viewMode === "detail-list" ? "w-24 h-24" : "w-14 h-14")} />
+                        <div className={cn("bg-muted rounded animate-pulse shrink-0", viewMode === "detail-list" ? "w-24 h-24" : "w-14 h-14")} />
                       )}
                       <div className="flex-1 min-w-0 space-y-2">
-                        <div className="h-4 bg-slate-100 rounded animate-pulse w-2/3" />
+                        <div className="h-4 bg-muted rounded animate-pulse w-2/3" />
                         {viewMode !== "title-list" && (
-                          <div className="h-3 bg-slate-100 rounded animate-pulse w-1/2" />
+                          <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
                         )}
                         {viewMode === "detail-list" && (
                           <div className="flex gap-1 mt-2">
-                            <div className="h-5 w-12 bg-slate-100 rounded-full animate-pulse" />
-                            <div className="h-5 w-16 bg-slate-100 rounded-full animate-pulse" />
+                            <div className="h-5 w-12 bg-muted rounded-full animate-pulse" />
+                            <div className="h-5 w-16 bg-muted rounded-full animate-pulse" />
                           </div>
                         )}
                       </div>
-                      <div className="h-8 w-8 bg-slate-100 rounded animate-pulse" />
+                      <div className="h-8 w-8 bg-muted rounded animate-pulse" />
                     </div>
                   ))}
                 </div>
@@ -5560,20 +5563,20 @@ ${
             </div>
           ) : notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 space-y-4">
-              <div className="w-20 h-20 bg-slate-50/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
+              <div className="w-20 h-20 bg-muted/80 rounded-[2rem] flex items-center justify-center mb-2 shadow-[inset_0_0_0_1px_rgba(241,245,249,1)]">
                 {searchQuery.trim() ? (
-                  <Search className="h-9 w-9 text-slate-300" />
+                  <Search className="h-9 w-9 text-muted-foreground/50" />
                 ) : activePrimary === "archive" ? (
-                  <Archive className="h-9 w-9 text-slate-300" />
+                  <Archive className="h-9 w-9 text-muted-foreground/50" />
                 ) : activePrimary === "tags" ? (
-                  <Tag className="h-9 w-9 text-slate-300" />
+                  <Tag className="h-9 w-9 text-muted-foreground/50" />
                 ) : category === "starred" ? (
-                  <Star className="h-9 w-9 text-slate-300" />
+                  <Star className="h-9 w-9 text-muted-foreground/50" />
                 ) : (
-                  <Inbox className="h-9 w-9 text-slate-300" />
+                  <Inbox className="h-9 w-9 text-muted-foreground/50" />
                 )}
               </div>
-              <h3 className="text-slate-900 font-semibold text-lg">
+              <h3 className="text-slate-900 dark:text-white font-semibold text-lg">
                 {searchQuery.trim()
                   ? "没有找到相关内容"
                   : activePrimary === "archive"
@@ -5584,7 +5587,7 @@ ${
                   ? "暂无星标笔记"
                   : "暂无内容"}
               </h3>
-              <p className="text-slate-400 text-sm max-w-sm text-center leading-relaxed px-4">
+              <p className="text-muted-foreground/70 text-sm max-w-sm text-center leading-relaxed px-4">
                 {searchQuery.trim()
                   ? `未找到与 "${searchQuery}" 相关的笔记，请尝试更换关键词`
                   : activePrimary === "archive"
@@ -5698,12 +5701,12 @@ ${
                 <span>加载更多...</span>
               </div>
             ) : hasMore ? (
-              <div className="flex items-center gap-2 text-xs text-slate-400 opacity-60">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/70 opacity-60">
                 <ChevronDown className="h-3.5 w-3.5" />
                 <span>继续滚动加载更多</span>
               </div>
             ) : (
-              <div className="text-xs text-slate-300">
+              <div className="text-xs text-muted-foreground/50">
                 — 已加载全部 {notes.length} 条内容 —
               </div>
             )}
