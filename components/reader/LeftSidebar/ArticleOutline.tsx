@@ -109,7 +109,7 @@ export function ArticleOutline({ content }: ArticleOutlineProps) {
               >
                 <span className={cn(
                   "truncate leading-relaxed",
-                  isActive && "relative after:absolute after:-left-3 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-1 after:bg-slate-900 after:rounded-full"
+                  isActive && "relative after:absolute after:-left-3 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-1 after:bg-slate-900 after:rounded-full dark:after:bg-slate-100"
                 )}>
                   {item.text}
                 </span>

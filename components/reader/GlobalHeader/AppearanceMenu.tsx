@@ -82,7 +82,7 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                       key={x.id}
                       variant="outline"
                       size="sm"
-                      className={cn("flex-1", prefs.lineHeight === x.id && "bg-blue-50 text-blue-600 border-blue-200")}
+                      className={cn("flex-1", prefs.lineHeight === x.id && "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800")}
                       onClick={() => setPrefs({ lineHeight: x.id })}
                       disabled={!canUseTypography}
                     >
@@ -104,7 +104,7 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                       key={x.id}
                       variant="outline"
                       size="sm"
-                      className={cn("flex-1", prefs.theme === x.id && "bg-blue-50 text-blue-600 border-blue-200")}
+                      className={cn("flex-1", prefs.theme === x.id && "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800")}
                       onClick={() => setPrefs({ theme: x.id })}
                       disabled={false}
                     >
@@ -128,7 +128,7 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                       size="sm"
                       className={cn(
                         "flex-1",
-                        prefs.fontFamily === x.id && "bg-blue-50 text-blue-600 border-blue-200",
+                        prefs.fontFamily === x.id && "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
                         x.id === "custom" && !hasCustomFont && "opacity-50",
                       )}
                       onClick={() => setPrefs({ fontFamily: x.id })}

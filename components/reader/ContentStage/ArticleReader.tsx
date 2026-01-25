@@ -51,14 +51,19 @@ const COLOR_MAP: Record<string, string> = {
 export function ArticleReader({ note }: { note: Note }) {
   const { prefs, lineHeightValue, fontStack } = useReaderPreferences();
 
+  // Reader theme colors (independent of global theme)
   const articleBgClass =
     prefs.theme === "sepia"
       ? "bg-[#f8f2e3]"
-      : "bg-background";
+      : prefs.theme === "dark"
+        ? "bg-slate-950"
+        : "bg-white";
   const articleTextClass =
     prefs.theme === "sepia"
       ? "text-[#3b2f2f]"
-      : "text-foreground";
+      : prefs.theme === "dark"
+        ? "text-slate-200"
+        : "text-slate-900";
   // 新策略：把高亮注入 HTML 让 React 渲染
   const USE_HIGHLIGHT_HTML_INJECTION = true;
   const ENABLE_DOM_HIGHLIGHT_PATCHING = false;
@@ -590,6 +595,7 @@ export function ArticleReader({ note }: { note: Note }) {
           articleBgClass,
           articleTextClass,
           prefs.theme === "sepia" && "article-sepia-theme",
+          prefs.theme === "dark" && "article-dark-theme",
         )}
         style={{
           maxWidth: prefs.maxWidth,
@@ -601,13 +607,28 @@ export function ArticleReader({ note }: { note: Note }) {
       >
         {/* 元信息头 */}
         <header className="mb-12">
-          <h1 className={cn("text-[32px] font-bold leading-tight mb-6 tracking-tight", prefs.theme === "sepia" ? "text-[#2f2626]" : "text-foreground")}>
+          <h1 className={cn(
+            "text-[32px] font-bold leading-tight mb-6 tracking-tight",
+            prefs.theme === "sepia" ? "text-[#2f2626]" :
+            prefs.theme === "dark" ? "text-white" :
+            "text-slate-900"
+          )}>
             {note.title || "无标题"}
           </h1>
-          
-          <div className={cn("flex items-center gap-4 text-[13px]", prefs.theme === "sepia" ? "text-[#6b5b4b]" : "text-muted-foreground")}>
+
+          <div className={cn(
+            "flex items-center gap-4 text-[13px]",
+            prefs.theme === "sepia" ? "text-[#6b5b4b]" :
+            prefs.theme === "dark" ? "text-slate-300" :
+            "text-slate-600"
+          )}>
             {note.site_name && (
-              <span className={cn("flex items-center gap-1.5 font-medium", prefs.theme === "sepia" ? "text-[#5b4a3b]" : "text-foreground/70")}>
+              <span className={cn(
+                "flex items-center gap-1.5 font-medium",
+                prefs.theme === "sepia" ? "text-[#5b4a3b]" :
+                prefs.theme === "dark" ? "text-white" :
+                "text-slate-700"
+              )}>
                 {note.site_name}
               </span>
             )}
@@ -636,11 +657,28 @@ export function ArticleReader({ note }: { note: Note }) {
         ) : (
           <div className={cn(
             "text-center py-24 rounded-2xl border-2 border-dashed",
-            prefs.theme === "sepia" ? "bg-[#fbf6ea] border-[#eadfcf]" : "bg-muted/30 border-border",
+            prefs.theme === "sepia" ? "bg-[#fbf6ea] border-[#eadfcf]" :
+            prefs.theme === "dark" ? "bg-slate-800/50 border-slate-700" :
+            "bg-slate-50 border-slate-200",
           )}>
-            <Globe className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-            <h3 className={cn("text-lg font-medium mb-2", prefs.theme === "sepia" ? "text-[#2f2626]" : "text-foreground")}>内容尚未加载</h3>
-            <p className={cn("text-sm mb-8 max-w-[280px] mx-auto", prefs.theme === "sepia" ? "text-[#6b5b4b]" : "text-muted-foreground")}>
+            <Globe className={cn(
+              "h-12 w-12 mx-auto mb-4",
+              prefs.theme === "sepia" ? "text-[#eadfcf]" :
+              prefs.theme === "dark" ? "text-slate-500" :
+              "text-slate-300"
+            )} />
+            <h3 className={cn(
+              "text-lg font-medium mb-2",
+              prefs.theme === "sepia" ? "text-[#2f2626]" :
+              prefs.theme === "dark" ? "text-white" :
+              "text-slate-800"
+            )}>内容尚未加载</h3>
+            <p className={cn(
+              "text-sm mb-8 max-w-[280px] mx-auto",
+              prefs.theme === "sepia" ? "text-[#6b5b4b]" :
+              prefs.theme === "dark" ? "text-slate-300" :
+              "text-slate-600"
+            )}>
               由于原网页限制或抓取失败，无法直接显示正文内容。
             </p>
 
@@ -648,7 +686,7 @@ export function ArticleReader({ note }: { note: Note }) {
               {note.source_url && (
                 <button
                   onClick={() => window.open(note.source_url!, "_blank")}
-                  className="text-sm text-blue-500 hover:underline"
+                  className="text-sm text-blue-500 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   访问原网页
                 </button>

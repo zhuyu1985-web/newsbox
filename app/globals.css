@@ -206,6 +206,16 @@
   color: rgb(107 72 12);
 }
 
+/* Dark 暗色模式适配 - 通过父元素类判断 */
+.article-dark-theme blockquote {
+  background-color: rgb(51 65 85 / 0.5);
+  border-left-color: rgb(100 116 139);
+}
+
+.article-dark-theme a {
+  color: rgb(96 165 250);
+}
+
 /* 会员徽章闪光动画 */
 @keyframes shimmer {
   0% {

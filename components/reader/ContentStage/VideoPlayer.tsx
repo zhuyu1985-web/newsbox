@@ -228,11 +228,11 @@ export function VideoPlayer({ note }: { note: Note }) {
             </span>
           )}
           {note.media_url && (
-            <a 
-              href={note.media_url} 
-              target="_blank" 
+            <a
+              href={note.media_url}
+              target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-blue-500 transition-colors underline underline-offset-4"
+              className="hover:text-blue-500 transition-colors underline underline-offset-4 dark:hover:text-blue-400"
             >
               原始链接
             </a>

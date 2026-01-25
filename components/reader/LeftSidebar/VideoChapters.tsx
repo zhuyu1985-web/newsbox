@@ -111,25 +111,25 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
   return (
     <div className="px-3 py-2 relative">
       {/* 竖向轴线 */}
-      <div className="absolute left-6 top-4 bottom-4 w-px bg-slate-200/60" />
+      <div className="absolute left-6 top-4 bottom-4 w-px bg-slate-200/60 dark:bg-slate-700/60" />
 
       <ul className="space-y-1 relative">
         {chapters.map((chapter) => {
           const isActive = activeChapter === chapter.id;
-          
+
           return (
             <li key={chapter.id} className="relative">
               {/* 活动点指示器 */}
               {isActive && (
-                <div className="absolute left-[13px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-800 ring-4 ring-slate-100 z-10" />
+                <div className="absolute left-[13px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-800 ring-4 ring-slate-100 z-10 dark:bg-slate-200 dark:ring-slate-800" />
               )}
-              
+
               <button
                 onClick={() => handleChapterClick(chapter)}
                 className={cn(
                   "w-full text-left py-2 pr-3 pl-8 transition-all duration-200 rounded-lg group flex items-start gap-3",
                   isActive
-                    ? "text-card-foreground bg-card shadow-sm ring-1 ring-slate-200/50"
+                    ? "text-card-foreground bg-card shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-700/50"
                     : "text-muted-foreground hover:text-card-foreground hover:bg-muted/80"
                 )}
               >
@@ -154,7 +154,7 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
                 {chapter.generated_by_ai && (
                   <Sparkles className={cn(
                     "h-3 w-3 shrink-0 mt-1",
-                    isActive ? "text-pink-500" : "text-muted-foreground/50 group-hover:text-pink-400"
+                    isActive ? "text-pink-500" : "text-muted-foreground/50 group-hover:text-pink-400 dark:group-hover:text-pink-300"
                   )} />
                 )}
               </button>

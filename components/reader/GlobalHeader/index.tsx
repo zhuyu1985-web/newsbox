@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { AppearanceMenu } from "./AppearanceMenu";
 import { ActionMenu } from "./ActionMenu";
+import { AnimatedThemeSwitcher } from "@/components/animated-theme-switcher";
 import { cn } from "@/lib/utils";
 
 interface Note {
@@ -194,6 +195,8 @@ export function GlobalHeader({
         {/* 右侧：工具箱 */}
         <div className="flex items-center gap-1 shrink-0">
           {/* 第一组：设置和视图控制 */}
+          {/* 全局主题切换 */}
+          <AnimatedThemeSwitcher variant="small" />
           {/* 阅读器样式 */}
           <AppearanceMenu contentType={note.content_type} currentView={currentView} />
 
@@ -224,10 +227,10 @@ export function GlobalHeader({
               variant="outline"
               size="sm"
               onClick={handleAIAnalysis}
-              className="hidden md:flex items-center gap-1.5 border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-300 transition-all shadow-sm h-8 px-3 rounded-full"
+              className="hidden md:flex items-center gap-1.5 border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-300 transition-all shadow-sm h-8 px-3 rounded-full dark:border-blue-800/50 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 dark:hover:text-blue-200 dark:hover:border-blue-700"
               title="AI解读"
             >
-              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+              <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span className="hidden lg:inline font-medium text-xs">AI解读</span>
             </Button>
 
@@ -239,9 +242,9 @@ export function GlobalHeader({
               className={cn(
                 "hidden md:flex items-center gap-1.5 relative transition-all duration-200 h-8 px-3 rounded-full shadow-sm",
                 // 默认状态：轻量级边框 + 白色背景
-                "border-border bg-card text-card-foreground hover:bg-muted hover:text-card-foreground hover:border-slate-300",
+                "border-border bg-card text-card-foreground hover:bg-muted hover:text-card-foreground hover:border-slate-300 dark:hover:bg-slate-800 dark:hover:border-slate-600",
                 // 激活状态：深色背景或高亮
-                !isRightSidebarCollapsed && activeRightTab === "annotations" && "bg-muted border-slate-300 text-card-foreground shadow-inner"
+                !isRightSidebarCollapsed && activeRightTab === "annotations" && "bg-muted border-slate-300 text-card-foreground shadow-inner dark:bg-slate-800 dark:border-slate-600"
               )}
               title={isSidebarCompact ? "展开批注" : "收起批注"}
             >
@@ -250,7 +253,7 @@ export function GlobalHeader({
                 {!isRightSidebarCollapsed && activeRightTab === "annotations" && isSidebarCompact ? "展开" : "批注"}
               </span>
               {annotationCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
                   {annotationCount}
                 </span>
               )}
