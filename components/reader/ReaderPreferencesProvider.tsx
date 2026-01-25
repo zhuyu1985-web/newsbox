@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 
 const STORAGE_KEY = "newsbox:readerPreferences:v1";
@@ -9,6 +9,13 @@ const CUSTOM_FONT_KEY = "newsbox:readerCustomFont";
 export type ReaderTheme = "auto" | "light" | "dark" | "sepia";
 export type ReaderLineHeight = "compact" | "comfortable" | "loose";
 export type ReaderFontFamily = "system" | "serif" | "sans" | "mono" | "custom";
+
+// Helper to map next-themes values to reader theme values
+function mapNextThemeToReaderTheme(nextTheme: string | undefined): ReaderTheme {
+  if (nextTheme === "dark") return "dark";
+  if (nextTheme === "light") return "light";
+  return "auto"; // system or undefined -> auto
+}
 
 export type ReaderPreferences = {
   fontSize: number; // px
@@ -76,7 +83,10 @@ type ReaderPreferencesContextValue = {
 const ReaderPreferencesContext = createContext<ReaderPreferencesContextValue | null>(null);
 
 export function ReaderPreferencesProvider({ children }: { children: React.ReactNode }) {
-  const { setTheme } = useTheme();
+  const { theme } = useTheme();
+
+  // Ref to track initial sync
+  const initialSyncDoneRef = useRef(false);
 
   const [customFont, setCustomFont] = useState<StoredFont | null>(null);
   const [prefs, setPrefsState] = useState<ReaderPreferences>(() => {
@@ -145,13 +155,24 @@ export function ReaderPreferencesProvider({ children }: { children: React.ReactN
     }
   }, [prefs]);
 
-  // map reader theme to global next-themes theme (sepia stays light)
+  // Sync: next-themes -> ReaderPreferences (one-way sync only)
+  // When user changes theme via AnimatedThemeSwitcher, sync to reader preferences for persistence
+  // We do NOT sync in the opposite direction to allow the global theme switcher to work freely
   useEffect(() => {
-    if (prefs.theme === "dark") setTheme("dark");
-    else if (prefs.theme === "light") setTheme("light");
-    else if (prefs.theme === "sepia") setTheme("light");
-    else setTheme("system");
-  }, [prefs.theme, setTheme]);
+    // Skip initial sync to avoid overriding stored prefs on mount
+    if (!initialSyncDoneRef.current) {
+      initialSyncDoneRef.current = true;
+      return;
+    }
+
+    // Map next-themes theme to reader theme
+    const readerTheme = mapNextThemeToReaderTheme(theme);
+
+    // Only update if different to avoid unnecessary renders
+    if (readerTheme !== prefs.theme) {
+      setPrefsState((prev) => ({ ...prev, theme: readerTheme }));
+    }
+  }, [theme]);
 
   const setPrefs = useCallback<ReaderPreferencesContextValue["setPrefs"]>((next) => {
     setPrefsState((prev) => {

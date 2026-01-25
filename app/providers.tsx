@@ -8,7 +8,7 @@ import { UpgradeDialogProvider } from "@/components/ui/upgrade-dialog";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="newsbox-theme">
       <MembershipProvider>
         <UpgradeDialogProvider>
           <ReaderPreferencesProvider>{children}</ReaderPreferencesProvider>
