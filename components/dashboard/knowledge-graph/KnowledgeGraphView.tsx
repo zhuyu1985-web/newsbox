@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Graph } from "@antv/g6";
+import { Graph, type IElementEvent } from "@antv/g6";
 import {
   ArrowRight,
   Loader2,
@@ -144,6 +144,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; type: EntityType }>>([]);
 
   const expandedRef = useRef<Set<string>>(new Set());
+  const lastClickRef = useRef<{ id: string; t: number } | null>(null);
 
   useEffect(() => {
     setGraphData({ nodes: [], links: [] });
@@ -208,7 +209,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
   // Initialize G6 Graph
   useEffect(() => {
     if (!containerRef.current) return;
-    
+
     // 如果已有实例，先销毁（支持热重载和配置更新）
     if (graphRef.current) {
       graphRef.current.destroy();
@@ -319,7 +320,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
     graphRef.current = graph;
 
     // Event listeners
-    graph.on("node:click", (e) => {
+    graph.on<IElementEvent>("node:click", (e) => {
       const id = e.target.id;
       const nodeData = graphData.nodes.find(n => n.id === id);
       if (nodeData) {
@@ -327,7 +328,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
       }
     });
 
-    graph.on("edge:click", (e) => {
+    graph.on<IElementEvent>("edge:click", (e) => {
       const id = e.target.id;
       const edgeData = graphData.links.find(l => l.id === id);
       if (edgeData) {
@@ -346,7 +347,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
         graphRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredGraph.nodes.length > 0]); // Re-run when data availability changes
 
   // Update Data
@@ -356,7 +357,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
     const data = {
       nodes: filteredGraph.nodes.map((n) => ({
         id: n.id,
-        data: { 
+        data: {
           ...n,
           color: n.color || TYPE_COLORS[n.type] || TYPE_COLORS.DEFAULT,
         },
@@ -431,11 +432,11 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
 
       const newNodes = Array.from(nodesById.values());
       const newLinks = Array.from(linksById.values());
-      
+
       setGraphData({ nodes: newNodes, links: newLinks });
       setSelectedNodeId(seedNode.id);
       setSelectedLink(null);
-      
+
       // Zoom to new data
       setTimeout(() => {
         graphRef.current?.fitView();
@@ -595,7 +596,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
     lastClickRef.current = { id: nodeId, t: now };
     setSelectedNodeId(nodeId);
     setSelectedLink(null);
-    
+
     // Zoom focus
     graphRef.current?.focusElement(nodeId, true);
   };
@@ -608,8 +609,8 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
     if (anchor) setSelectedNodeId(anchor.id);
   };
 
-  const handleZoomIn = () => graphRef.current?.zoom(1.2);
-  const handleZoomOut = () => graphRef.current?.zoom(0.8);
+  const handleZoomIn = () => graphRef.current?.zoomBy(1.2);
+  const handleZoomOut = () => graphRef.current?.zoomBy(0.8);
   const handleReset = () => {
     graphRef.current?.fitView();
     setSelectedLink(null);
