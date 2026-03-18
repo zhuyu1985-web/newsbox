@@ -29,10 +29,62 @@ interface Message {
   content: string;
 }
 
+interface StakeholderItem {
+  name: string;
+  role?: string;
+  stance?: string;
+}
+
+interface TimelineItem {
+  time: string;
+  event: string;
+  source?: string;
+}
+
 type AISubTab = "overview" | "qa" | "deep" | "annotation";
 
 function safeArray(v: any): any[] {
   return Array.isArray(v) ? v : [];
+}
+
+function safeObject(v: any): Record<string, any> {
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+}
+
+function toStringArray(v: any): string[] {
+  return safeArray(v)
+    .map((item) => String(item).trim())
+    .filter(Boolean);
+}
+
+function normalizeStakeholders(v: any): StakeholderItem[] {
+  return safeArray(v)
+    .map((item) => {
+      const record = safeObject(item);
+      const name = String(record.name || "").trim();
+      if (!name) return null;
+      return {
+        name,
+        role: record.role ? String(record.role).trim() : undefined,
+        stance: record.stance ? String(record.stance).trim() : undefined,
+      };
+    })
+    .filter(Boolean) as StakeholderItem[];
+}
+
+function normalizeTimeline(v: any): TimelineItem[] {
+  return safeArray(v)
+    .map((item) => {
+      const record = safeObject(item);
+      const event = String(record.event || "").trim();
+      if (!event) return null;
+      return {
+        time: String(record.time || "原文未明确说明").trim() || "原文未明确说明",
+        event,
+        source: record.source ? String(record.source).trim() : undefined,
+      };
+    })
+    .filter(Boolean) as TimelineItem[];
 }
 
 function parseSSEBlock(block: string): { event: string; data: string } | null {
@@ -79,15 +131,28 @@ export function AIAnalysisPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
   const autoScrollEnabledRef = useRef(true);
 
-  const fastRead = analysis?.journalist_view?.fast_read || null;
-  const takeaways = safeArray(fastRead?.takeaways);
+  const journalistView = useMemo(() => safeObject(analysis?.journalist_view), [analysis?.journalist_view]);
+  const deepRead = useMemo(() => safeObject(journalistView.deep_read), [journalistView]);
+
+  const fastRead = journalistView.fast_read || null;
+  const takeaways = useMemo(() => toStringArray(fastRead?.takeaways), [fastRead?.takeaways]);
 
   const keyQuestions = useMemo(() => {
     const raw = analysis?.key_questions;
     return safeArray(raw);
   }, [analysis?.key_questions]);
 
-  const keyQuestionsMissing = safeArray(analysis?.journalist_view?.key_questions_missing);
+  const keyQuestionsMissing = useMemo(
+    () => toStringArray(journalistView.key_questions_missing),
+    [journalistView.key_questions_missing]
+  );
+  const deepOverview = useMemo(() => String(deepRead.overview || "").trim(), [deepRead.overview]);
+  const deepBackground = useMemo(() => toStringArray(deepRead.background), [deepRead.background]);
+  const deepImplications = useMemo(() => toStringArray(deepRead.implications), [deepRead.implications]);
+  const deepRisks = useMemo(() => toStringArray(deepRead.risks), [deepRead.risks]);
+  const deepWatchpoints = useMemo(() => toStringArray(deepRead.watchpoints), [deepRead.watchpoints]);
+  const stakeholders = useMemo(() => normalizeStakeholders(deepRead.stakeholders), [deepRead.stakeholders]);
+  const timelineItems = useMemo(() => normalizeTimeline(analysis?.timeline), [analysis?.timeline]);
 
   useEffect(() => {
     loadAnalysis();
@@ -146,7 +211,7 @@ export function AIAnalysisPanel({
         summary: payload?.summary ?? prev?.summary ?? null,
         key_questions: payload?.key_questions ?? prev?.key_questions ?? [],
         journalist_view: payload?.journalist_view ?? prev?.journalist_view ?? null,
-        timeline: prev?.timeline ?? null,
+        timeline: payload?.timeline ?? prev?.timeline ?? null,
       }));
       return;
     }
@@ -185,6 +250,30 @@ export function AIAnalysisPanel({
       return;
     }
 
+    if (event === "deep_analysis") {
+      setAnalysis((prev) => {
+        const base: AIOutputRow =
+          prev || ({ summary: null, key_questions: [], journalist_view: {}, timeline: null } as any);
+        const merged = {
+          ...(base.journalist_view || {}),
+          deep_read: {
+            overview: payload?.overview || "",
+            background: payload?.background || [],
+            stakeholders: payload?.stakeholders || [],
+            implications: payload?.implications || [],
+            risks: payload?.risks || [],
+            watchpoints: payload?.watchpoints || [],
+          },
+        };
+        return {
+          ...base,
+          journalist_view: merged,
+          timeline: payload?.timeline || base.timeline,
+        };
+      });
+      return;
+    }
+
     if (event === "warn") {
       toast.message("AI 解读已生成（未能写入缓存）", { description: payload?.detail || payload?.message });
       return;
@@ -216,6 +305,8 @@ export function AIAnalysisPanel({
       if (!reader) throw new Error("无法读取响应流");
 
       let buffer = "";
+      let hasStreamError = false;
+      let completed = false;
       const decoder = new TextDecoder();
 
       while (true) {
@@ -236,13 +327,17 @@ export function AIAnalysisPanel({
           try {
             const payload = JSON.parse(parsed.data);
             applyStreamEvent(parsed.event, payload);
+            if (parsed.event === "error") hasStreamError = true;
+            if (parsed.event === "done") completed = true;
           } catch {
             // ignore invalid chunks
           }
         }
       }
 
-      toast.success("AI 解读生成完成");
+      if (!hasStreamError && completed) {
+        toast.success("AI 解读生成完成");
+      }
     } catch (e) {
       toast.error(`生成失败: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -395,8 +490,8 @@ export function AIAnalysisPanel({
               <Sparkles className="h-8 w-8 text-blue-400 animate-pulse" />
             </div>
             <h3 className="text-[15px] font-bold text-popover-foreground dark:text-slate-200 mb-2">把这篇文章变成你的外脑</h3>
-            <p className="text-[13px] text-muted-foreground/70 dark:text-muted-foreground mb-6 max-w-[260px] mx-auto leading-relaxed">
-              先给你 30 秒快读 + 3 个关键问题，帮助你决定是否继续深读。
+            <p className="text-[13px] text-muted-foreground/70 dark:text-muted-foreground mb-6 max-w-[280px] mx-auto leading-relaxed">
+              一次生成快读、关键问题、背景脉络、影响分析与时间线，帮你完整看懂这篇新闻。
             </p>
             <Button
               onClick={() => handleGenerate()}
@@ -527,23 +622,120 @@ export function AIAnalysisPanel({
                 <div className="space-y-4">
                   <section className="bg-card dark:bg-slate-900 rounded-2xl border border-border dark:border-slate-800 shadow-[0_2px_8px_rgb(0,0,0,0.02)] overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800">
-                      <div className="text-[14.5px] font-bold text-card-foreground dark:text-slate-200">🧐 AI 精读（建设中）</div>
-                      <div className="mt-1 text-[13px] text-muted-foreground dark:text-muted-foreground/70">当前先复用旧版“深度透视/时间线”，后续会升级为结构大纲与利益相关方表格。</div>
+                      <div className="text-[14.5px] font-bold text-card-foreground dark:text-slate-200">🧐 AI 精读</div>
+                      <div className="mt-1 text-[13px] text-muted-foreground dark:text-muted-foreground/70">把背景、主体、影响、风险与时间线拆成可直接阅读的结构化结果。</div>
                     </div>
                     <div className="p-4 space-y-4">
-                      {analysis.journalist_view ? (
-                        <pre className="text-[12px] text-card-foreground dark:text-muted-foreground/70 whitespace-pre-wrap break-words bg-muted dark:bg-slate-800 rounded-xl p-3 border border-border dark:border-slate-700">
-                          {JSON.stringify(analysis.journalist_view, null, 2)}
-                        </pre>
-                      ) : (
-                        <div className="text-[13px] text-muted-foreground/70">暂无深度透视数据。</div>
+                      {deepOverview ? (
+                        <div className="rounded-xl border border-border dark:border-slate-800 bg-muted/40 dark:bg-slate-800/40 p-4">
+                          <div className="text-[13px] font-bold text-muted-foreground dark:text-muted-foreground/70">核心判断</div>
+                          <div className="mt-2 text-[14px] leading-7 text-card-foreground dark:text-slate-200">{deepOverview}</div>
+                        </div>
+                      ) : null}
+
+                      {deepBackground.length > 0 && (
+                        <div className="rounded-xl border border-border dark:border-slate-800 p-4 bg-card/70 dark:bg-slate-900/70">
+                          <div className="text-[13px] font-bold text-card-foreground dark:text-slate-200">背景脉络</div>
+                          <ul className="mt-3 space-y-2">
+                            {deepBackground.map((item, index) => (
+                              <li key={index} className="flex gap-2 text-[13.5px] text-card-foreground dark:text-muted-foreground/70">
+                                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 flex-shrink-0" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
 
-                      {analysis.timeline ? (
-                        <pre className="text-[12px] text-card-foreground dark:text-muted-foreground/70 whitespace-pre-wrap break-words bg-muted dark:bg-slate-800 rounded-xl p-3 border border-border dark:border-slate-700">
-                          {JSON.stringify(analysis.timeline, null, 2)}
-                        </pre>
+                      {stakeholders.length > 0 && (
+                        <div className="rounded-xl border border-border dark:border-slate-800 p-4 bg-card/70 dark:bg-slate-900/70">
+                          <div className="text-[13px] font-bold text-card-foreground dark:text-slate-200">相关主体</div>
+                          <div className="mt-3 space-y-3">
+                            {stakeholders.map((item, index) => (
+                              <div key={`${item.name}-${index}`} className="rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-border dark:border-slate-700 p-3">
+                                <div className="text-[13.5px] font-semibold text-card-foreground dark:text-slate-200">{item.name}</div>
+                                {(item.role || item.stance) && (
+                                  <div className="mt-1 space-y-1 text-[12.5px] text-muted-foreground dark:text-muted-foreground/70">
+                                    {item.role ? <div>角色：{item.role}</div> : null}
+                                    {item.stance ? <div>关注点：{item.stance}</div> : null}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(deepImplications.length > 0 || deepRisks.length > 0 || deepWatchpoints.length > 0) && (
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {deepImplications.length > 0 && (
+                            <div className="rounded-xl border border-border dark:border-slate-800 p-4 bg-card/70 dark:bg-slate-900/70">
+                              <div className="text-[13px] font-bold text-card-foreground dark:text-slate-200">影响分析</div>
+                              <ul className="mt-3 space-y-2">
+                                {deepImplications.map((item, index) => (
+                                  <li key={index} className="flex gap-2 text-[13.5px] text-card-foreground dark:text-muted-foreground/70">
+                                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                                    <span>{item}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {deepRisks.length > 0 && (
+                            <div className="rounded-xl border border-border dark:border-slate-800 p-4 bg-card/70 dark:bg-slate-900/70">
+                              <div className="text-[13px] font-bold text-card-foreground dark:text-slate-200">风险与争议</div>
+                              <ul className="mt-3 space-y-2">
+                                {deepRisks.map((item, index) => (
+                                  <li key={index} className="flex gap-2 text-[13.5px] text-card-foreground dark:text-muted-foreground/70">
+                                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                                    <span>{item}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {deepWatchpoints.length > 0 && (
+                            <div className="rounded-xl border border-border dark:border-slate-800 p-4 bg-card/70 dark:bg-slate-900/70">
+                              <div className="text-[13px] font-bold text-card-foreground dark:text-slate-200">后续观察点</div>
+                              <ul className="mt-3 space-y-2">
+                                {deepWatchpoints.map((item, index) => (
+                                  <li key={index} className="flex gap-2 text-[13.5px] text-card-foreground dark:text-muted-foreground/70">
+                                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                                    <span>{item}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {timelineItems.length > 0 ? (
+                        <div className="rounded-xl border border-border dark:border-slate-800 p-4 bg-card/70 dark:bg-slate-900/70">
+                          <div className="text-[13px] font-bold text-card-foreground dark:text-slate-200">事件时间线</div>
+                          <div className="mt-3 space-y-3">
+                            {timelineItems.map((item, index) => (
+                              <div key={`${item.time}-${index}`} className="flex gap-3">
+                                <div className="flex flex-col items-center pt-1">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                                  {index < timelineItems.length - 1 && <span className="mt-1 h-full w-px bg-border dark:bg-slate-700" />}
+                                </div>
+                                <div className="pb-3">
+                                  <div className="text-[12px] font-semibold text-blue-600 dark:text-blue-400">{item.time}</div>
+                                  <div className="mt-1 text-[13.5px] text-card-foreground dark:text-slate-200 leading-6">{item.event}</div>
+                                  {item.source ? <div className="mt-1 text-[12px] text-muted-foreground dark:text-muted-foreground/70">来源：{item.source}</div> : null}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       ) : null}
+
+                      {!deepOverview && deepBackground.length === 0 && stakeholders.length === 0 && deepImplications.length === 0 && deepRisks.length === 0 && deepWatchpoints.length === 0 && timelineItems.length === 0 && (
+                        <div className="text-[13px] text-muted-foreground/70">暂无深度分析数据，点击右上角“更新解读”生成。</div>
+                      )}
                     </div>
                   </section>
                 </div>

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateFlashRead, generateKeyQuestions } from "@/lib/services/openai";
-import { requireAIMembership } from "@/lib/middleware/membership";
+import { generateDeepAnalysis, generateFlashRead, generateKeyQuestions } from "@/lib/services/openai";
+import { requireAuth } from "@/lib/middleware/membership";
 
 function estimateReadTimeMinutes(text: string): number {
   const trimmed = (text || "").trim();
@@ -16,6 +16,15 @@ function estimateReadTimeMinutes(text: string): number {
 
   const minutes = Math.ceil(Math.max(byZh, byEn, trimmed.length / 1200));
   return Math.max(1, minutes);
+}
+
+function hasCompleteAnalysis(cached: any): boolean {
+  const hasSummary = Boolean(String(cached?.summary || "").trim());
+  const hasKeyQuestions = Array.isArray(cached?.key_questions) && cached.key_questions.length > 0;
+  const hasDeepOverview = Boolean(String(cached?.journalist_view?.deep_read?.overview || "").trim());
+  const hasTimeline = Array.isArray(cached?.timeline) && cached.timeline.length > 0;
+
+  return hasSummary && hasKeyQuestions && hasDeepOverview && hasTimeline;
 }
 
 export async function POST(request: NextRequest) {
@@ -38,14 +47,9 @@ export async function POST(request: NextRequest) {
 
   const run = (async () => {
     try {
-      // AI 会员权限检查
-      const permCheck = await requireAIMembership();
-      if (!permCheck.authorized) {
-        await send("error", { 
-          message: "此功能需要 NewsBox AI 会员",
-          code: "AI_MEMBERSHIP_REQUIRED",
-          requiredPlan: "ai"
-        });
+      const authCheck = await requireAuth();
+      if (!authCheck.authorized) {
+        await send("error", { message: "请先登录", code: "UNAUTHORIZED" });
         return;
       }
 
@@ -57,7 +61,7 @@ export async function POST(request: NextRequest) {
       }
 
       const supabase = await createClient();
-      const user = { id: permCheck.userId! };
+      const user = { id: authCheck.userId! };
 
       const { data: note, error: noteError } = await supabase
         .from("notes")
@@ -87,24 +91,23 @@ export async function POST(request: NextRequest) {
         estimatedReadTimeMinutes,
       });
 
-      // Cache hit: summary + key_questions
       const { data: cached } = await supabase
         .from("ai_outputs")
-        .select("summary, key_questions, journalist_view")
+        .select("summary, key_questions, journalist_view, timeline")
         .eq("note_id", noteId)
         .eq("user_id", user.id)
         .maybeSingle();
 
-      const cachedKeyQuestions = Array.isArray((cached as any)?.key_questions)
-        ? ((cached as any)?.key_questions as any[])
-        : [];
-
-      if (!force && cached && (cached.summary || "").trim() && cachedKeyQuestions.length > 0) {
+      if (cached) {
         await send("cached", {
           summary: cached.summary,
           key_questions: cached.key_questions,
           journalist_view: cached.journalist_view,
+          timeline: cached.timeline,
         });
+      }
+
+      if (!force && cached && hasCompleteAnalysis(cached)) {
         await send("done", { ok: true, cached: true });
         return;
       }
@@ -121,7 +124,10 @@ export async function POST(request: NextRequest) {
       const keyQuestions = await generateKeyQuestions({ title: note.title, content });
       await send("key_questions", keyQuestions);
 
-      // Merge & persist
+      await send("progress", { step: "deep_analysis" });
+      const deepAnalysis = await generateDeepAnalysis({ title: note.title, content });
+      await send("deep_analysis", deepAnalysis);
+
       const mergedJournalistView = {
         ...((cached as any)?.journalist_view || {}),
         fast_read: {
@@ -131,7 +137,22 @@ export async function POST(request: NextRequest) {
           read_time_minutes: fastRead.read_time_minutes ?? estimatedReadTimeMinutes,
         },
         key_questions_missing: keyQuestions.missing || [],
+        deep_read: {
+          overview: deepAnalysis.overview,
+          background: deepAnalysis.background,
+          stakeholders: deepAnalysis.stakeholders,
+          implications: deepAnalysis.implications,
+          risks: deepAnalysis.risks,
+          watchpoints: deepAnalysis.watchpoints,
+        },
       };
+
+      const mergedTimeline =
+        deepAnalysis.timeline.length > 0
+          ? deepAnalysis.timeline
+          : Array.isArray((cached as any)?.timeline)
+            ? (cached as any).timeline
+            : [];
 
       const { error: saveError } = await supabase
         .from("ai_outputs")
@@ -139,16 +160,16 @@ export async function POST(request: NextRequest) {
           {
             note_id: noteId,
             user_id: user.id,
-            summary: fastRead.hook || (note.title || "") || "",
+            summary: fastRead.hook || deepAnalysis.overview || (note.title || "") || "",
             key_questions: keyQuestions.questions || [],
             journalist_view: mergedJournalistView,
+            timeline: mergedTimeline,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "note_id" }
         );
 
       if (saveError) {
-        // 不影响前端展示，但会提示
         await send("warn", { message: "Failed to save ai output", detail: saveError.message });
       }
 
@@ -160,7 +181,6 @@ export async function POST(request: NextRequest) {
     }
   })();
 
-  // 如果客户端断开，尽快结束
   request.signal?.addEventListener("abort", () => {
     close();
   });

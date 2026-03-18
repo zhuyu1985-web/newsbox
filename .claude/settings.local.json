@@ -17,7 +17,8 @@
       "Bash(npm install:*)",
       "Bash(timeout 30 npm run dev:*)",
       "Bash(perl:*)",
-      "mcp__chrome-devtools__navigate_page"
+      "mcp__chrome-devtools__navigate_page",
+      "Bash(ls:*)"
     ]
   }
 }

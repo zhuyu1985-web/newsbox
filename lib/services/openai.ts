@@ -108,6 +108,28 @@ export interface KeyQuestionsResult {
   missing?: string[];
 }
 
+export interface DeepAnalysisStakeholder {
+  name: string;
+  role?: string;
+  stance?: string;
+}
+
+export interface DeepAnalysisTimelineItem {
+  time: string;
+  event: string;
+  source?: string;
+}
+
+export interface DeepAnalysisResult {
+  overview: string;
+  background: string[];
+  stakeholders: DeepAnalysisStakeholder[];
+  implications: string[];
+  risks: string[];
+  watchpoints: string[];
+  timeline: DeepAnalysisTimelineItem[];
+}
+
 // ============================================================================
 // Core Functions (核心函数)
 // ============================================================================
@@ -361,6 +383,73 @@ export async function generateKeyQuestions(args: {
     : [];
 
   return { questions, missing };
+}
+
+export async function generateDeepAnalysis(args: {
+  title?: string | null;
+  content: string;
+}): Promise<DeepAnalysisResult> {
+  const title = (args.title || "").trim();
+  const clipped = args.content.substring(0, 15000);
+
+  const system = `你是一位资深新闻编辑与研究分析师。请仅根据给定原文，输出适合新闻详情页展示的结构化深度解读。
+你必须输出 JSON（json_object），字段如下：
+- overview: string（1 段，提炼这篇新闻最值得关注的核心判断，<= 120 字）
+- background: string[]（2-4 条，补充理解此事所需的背景或上下文）
+- stakeholders: { name: string, role?: string, stance?: string }[]（2-5 个主体，role 为其角色，stance 为其立场/利益点；没有明确依据可留空）
+- implications: string[]（2-4 条，这件事可能带来的影响）
+- risks: string[]（1-4 条，争议、风险、变量或不确定性）
+- watchpoints: string[]（2-4 条，后续最值得持续观察的问题）
+- timeline: { time: string, event: string, source?: string }[]（0-6 条时间线；time 可为具体日期、相对时间或“原文未明确说明”）
+约束：
+1. 只能依据原文，不要补充外部事实。
+2. 如果原文信息不足，请明确写“原文未明确说明”，不要编造。
+3. 每条内容尽量简洁，适合前端卡片直接展示。`;
+
+  const user = `文章标题：${title || "（无标题）"}
+文章内容：\n${clipped}`;
+
+  const raw = await callOpenAIJson({ system, user, temperature: 0.25 });
+
+  const stakeholders = Array.isArray(raw.stakeholders)
+    ? raw.stakeholders
+        .map((x: any) => ({
+          name: String(x?.name || "").trim(),
+          role: x?.role ? String(x.role).trim() : undefined,
+          stance: x?.stance ? String(x.stance).trim() : undefined,
+        }))
+        .filter((x: DeepAnalysisStakeholder) => x.name)
+        .slice(0, 6)
+    : [];
+
+  const timeline = Array.isArray(raw.timeline)
+    ? raw.timeline
+        .map((x: any) => ({
+          time: String(x?.time || "原文未明确说明").trim() || "原文未明确说明",
+          event: String(x?.event || "").trim(),
+          source: x?.source ? String(x.source).trim() : undefined,
+        }))
+        .filter((x: DeepAnalysisTimelineItem) => x.event)
+        .slice(0, 8)
+    : [];
+
+  return {
+    overview: String(raw.overview || raw.summary || "").trim(),
+    background: Array.isArray(raw.background)
+      ? raw.background.map((x: any) => String(x).trim()).filter(Boolean).slice(0, 6)
+      : [],
+    stakeholders,
+    implications: Array.isArray(raw.implications)
+      ? raw.implications.map((x: any) => String(x).trim()).filter(Boolean).slice(0, 6)
+      : [],
+    risks: Array.isArray(raw.risks)
+      ? raw.risks.map((x: any) => String(x).trim()).filter(Boolean).slice(0, 6)
+      : [],
+    watchpoints: Array.isArray(raw.watchpoints)
+      ? raw.watchpoints.map((x: any) => String(x).trim()).filter(Boolean).slice(0, 6)
+      : [],
+    timeline,
+  };
 }
 
 /**
