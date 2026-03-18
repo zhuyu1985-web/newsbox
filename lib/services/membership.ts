@@ -107,50 +107,48 @@ export function calculateMembershipStatus(
   const expiresAt = membership.expires_at
     ? new Date(membership.expires_at)
     : null;
+  const paidPlanType =
+    membership.plan_type === "pro" || membership.plan_type === "ai"
+      ? (membership.plan_type as Extract<PlanType, "pro" | "ai">)
+      : null;
 
-  // 计算试用期状态
-  if (trialStartedAt) {
-    const trialEndDate = new Date(
-      trialStartedAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000
-    );
-    const isInTrial = now < trialEndDate;
+  const trialEndDate = trialStartedAt
+    ? new Date(trialStartedAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+    : null;
+  const isInTrial = Boolean(trialEndDate && now < trialEndDate);
+  const isTrialExpired = trialStartedAt ? !isInTrial : true;
 
-    if (isInTrial) {
-      const daysRemaining = Math.ceil(
-        (trialEndDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-      );
-      return {
-        planType: "trial",
-        isActive: true,
-        canAccessPro: true,
-        canAccessAI: true,
-        expiresAt: trialEndDate,
-        daysRemaining,
-        isTrial: true,
-        isTrialExpired: false,
-      };
-    }
-  }
-
-  // 试用期已过，检查付费会员状态
-  const isTrialExpired = trialStartedAt !== null;
-
-  // 检查付费会员是否有效
-  if (expiresAt && expiresAt > now) {
+  // 已付费会员优先于试用期，避免刚付费时仍被识别为 trial
+  if (paidPlanType && expiresAt && expiresAt > now) {
     const daysRemaining = Math.ceil(
       (expiresAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
     );
-    const planType = (membership.plan_type as PlanType) || "expired";
 
     return {
-      planType,
+      planType: paidPlanType,
       isActive: true,
-      canAccessPro: planType === "pro" || planType === "ai",
-      canAccessAI: planType === "ai",
+      canAccessPro: true,
+      canAccessAI: paidPlanType === "ai",
       expiresAt,
       daysRemaining,
       isTrial: false,
       isTrialExpired,
+    };
+  }
+
+  if (trialEndDate && isInTrial) {
+    const daysRemaining = Math.ceil(
+      (trialEndDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
+    );
+    return {
+      planType: "trial",
+      isActive: true,
+      canAccessPro: true,
+      canAccessAI: true,
+      expiresAt: trialEndDate,
+      daysRemaining,
+      isTrial: true,
+      isTrialExpired: false,
     };
   }
 
