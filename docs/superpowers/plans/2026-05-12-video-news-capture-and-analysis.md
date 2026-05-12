@@ -2785,12 +2785,71 @@ git commit -m "feat(extension): background service worker B 路径上传"
 
 ## Phase 3：Reader UX（Tasks 22-25）
 
-### Task 22：VideoChapters 增强 + Tabs 化右栏
+### Task 22：Reader 数据层 join video_jobs + VideoChapters 增强 + Tabs 化右栏
 
 **Files:**
+- Modify: Reader page 数据 fetch（具体路径用 grep 定位，可能是 `app/notes/[id]/page.tsx` 或 `components/reader/ReaderPageWrapper.tsx`）
 - Modify: `components/reader/LeftSidebar/VideoChapters.tsx`
 - Modify: `components/reader/RightSidebar/index.tsx`
 - Modify: `components/reader/RightSidebar/TranscriptView.tsx`
+- Modify: Reader 相关 TypeScript 类型（如 `components/reader/types.ts` 或 inline note interface）
+
+- [ ] **Step 0: 找到并扩展 Reader 的数据 fetch**
+
+⚠️ **关键前置**：现有 Reader 只 fetch `notes` 一行，新加的视频字段（章节/Q&A/帧/视觉）都在 `video_jobs` 表里，必须先扩展 fetch。
+
+```bash
+grep -rn "from('notes')" app/notes app/(.)*\\(reader\\) components/reader 2>/dev/null | head -10
+```
+
+定位到主 fetch 后，把 select 改成 join 形式：
+
+```typescript
+// 原：
+const { data: note } = await supabase
+  .from('notes')
+  .select('*')
+  .eq('id', noteId)
+  .single();
+
+// 新：
+const { data: note } = await supabase
+  .from('notes')
+  .select(`
+    *,
+    video_job:video_jobs!notes_video_job_id_fkey(
+      id, audio_result, visual_result, frames, cover_url, cos_url,
+      download_status, audio_status, visual_status
+    )
+  `)
+  .eq('id', noteId)
+  .single();
+```
+
+（Supabase 自动 join via foreign key；如关系名需调，参考 supabase studio 中 `notes.video_job_id → video_jobs.id` 的 FK 名）
+
+同时扩展 Reader 的 Note interface（`title` / `media_url` 等所在文件）加：
+
+```typescript
+interface VideoJobRow {
+  id: string;
+  audio_result: AudioAnalysisResult | null;
+  visual_result: VisualFrameAnalysis[] | null;
+  frames: Array<{ timestamp: number; key: string; url: string }> | null;
+  cover_url: string | null;
+  cos_url: string | null;
+  download_status: string;
+  audio_status: string;
+  visual_status: string;
+}
+
+interface Note {
+  // ... 现有字段
+  video_job?: VideoJobRow | null;
+}
+```
+
+`AudioAnalysisResult` 和 `VisualFrameAnalysis` 从 `@/lib/ai-analysis` import。
 
 - [ ] **Step 1: VideoChapters 改为读 audio_result.chapters**
 
@@ -2835,10 +2894,14 @@ return chapters.map((c: Chapter) => (
 
 - [ ] **Step 4: lint + dev 启动验证**
 
+确认：
+- Reader 页面打开非视频笔记仍正常（`note.video_job` 为 null 不报错）
+- 视频笔记 Reader 能渲染章节（即使 audio_result 暂为 null 也不应崩溃，要做 fallback）
+
 - [ ] **Step 5: Commit**
 
 ```bash
-git commit -m "feat(reader): VideoChapters 自动章节 + RightSidebar Tabs 化"
+git commit -m "feat(reader): 数据层 join video_jobs + VideoChapters 自动章节 + RightSidebar Tabs 化"
 ```
 
 ---
