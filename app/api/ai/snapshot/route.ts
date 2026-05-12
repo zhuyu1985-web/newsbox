@@ -4,8 +4,7 @@ import { sha256Hex, stripHtmlToText } from "@/lib/ai-snapshot/hash";
 import type { SnapshotTemplate } from "@/lib/ai-snapshot/types";
 import { isSnapshotTemplate } from "@/lib/ai-snapshot/types";
 import { requireAIMembership } from "@/lib/middleware/membership";
-
-const SIGNED_URL_EXPIRES_IN = 60 * 15;
+import { getStorageProvider } from "@/lib/storage";
 
 export async function GET(request: NextRequest) {
   // AI 会员权限检查
@@ -15,7 +14,6 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const user = { id: permCheck.userId! };
 
   const noteId = request.nextUrl.searchParams.get("noteId") || "";
   const templateRaw = request.nextUrl.searchParams.get("template");
@@ -62,16 +60,15 @@ export async function GET(request: NextRequest) {
   const { data } = await rendersQuery;
   const renders = data ?? [];
 
-  const rendersWithUrl = await Promise.all(
-    renders.map(async (r) => {
-      const { data } = await supabase.storage.from(r.bucket).createSignedUrl(r.object_path, SIGNED_URL_EXPIRES_IN);
-      return {
-        template: r.template,
-        url: data?.signedUrl || "",
-        createdAt: r.created_at,
-      };
-    }),
-  );
+  const storageProvider = getStorageProvider();
+  const rendersWithUrl = renders.map((r) => {
+    const url = storageProvider.getPublicUrl(r.object_path);
+    return {
+      template: r.template,
+      url,
+      createdAt: r.created_at,
+    };
+  });
 
   return NextResponse.json({
     exists: true,

@@ -4,9 +4,7 @@ import { generateSnapshotData } from "@/lib/services/snapshot";
 import { sha256Hex, stripHtmlToText } from "@/lib/ai-snapshot/hash";
 import { renderSnapshotImageResponse } from "@/lib/ai-snapshot/render";
 import { isSnapshotTemplate, type SnapshotTemplate } from "@/lib/ai-snapshot/types";
-
-const SIGNED_URL_EXPIRES_IN = 60 * 15;
-const DEFAULT_BUCKET = "zhuyu";
+import { getStorageProvider, buildStorageKey } from "@/lib/storage";
 
 async function ensureSnapshotUrl(args: { noteId: string; template: SnapshotTemplate; force?: boolean }) {
   const supabase = await createClient();
@@ -116,19 +114,19 @@ async function ensureSnapshotUrl(args: { noteId: string; template: SnapshotTempl
     .maybeSingle()
     .then((x) => x.data);
 
-  const bucket = existingRender?.bucket || DEFAULT_BUCKET;
-  const objectPath = existingRender?.object_path || `${user.id}/notes/${args.noteId}/ai-snapshots/${contentHash}/${template}.png`;
+  const storageProvider = getStorageProvider();
+  let storageKey: string;
 
   if (!existingRender?.object_path) {
+    storageKey = buildStorageKey({ userId: user.id, kind: "snapshots", ext: "png" });
+
     const png = renderSnapshotImageResponse(template, snapshot.card_data as any);
-    const bytes = await png.arrayBuffer();
+    const bytes = Buffer.from(await png.arrayBuffer());
 
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, bytes, {
-      contentType: "image/png",
-      upsert: true,
-    });
-
-    if (uploadError) {
+    try {
+      await storageProvider.upload({ key: storageKey, body: bytes, contentType: "image/png" });
+    } catch (e) {
+      console.error("[api/snapshot] storage upload failed", { storageKey }, e);
       return { error: "Storage upload failed", status: 500 as const };
     }
 
@@ -140,22 +138,20 @@ async function ensureSnapshotUrl(args: { noteId: string; template: SnapshotTempl
           user_id: user.id,
           note_id: args.noteId,
           template,
-          bucket,
-          object_path: objectPath,
+          bucket: storageProvider.name,
+          object_path: storageKey,
           width: 1200,
           height: 1600,
           content_type: "image/png",
         },
         { onConflict: "snapshot_id,template" },
       );
+  } else {
+    storageKey = existingRender.object_path;
   }
 
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(objectPath, SIGNED_URL_EXPIRES_IN);
-  if (!data?.signedUrl) {
-    return { error: "Failed to create signed url", status: 500 as const };
-  }
-
-  return { url: data.signedUrl, status: 200 as const };
+  const url = storageProvider.getPublicUrl(storageKey);
+  return { url, status: 200 as const };
 }
 
 export async function GET(request: NextRequest) {

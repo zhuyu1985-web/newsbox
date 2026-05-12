@@ -5,9 +5,7 @@ import { sha256Hex, stripHtmlToText } from "@/lib/ai-snapshot/hash";
 import { renderSnapshotImageResponse } from "@/lib/ai-snapshot/render";
 import { isSnapshotTemplate, SNAPSHOT_TEMPLATES, type SnapshotTemplate } from "@/lib/ai-snapshot/types";
 import { requireAIMembership } from "@/lib/middleware/membership";
-
-const SIGNED_URL_EXPIRES_IN = 60 * 15;
-const DEFAULT_BUCKET = "zhuyu";
+import { getStorageProvider, buildStorageKey } from "@/lib/storage";
 
 async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -154,6 +152,8 @@ export async function POST(request: Request) {
 
   const ensured = [] as Array<{ template: SnapshotTemplate; url: string }>;
 
+  const storageProvider = getStorageProvider();
+
   for (const t of templatesToEnsure) {
     const existing = await supabase
       .from("ai_snapshot_renders")
@@ -163,28 +163,17 @@ export async function POST(request: Request) {
       .maybeSingle()
       .then((x) => x.data);
 
-    let bucket = existing?.bucket || DEFAULT_BUCKET;
-    let objectPath = existing?.object_path;
+    let storageKey = existing?.object_path;
 
-    if (!objectPath) {
+    if (!storageKey) {
       try {
         // render -> upload -> upsert row
         const pngResponse = renderSnapshotImageResponse(t, snapshot.card_data as any);
-        const bytes = await pngResponse.arrayBuffer();
+        const bytes = Buffer.from(await pngResponse.arrayBuffer());
 
-        objectPath = `${user.id}/notes/${noteId}/ai-snapshots/${contentHash}/${t}.png`;
+        storageKey = buildStorageKey({ userId: user.id, kind: "snapshots", ext: "png" });
 
-        const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, bytes, {
-          contentType: "image/png",
-          upsert: true,
-        });
-
-        if (uploadError) {
-          return NextResponse.json(
-            { error: "Storage upload failed", template: t, details: uploadError.message },
-            { status: 500 },
-          );
-        }
+        await storageProvider.upload({ key: storageKey, body: bytes, contentType: "image/png" });
 
         await supabase
           .from("ai_snapshot_renders")
@@ -194,28 +183,26 @@ export async function POST(request: Request) {
               user_id: user.id,
               note_id: noteId,
               template: t,
-              bucket,
-              object_path: objectPath,
+              bucket: storageProvider.name,
+              object_path: storageKey,
               width: 1200,
               height: 1600,
               content_type: "image/png",
             },
             { onConflict: "snapshot_id,template" },
           );
-      } catch (e: any) {
+      } catch (e) {
         console.error("Snapshot render/upload failed:", { noteId, template: t }, e);
+        const details = e instanceof Error ? e.message : String(e);
         return NextResponse.json(
-          { error: "Snapshot render failed", template: t, details: String(e?.message || e) },
+          { error: "Snapshot render failed", template: t, details },
           { status: 500 },
         );
       }
     }
 
-    const { data } = await supabase.storage.from(bucket).createSignedUrl(objectPath, SIGNED_URL_EXPIRES_IN);
-
-    if (data?.signedUrl) {
-      ensured.push({ template: t, url: data.signedUrl });
-    }
+    const url = storageProvider.getPublicUrl(storageKey);
+    ensured.push({ template: t, url });
 
     // tiny delay to reduce burst when first rendering all templates (optional)
     await sleep(10);
