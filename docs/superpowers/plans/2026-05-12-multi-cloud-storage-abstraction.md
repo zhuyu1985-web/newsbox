@@ -108,7 +108,7 @@ export default defineConfig({
 
 - [ ] **Step 4: 在 `tsconfig.json` include 里加 tests 目录**
 
-检查 `tsconfig.json` 的 `include` 字段是否含 `tests/**/*.ts`，没有则加上（保持现有其他配置不变）。
+检查 `tsconfig.json` 的 `include` 字段。**Note**：现有 `tsconfig.json` 的 include 用 `**/*.ts` 这样的宽 glob，已自然覆盖 `tests/**/*.ts`，此步通常为 no-op。若发现 include 是精确路径列表则需补充 `tests/**/*.ts`。
 
 - [ ] **Step 5: 创建一个冒烟测试验证 Vitest 跑得通**
 
@@ -1270,7 +1270,9 @@ import type { MediaProcessingCapability } from '../types';
 }
 ```
 
-**Note**: 雪碧图、视频截帧的真实参数名（如 `time` vs `Time`）以腾讯云文档为准。本 Plan 给的是合理猜测，实施时第一步先用 curl 试一次 API 确认，再调整。
+**Note**: 雪碧图、视频截帧的真实参数名（如 `time` vs `Time`）以腾讯云文档为准。本 Plan 给的是合理猜测，实施时第一步先用 curl（或腾讯云控制台 API Explorer）试一次 API 确认。
+
+**更稳的替代实现**：`cos-nodejs-sdk-v5` 可能已提供 typed 方法如 `cos.getMediaInfo`、`cos.getSnapshot`，使用 typed 方法比裸 `cos.request` 风险更低。实施时优先查 SDK 文档（https://cloud.tencent.com/document/product/436/8629）确认有无 typed 方法，有则改用，没有再裸 request。
 
 - [ ] **Step 4: 跑测试确认通过**
 
@@ -1577,11 +1579,13 @@ npm run dev
 
 - [ ] **Step 7: 切换到 COS 复测**
 
+⚠️ **此步骤需要真实的腾讯云 COS 凭证**。如实施者无凭证，可由项目负责人配置后再回到此步——不阻塞前 6 步的代码与单测合入，仅延后这次复测。
+
 在 `.env.local` 设：
 
 ```bash
 STORAGE_PROVIDER=tencent-cos
-TENCENT_COS_SECRET_ID=...   # 你的真实 key
+TENCENT_COS_SECRET_ID=...   # 真实 key
 TENCENT_COS_SECRET_KEY=...
 TENCENT_COS_REGION=ap-shanghai
 TENCENT_COS_BUCKET=...
@@ -1642,17 +1646,20 @@ git commit -m "refactor(reader): EditMetaDialog 封面上传切换到 StoragePro
 
 ---
 
-## Task 12：迁移 lib/ai-snapshot/ 的存储调用
+## Task 12：迁移 AI Snapshot 相关 API 路由的存储调用
 
-**Files:**
-- Modify: `lib/ai-snapshot/render.tsx`（如有上传）
-- Modify: 任何 `lib/ai-snapshot/*.ts` 含 `supabase.storage`
+**Files (实际调用点不在 lib/ai-snapshot/，而在 API 路由):**
+- Modify: `app/api/snapshot/route.tsx`
+- Modify: `app/api/ai/snapshot/route.ts`
+- Modify: `app/api/ai/snapshot/ensure/route.ts`
 
-- [ ] **Step 1: 定位所有 ai-snapshot 调用点**
+- [ ] **Step 1: 重新确认调用点（仍可扩展搜索范围）**
 
 ```bash
-grep -rn "supabase.storage\|user-files" lib/ai-snapshot/
+grep -rln "supabase.storage\|user-files\|STORAGE_BUCKET" app/ lib/ --include='*.ts' --include='*.tsx' | grep -v node_modules
 ```
+
+预期匹配上述 3 个 API 路由。如有其他文件出现，一并处理。
 
 - [ ] **Step 2: 按 Task 10 同款模式迁移**
 
