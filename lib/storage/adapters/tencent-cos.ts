@@ -1,6 +1,7 @@
 import COS from 'cos-nodejs-sdk-v5';
 import type {
   StorageProvider,
+  MediaProcessingCapability,
   UploadInput,
   UploadResult,
   UploadCredential,
@@ -29,7 +30,7 @@ function loadEnv(): CosEnv {
   };
 }
 
-export class TencentCosAdapter implements StorageProvider {
+export class TencentCosAdapter implements StorageProvider, MediaProcessingCapability {
   readonly name = 'tencent-cos' as const;
   private cos: COS;
   private env: CosEnv;
@@ -113,6 +114,106 @@ export class TencentCosAdapter implements StorageProvider {
           if ((err as any).statusCode === 404) return resolve(false);
           reject(new Error(`cos headObject failed: ${(err as any).message || (err as any).statusCode}`));
         }
+      );
+    });
+  }
+
+  // ── MediaProcessingCapability ──────────────────────────────────────────────
+
+  async probe(sourceKey: string): Promise<{
+    durationSec: number;
+    width: number;
+    height: number;
+    videoCodec: string;
+    audioCodec: string;
+    sizeBytes: number;
+  }> {
+    const data = await this.ciRequest({
+      Key: sourceKey,
+      Query: { 'ci-process': 'videoinfo' },
+    });
+    const info = data?.Response?.MediaInfo;
+    if (!info) throw new Error('cos probe: empty MediaInfo');
+    return {
+      durationSec: Number(info.Format?.Duration ?? 0),
+      width: Number(info.Stream?.Video?.Width ?? 0),
+      height: Number(info.Stream?.Video?.Height ?? 0),
+      videoCodec: String(info.Stream?.Video?.Codec_name ?? ''),
+      audioCodec: String(info.Stream?.Audio?.Codec_name ?? ''),
+      sizeBytes: Number(info.Format?.Size ?? 0),
+    };
+  }
+
+  async generateSmartCover(input: {
+    sourceKey: string;
+    outputKey: string;
+  }): Promise<{ key: string; url: string }> {
+    const data = await this.ciRequest({
+      Key: input.sourceKey,
+      Query: { 'ci-process': 'snapshot', time: '0', format: 'jpg' },
+    });
+    const body = data?.Body;
+    if (!body) throw new Error('cos snapshot: empty body');
+    await this.upload({ key: input.outputKey, body: body as Buffer, contentType: 'image/jpeg' });
+    return { key: input.outputKey, url: this.getPublicUrl(input.outputKey) };
+  }
+
+  async extractFrames(input: {
+    sourceKey: string;
+    timestamps: number[];
+    outputKeyPrefix: string;
+  }): Promise<Array<{ timestamp: number; key: string; url: string }>> {
+    const results: Array<{ timestamp: number; key: string; url: string }> = [];
+    for (const t of input.timestamps) {
+      const data = await this.ciRequest({
+        Key: input.sourceKey,
+        Query: { 'ci-process': 'snapshot', time: String(t), format: 'jpg' },
+      });
+      const body = data?.Body;
+      if (!body) throw new Error(`cos snapshot at ${t}s: empty body`);
+      const outKey = `${input.outputKeyPrefix}-${String(t).padStart(6, '0')}.jpg`;
+      await this.upload({ key: outKey, body: body as Buffer, contentType: 'image/jpeg' });
+      results.push({ timestamp: t, key: outKey, url: this.getPublicUrl(outKey) });
+    }
+    return results;
+  }
+
+  async generateSpriteSheet(input: {
+    sourceKey: string;
+    outputKey: string;
+    rows: number;
+    cols: number;
+  }): Promise<{ key: string; url: string; vttKey?: string }> {
+    const data = await this.ciRequest({
+      Key: input.sourceKey,
+      Query: {
+        'ci-process': 'videoprocess',
+        operation: `sprite/${input.rows}x${input.cols}`,
+        output: input.outputKey,
+      },
+    });
+    const out = data?.Response?.OutputFile?.ObjectName ?? input.outputKey;
+    const vtt = data?.Response?.OutputVttFile?.ObjectName;
+    return {
+      key: out,
+      url: this.getPublicUrl(out),
+      vttKey: vtt,
+    };
+  }
+
+  private ciRequest(params: { Key: string; Query: Record<string, string> }): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.cos.request(
+        {
+          Bucket: this.env.bucket,
+          Region: this.env.region,
+          Method: 'GET',
+          Key: params.Key,
+          Query: params.Query,
+          RawBody: true,
+        } as any,
+        (err: any, data: any) =>
+          err ? reject(new Error(`cos CI failed: ${err.message || err}`)) : resolve(data)
       );
     });
   }
