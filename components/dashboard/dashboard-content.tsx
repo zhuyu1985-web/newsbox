@@ -105,8 +105,6 @@ import {
 
 const PAGE_SIZE = 16;
 const ANNOTATIONS_PAGE_SIZE = 48;
-const STORAGE_BUCKET =
-  process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "zhuyu";
 
 type SourceType = "url" | "manual" | "upload";
 
@@ -2877,72 +2875,32 @@ ${
           setIsAddingNote(false);
           return;
         }
-        // 重新获取当前用户，确保认证状态正确
-        // 首先检查 session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session) {
-          console.error("❌ Session 错误:", sessionError);
-          throw new Error("会话已过期，请重新登录");
+        console.log("📤 准备上传文件:", {
+          fileName: uploadFile.name,
+          fileSize: uploadFile.size,
+          fileType: uploadFile.type,
+        });
+
+        const fd = new FormData();
+        fd.append("file", uploadFile);
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          console.error("❌ Upload API error:", errText);
+          throw new Error(errText || "文件上传失败");
         }
-        
+        const { url: publicUrl } = await uploadRes.json();
+
+        console.log("✅ 文件上传成功:", publicUrl);
+
+        // 获取当前用户信息（用于后续 DB 操作）
         const {
           data: { user: currentUser },
           error: userError,
         } = await supabase.auth.getUser();
         if (userError || !currentUser) {
-          console.error("❌ 用户认证错误:", userError);
-          console.error("❌ Session:", session);
           throw new Error("用户未认证，请重新登录");
         }
-        
-        console.log("✅ 用户认证通过:", {
-          userId: currentUser.id,
-          email: currentUser.email,
-          sessionExists: !!session,
-        });
-        const path = `${currentUser.id}/${Date.now()}-${sanitizeFileName(
-          uploadFile.name,
-        )}`;
-        
-        console.log("📤 准备上传文件:", {
-          bucket: STORAGE_BUCKET,
-          path: path,
-          userId: currentUser.id,
-          userIdType: typeof currentUser.id,
-          fileName: uploadFile.name,
-          fileSize: uploadFile.size,
-          expectedPathPattern: `${currentUser.id}/%`,
-        });
-        
-        // 验证路径格式
-        if (!path.startsWith(currentUser.id + "/")) {
-          console.error("❌ 路径格式错误！路径应该以 user_id/ 开头");
-          throw new Error("文件路径格式错误");
-        }
-        
-        const { error: uploadError } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .upload(path, uploadFile, {
-            cacheControl: "3600",
-            upsert: true,
-          });
-        if (uploadError) {
-          console.error("❌ Storage upload error:", uploadError);
-          console.error("❌ Error details:", {
-            message: uploadError.message,
-            name: uploadError.name,
-          });
-          // 提供更友好的错误信息
-          if (uploadError.message?.includes("row-level security") || uploadError.message?.includes("RLS")) {
-            throw new Error("存储权限错误：请确保 Storage bucket 的 RLS 策略已正确配置。请参考 supabase/STORAGE_SETUP.md");
-          }
-          throw uploadError;
-        }
-        
-        console.log("✅ 文件上传成功:", path);
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
         const mime = uploadFile.type;
         const isImage = mime.startsWith("image/");
         const isVideo = mime.startsWith("video/");
