@@ -19,13 +19,18 @@ export async function POST(req: NextRequest) {
   const key = buildStorageKey({ userId: user.id, kind, ext });
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const result = await getStorageProvider().upload({
-    key,
-    body: buf,
-    contentType: file.type || 'application/octet-stream',
-  });
-
-  return NextResponse.json({ url: result.url, key: result.key, size: result.size });
+  try {
+    const result = await getStorageProvider().upload({
+      key,
+      body: buf,
+      contentType: file.type || 'application/octet-stream',
+    });
+    return NextResponse.json({ url: result.url, key: result.key, size: result.size });
+  } catch (err) {
+    console.error('[api/upload] upload failed', err);
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `upload failed: ${message}` }, { status: 500 });
+  }
 }
 
 function inferKind(mime: string): StorageKind {
