@@ -302,27 +302,22 @@ export function EditMetaDialog({
     if (file) {
       setUploading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("未登录");
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('kind', 'images');
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('zhuyu')
-          .upload(fileName, file);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          throw new Error((json as { error?: string }).error || `上传失败 (${res.status})`);
+        }
+        const { url } = await res.json() as { url: string };
 
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('zhuyu')
-          .getPublicUrl(fileName);
-
-        setCoverImage(publicUrl);
+        setCoverImage(url);
         toast.success("封面上传成功");
       } catch (error) {
         console.error("Upload failed", error);
-        toast.error("上传失败");
+        toast.error(error instanceof Error ? error.message : "上传失败");
       } finally {
         setUploading(false);
       }
