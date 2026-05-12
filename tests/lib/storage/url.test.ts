@@ -34,4 +34,14 @@ describe('identifyStorageBackend', () => {
     // @ts-expect-error
     expect(identifyStorageBackend(undefined)).toBe('external');
   });
+
+  it('rejects path-injection attacks via fake subpath', () => {
+    expect(identifyStorageBackend('https://attacker.com/.supabase.co/storage/x')).toBe('external');
+    expect(identifyStorageBackend('https://attacker.com/.myqcloud.com/x')).toBe('external');
+  });
+
+  it('rejects malformed URLs', () => {
+    expect(identifyStorageBackend('not a url')).toBe('external');
+    expect(identifyStorageBackend('javascript:alert(1)')).toBe('external');
+  });
 });

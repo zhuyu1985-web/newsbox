@@ -3,12 +3,19 @@ import type { StorageBackend } from './types';
 export function identifyStorageBackend(url: unknown): StorageBackend | 'external' {
   if (typeof url !== 'string' || !url) return 'external';
 
-  if (url.includes('.supabase.co/storage/')) return 'supabase';
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return 'external';
+  }
 
-  if (url.includes('.myqcloud.com')) return 'tencent-cos';
+  // 通过 hostname 严格判定，避免路径注入
+  if (parsed.hostname.endsWith('.supabase.co')) return 'supabase';
+  if (parsed.hostname.endsWith('.myqcloud.com')) return 'tencent-cos';
 
   const customDomain = process.env.TENCENT_COS_CUSTOM_DOMAIN;
-  if (customDomain && url.includes(customDomain)) return 'tencent-cos';
+  if (customDomain && parsed.hostname === customDomain) return 'tencent-cos';
 
   return 'external';
 }
