@@ -163,6 +163,9 @@ supabase/
 - Bucket name: `user-files` (configurable via `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET`)
 - Used for image/video/file uploads from "Add Note" modal
 - Access pattern: `supabase.storage.from(STORAGE_BUCKET).upload(path, file)`
+- **抽象层**: 所有写入应走 `lib/storage/getStorageProvider()`，不再直接调用 `supabase.storage.from(...)`。
+- **后端切换**: 通过 `STORAGE_PROVIDER` 环境变量切换（supabase | tencent-cos）。
+- **老链接兼容**: `lib/storage/identifyStorageBackend(url)` 用于读路径区分 supabase legacy 与 COS。
 
 ### Key Component Patterns
 
