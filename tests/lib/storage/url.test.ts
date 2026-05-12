@@ -29,9 +29,7 @@ describe('identifyStorageBackend', () => {
 
   it('handles empty / falsy input safely', () => {
     expect(identifyStorageBackend('')).toBe('external');
-    // @ts-expect-error testing runtime safety
     expect(identifyStorageBackend(null)).toBe('external');
-    // @ts-expect-error
     expect(identifyStorageBackend(undefined)).toBe('external');
   });
 
