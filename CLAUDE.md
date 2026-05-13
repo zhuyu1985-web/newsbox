@@ -223,6 +223,16 @@ Services in `lib/services/` encapsulate external API integrations:
 - **knowledge-graph.ts**: Graph visualization data preparation
 - **snapshot.ts**: HTML snapshot creation and persistence
 
+### 视频流水线（Plan B）
+- **数据**: `video_jobs` 表追踪每个视频笔记的处理状态（download / probe / cover / frame / audio / visual）
+- **Worker**: `lib/workers/video-pipeline/` 在 Next.js 同进程内 setInterval 推进状态机
+- **AI 分析**: `lib/ai-analysis/` 提供 AudioAnalysisProvider（听悟）和 VisualAnalysisProvider（Qwen-VL）
+- **API**: `/api/extension/save-video` (A 路径) + `/api/extension/video-upload-cred` + `/api/extension/video-upload-done` (B 路径)
+- **状态轮询**: `/api/ai/video/[jobId]/status`
+- **重试**: `/api/ai/video/[jobId]/retry`
+- **Q&A**: `/api/ai/video/ask`
+- **启动**: `instrumentation.ts` → `startVideoWorker()`，由 `VIDEO_WORKER_ENABLED` env 开关控制
+
 ### Theme System Architecture
 
 **Theme Provider**: Uses `next-themes` library with class-based strategy
