@@ -1,0 +1,17 @@
+import type { IVideoExtractor, VideoCapture } from './base';
+
+// Platform extractors will be registered here in Task 19
+const REGISTRY: IVideoExtractor[] = [];
+
+export function findExtractor(url: string, doc: Document = document): IVideoExtractor | null {
+  return REGISTRY.find(e => e.matches(url, doc)) ?? null;
+}
+
+export async function extractVideoCapture(url: string, doc: Document = document): Promise<VideoCapture | null> {
+  const extractor = findExtractor(url, doc);
+  if (!extractor) return null;
+  return await extractor.extract();
+}
+
+export type { VideoCapture, Platform, IVideoExtractor } from './base';
+export { VideoExtractionError } from './base';
