@@ -127,7 +127,7 @@ async function resolveResultField(value: unknown): Promise<any> {
 async function mapResult(rawIn: any): Promise<AudioAnalysisResult> {
   // 把可能的 URL 字段先 fetch 解开
   const raw = rawIn ?? {};
-  const [transcription, autoChapters, summarization, keyPoints, meetingAssistance] = await Promise.all([
+  const [transcriptionDoc, autoChaptersDoc, summarizationDoc, keyPointsDoc, meetingDoc] = await Promise.all([
     resolveResultField(raw.Transcription),
     resolveResultField(raw.AutoChapters),
     resolveResultField(raw.Summarization),
@@ -135,9 +135,17 @@ async function mapResult(rawIn: any): Promise<AudioAnalysisResult> {
     resolveResultField(raw.MeetingAssistance),
   ]);
 
+  // 真实 API 返回的 JSON 多一层同名包裹：{ TaskId, Transcription: { AudioInfo, Paragraphs } }
+  // test mock 直接传内层对象。两种都兼容：优先看包裹内层。
+  const transcription = transcriptionDoc?.Transcription ?? transcriptionDoc;
+  const autoChapters = autoChaptersDoc?.AutoChapters ?? autoChaptersDoc;
+  const summarization = summarizationDoc?.Summarization ?? summarizationDoc;
+  const keyPoints = keyPointsDoc?.KeyPoints ?? keyPointsDoc;
+  const meetingAssistance = meetingDoc?.MeetingAssistance ?? meetingDoc;
+
   const transcript: TranscriptSegment[] = [];
   for (const p of transcription?.Paragraphs ?? []) {
-    for (const s of p.Sentences ?? []) {
+    for (const s of p.Sentences ?? p.Words ?? []) {
       transcript.push({
         start: Number(s.BeginTime ?? 0) / 1000,
         end: Number(s.EndTime ?? 0) / 1000,
