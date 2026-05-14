@@ -162,6 +162,8 @@ interface NoteItem {
   file_type: string | null;
   tags: NoteTag[];
   annotation_count?: number;
+  video_job_id?: string | null;
+  video_overall_status?: string | null;
 }
 
 interface FolderWithCount {
@@ -376,6 +378,8 @@ const noteSelect = `
   file_name,
   file_size,
   file_type,
+  video_job_id,
+  video_overall_status,
   folders(name),
   highlights(count),
   note_tags(
@@ -623,6 +627,102 @@ function downloadBlob(content: Blob, filename: string) {
   link.click();
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+}
+
+// ── Video status polling hook ──────────────────────────────────────────────
+function useVideoJobStatus(jobId: string | null | undefined, enabled: boolean) {
+  const [data, setData] = useState<{ overall_status?: string; steps?: unknown; errors?: unknown } | null>(null);
+  useEffect(() => {
+    if (!enabled || !jobId) return;
+    let cancelled = false;
+    async function poll() {
+      try {
+        const res = await fetch(`/api/ai/video/${jobId}/status`);
+        if (res.ok && !cancelled) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch {
+        // silent
+      }
+    }
+    poll();
+    const id = setInterval(poll, 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [jobId, enabled]);
+  return data;
+}
+
+// ── Video status badge ─────────────────────────────────────────────────────
+const VIDEO_STATUS_LABELS: Record<string, string> = {
+  processing: "视频处理中",
+  media_ready: "AI 分析中",
+  failed: "处理失败",
+  need_browser_fallback: "请打开插件重试",
+};
+
+function VideoStatusBadge({
+  noteId,
+  jobId,
+  initialStatus,
+}: {
+  noteId: string;
+  jobId: string | null | undefined;
+  initialStatus: string;
+}) {
+  const isPending =
+    initialStatus !== "fully_ready" && initialStatus !== "failed";
+  const polled = useVideoJobStatus(jobId, isPending);
+  const status = polled?.overall_status ?? initialStatus;
+
+  if (!status || status === "fully_ready") return null;
+
+  const label = VIDEO_STATUS_LABELS[status] ?? status;
+  const spinning = status === "processing" || status === "media_ready";
+
+  return (
+    <div
+      key={noteId}
+      className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1"
+    >
+      {spinning && (
+        <svg
+          className="animate-spin h-3 w-3 shrink-0"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+          />
+        </svg>
+      )}
+      <span
+        className={
+          status === "failed"
+            ? "text-red-500"
+            : status === "need_browser_fallback"
+            ? "text-amber-500"
+            : undefined
+        }
+      >
+        {label}
+      </span>
+    </div>
+  );
 }
 
 export function DashboardContent() {
@@ -3343,6 +3443,17 @@ ${
                 ) : (
                   <p className="text-xs text-muted-foreground/70 italic">暂无摘要</p>
                 )}
+
+                {/* 视频处理状态 badge */}
+                {note.content_type === "video" &&
+                  note.video_overall_status &&
+                  note.video_overall_status !== "fully_ready" && (
+                    <VideoStatusBadge
+                      noteId={note.id}
+                      jobId={note.video_job_id}
+                      initialStatus={note.video_overall_status}
+                    />
+                  )}
               </div>
 
               {/* 右侧图片区 (如果有) */}
