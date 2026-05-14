@@ -1,7 +1,9 @@
 import type { IVideoExtractor, VideoCapture } from './base';
+import { DouyinExtractor } from './douyin';
 
-// Platform extractors will be registered here in Task 19
-const REGISTRY: IVideoExtractor[] = [];
+const REGISTRY: IVideoExtractor[] = [
+  new DouyinExtractor(),
+];
 
 export function findExtractor(url: string, doc: Document = document): IVideoExtractor | null {
   return REGISTRY.find(e => e.matches(url, doc)) ?? null;
