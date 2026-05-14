@@ -143,15 +143,45 @@ async function mapResult(rawIn: any): Promise<AudioAnalysisResult> {
   const keyPoints = keyPointsDoc?.KeyPoints ?? keyPointsDoc;
   const meetingAssistance = meetingDoc?.MeetingAssistance ?? meetingDoc;
 
+  // 真实 API：Paragraphs[].Words[]，每个 Word 含 SentenceId + Start + End + Text
+  // 同 SentenceId 的 Words 聚合成一个 segment（"句子"），text 用空格连接。
+  // 测试 mock：Paragraphs[].Sentences[] 直接给 BeginTime/EndTime/Text 也支持。
   const transcript: TranscriptSegment[] = [];
   for (const p of transcription?.Paragraphs ?? []) {
-    for (const s of p.Sentences ?? p.Words ?? []) {
-      transcript.push({
-        start: Number(s.BeginTime ?? 0) / 1000,
-        end: Number(s.EndTime ?? 0) / 1000,
-        text: String(s.Text ?? ''),
-        speaker: s.SpeakerId ? String(s.SpeakerId) : undefined,
-      });
+    const speaker = p.SpeakerId ? String(p.SpeakerId) : undefined;
+    if (Array.isArray(p.Sentences)) {
+      // mock / 部分 API 直接给 Sentences 数组
+      for (const s of p.Sentences) {
+        transcript.push({
+          start: Number(s.BeginTime ?? s.Start ?? 0) / 1000,
+          end: Number(s.EndTime ?? s.End ?? 0) / 1000,
+          text: String(s.Text ?? ''),
+          speaker: s.SpeakerId ? String(s.SpeakerId) : speaker,
+        });
+      }
+    } else if (Array.isArray(p.Words)) {
+      // 真实 API：按 SentenceId 聚合 Words
+      const bySentence = new Map<string, { start: number; end: number; texts: string[] }>();
+      for (const w of p.Words) {
+        const sid = String(w.SentenceId ?? '0');
+        const cur = bySentence.get(sid);
+        const wStart = Number(w.Start ?? w.BeginTime ?? 0);
+        const wEnd = Number(w.End ?? w.EndTime ?? 0);
+        if (!cur) {
+          bySentence.set(sid, { start: wStart, end: wEnd, texts: [String(w.Text ?? '')] });
+        } else {
+          cur.end = wEnd;
+          cur.texts.push(String(w.Text ?? ''));
+        }
+      }
+      for (const s of bySentence.values()) {
+        transcript.push({
+          start: s.start / 1000,
+          end: s.end / 1000,
+          text: s.texts.join(''),
+          speaker,
+        });
+      }
     }
   }
 
