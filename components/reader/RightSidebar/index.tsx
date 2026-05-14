@@ -4,8 +4,23 @@ import { AnnotationList } from "./AnnotationList";
 import { AIAnalysisPanel } from "./AIAnalysisPanel";
 import { TranscriptView } from "./TranscriptView";
 import { QAPanel } from "./QAPanel";
+import { VisualFrames } from "./VisualFrames";
+import type { FrameData } from "./VisualFrames";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Note } from "@/components/reader/ReaderPageWrapper";
+
+function mergedFrames(note: Note): FrameData[] {
+  const baseFrames = note.video_job?.frames ?? [];
+  const visual = note.video_job?.visual_result ?? [];
+  const visualByTs = new Map(visual.map((v) => [v.timestamp, v]));
+  return baseFrames.map((f) => ({
+    timestamp: f.timestamp,
+    url: f.url,
+    sceneDescription: visualByTs.get(f.timestamp)?.sceneDescription,
+    entities: visualByTs.get(f.timestamp)?.entities,
+    onScreenText: visualByTs.get(f.timestamp)?.onScreenText,
+  }));
+}
 
 // Keep original tab type for compatibility with ReaderLayout
 type LegacyTab = "annotations" | "ai-analysis" | "transcript";
@@ -87,9 +102,7 @@ export function RightSidebar({ note, activeTab, onTabChange, onCollapse, isCompa
         )}
         {isVideo && (
           <TabsContent value="visual" className="flex-1 overflow-y-auto scrollbar-hide mt-0">
-            <div className="p-4 text-sm text-muted-foreground">
-              Visual frames — Task 24 placeholder
-            </div>
+            <VisualFrames frames={mergedFrames(note)} />
           </TabsContent>
         )}
         <TabsContent value="annotations" className="flex-1 overflow-y-auto scrollbar-hide mt-0">
