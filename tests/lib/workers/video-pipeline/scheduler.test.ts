@@ -9,6 +9,7 @@ const {
   refetchJobMock,
   runDownloadStepMock,
   runProbeAndCoverStepMock,
+  runTranscodeStepMock,
   runAnalyzeAudioStepMock,
   runExtractFramesStepMock,
   runAnalyzeVisualStepMock,
@@ -18,6 +19,7 @@ const {
   refetchJobMock: vi.fn(),
   runDownloadStepMock: vi.fn(),
   runProbeAndCoverStepMock: vi.fn(),
+  runTranscodeStepMock: vi.fn(),
   runAnalyzeAudioStepMock: vi.fn(),
   runExtractFramesStepMock: vi.fn(),
   runAnalyzeVisualStepMock: vi.fn(),
@@ -35,6 +37,10 @@ vi.mock('@/lib/workers/video-pipeline/step-download', () => ({
 
 vi.mock('@/lib/workers/video-pipeline/step-probe-and-cover', () => ({
   runProbeAndCoverStep: runProbeAndCoverStepMock,
+}));
+
+vi.mock('@/lib/workers/video-pipeline/step-transcode', () => ({
+  runTranscodeStep: runTranscodeStepMock,
 }));
 
 vi.mock('@/lib/workers/video-pipeline/step-analyze-audio', () => ({
@@ -74,6 +80,7 @@ function makeJob(id: string) {
     download_status: 'pending' as const,
     probe_status: 'pending' as const,
     cover_status: 'pending' as const,
+    transcode_status: 'pending' as const,
     frame_status: 'pending' as const,
     audio_status: 'pending' as const,
     visual_status: 'pending' as const,
@@ -89,6 +96,9 @@ function makeJob(id: string) {
     audio_error: null,
     visual_result: null,
     visual_error: null,
+    transcode_job_id: null,
+    transcoded_key: null,
+    transcoded_url: null,
     retry_count: 0,
     next_retry_at: null,
     updated_at: new Date().toISOString(),
@@ -108,6 +118,7 @@ describe('scheduler', () => {
     refetchJobMock.mockImplementation(async (id: string) => makeJob(id));
     runDownloadStepMock.mockResolvedValue(undefined);
     runProbeAndCoverStepMock.mockResolvedValue(undefined);
+    runTranscodeStepMock.mockResolvedValue(undefined);
     runAnalyzeAudioStepMock.mockResolvedValue(undefined);
     runExtractFramesStepMock.mockResolvedValue(undefined);
     runAnalyzeVisualStepMock.mockResolvedValue(undefined);
@@ -150,13 +161,14 @@ describe('scheduler', () => {
   // -------------------------------------------------------------------------
   // 2. tick(): step ordering for a single job
   // -------------------------------------------------------------------------
-  it('tick processes steps in the correct order: download → probe → audio → frame → visual → reconcile', async () => {
+  it('tick processes steps in the correct order: download → probe → transcode → audio → frame → visual → reconcile', async () => {
     const job = makeJob('j1');
     fetchPendingJobsMock.mockResolvedValue([job]);
     const callOrder: string[] = [];
 
     runDownloadStepMock.mockImplementation(async () => { callOrder.push('download'); });
     runProbeAndCoverStepMock.mockImplementation(async () => { callOrder.push('probe'); });
+    runTranscodeStepMock.mockImplementation(async () => { callOrder.push('transcode'); });
     runAnalyzeAudioStepMock.mockImplementation(async () => { callOrder.push('audio'); });
     runExtractFramesStepMock.mockImplementation(async () => { callOrder.push('frame'); });
     runAnalyzeVisualStepMock.mockImplementation(async () => { callOrder.push('visual'); });
@@ -164,7 +176,7 @@ describe('scheduler', () => {
 
     await tick();
 
-    expect(callOrder).toEqual(['download', 'probe', 'audio', 'frame', 'visual', 'reconcile']);
+    expect(callOrder).toEqual(['download', 'probe', 'transcode', 'audio', 'frame', 'visual', 'reconcile']);
     expect(reconcileJobMock).toHaveBeenCalledWith('j1');
   });
 

@@ -88,6 +88,17 @@ export interface MediaProcessingCapability {
     rows: number;
     cols: number;
   }): Promise<{ key: string; url: string; vttKey?: string }>;
+
+  submitTranscode(input: {
+    sourceKey: string;
+    outputKey: string;
+    targetCodec: 'h264';
+  }): Promise<{ jobId: string }>;
+
+  getTranscodeStatus(jobId: string): Promise<{
+    status: 'pending' | 'running' | 'done' | 'failed';
+    error?: string;
+  }>;
 }
 
 /** 运行时探测 adapter 是否带 CI 能力 */

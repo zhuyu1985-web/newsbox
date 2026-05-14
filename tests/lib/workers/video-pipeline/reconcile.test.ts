@@ -58,6 +58,7 @@ function makeJob(overrides: Record<string, unknown> = {}) {
     visual_status: 'done',
     probe_status: 'done',
     cover_status: 'done',
+    transcode_status: 'done',
     frame_status: 'done',
     retry_count: 0,
     ...overrides,
@@ -263,5 +264,51 @@ describe('reconcileJob', () => {
     });
 
     await expect(reconcileJob('job-1')).rejects.toThrow('row not found');
+  });
+
+  // -------------------------------------------------------------------------
+  // Scenario 11: transcode failed with retry_count >= 3 → failed
+  // -------------------------------------------------------------------------
+  it('sets failed when transcode_status is failed and retry_count >= 3', async () => {
+    mocks.selectSingleMock.mockResolvedValueOnce({
+      data: makeJob({
+        download_status: 'done',
+        transcode_status: 'failed',
+        audio_status: 'pending',
+        visual_status: 'pending',
+        retry_count: 3,
+      }),
+      error: null,
+    });
+
+    await reconcileJob('job-1');
+
+    expect(mocks.updateCalls).toHaveLength(1);
+    const { data } = mocks.updateCalls[0];
+    expect(data.video_overall_status).toBe('failed');
+    expect(data.video_ready_at).toBeUndefined();
+  });
+
+  // -------------------------------------------------------------------------
+  // Scenario 12: transcode in_progress → processing (not yet done)
+  // -------------------------------------------------------------------------
+  it('sets processing when transcode is still in_progress', async () => {
+    mocks.selectSingleMock.mockResolvedValueOnce({
+      data: makeJob({
+        download_status: 'done',
+        transcode_status: 'in_progress',
+        audio_status: 'pending',
+        visual_status: 'pending',
+        retry_count: 0,
+      }),
+      error: null,
+    });
+
+    await reconcileJob('job-1');
+
+    expect(mocks.updateCalls).toHaveLength(1);
+    const { data } = mocks.updateCalls[0];
+    expect(data.video_overall_status).toBe('media_ready');
+    expect(data.video_ready_at).toBeUndefined();
   });
 });

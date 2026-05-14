@@ -2,6 +2,7 @@
 import { fetchPendingJobs, refetchJob } from './db';
 import { runDownloadStep } from './step-download';
 import { runProbeAndCoverStep } from './step-probe-and-cover';
+import { runTranscodeStep } from './step-transcode';
 import { runExtractFramesStep } from './step-extract-frames';
 import { runAnalyzeAudioStep } from './step-analyze-audio';
 import { runAnalyzeVisualStep } from './step-analyze-visual';
@@ -48,6 +49,7 @@ async function processJob(initial: VideoJob): Promise<void> {
   const steps: Array<{ name: string; run: (j: VideoJob) => Promise<void> }> = [
     { name: 'download', run: runDownloadStep },
     { name: 'probe+cover', run: runProbeAndCoverStep },
+    { name: 'transcode', run: runTranscodeStep },
     { name: 'audio', run: runAnalyzeAudioStep },
     { name: 'frame', run: runExtractFramesStep },
     { name: 'visual', run: runAnalyzeVisualStep },

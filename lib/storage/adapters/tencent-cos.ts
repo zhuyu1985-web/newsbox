@@ -195,6 +195,87 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
     };
   }
 
+  // ── Transcode (HEVC → H.264 via COS CI 媒体转码) ─────────────────────────
+  //
+  // COS CI 转码 API 使用独立域名 {bucket}.ci.{region}.myqcloud.com，
+  // 该域名要求 CAM 签名鉴权，不能走公开 fetch。
+  // 使用 cos.request() 让 SDK 自动计算 Authorization 头。
+
+  async submitTranscode(input: {
+    sourceKey: string;
+    outputKey: string;
+    targetCodec: 'h264';
+  }): Promise<{ jobId: string }> {
+    const { bucket, region } = this.env;
+    const xmlBody = [
+      '<Request>',
+      '  <Tag>Transcode</Tag>',
+      `  <Input><Object>${input.sourceKey}</Object></Input>`,
+      '  <Operation>',
+      `    <Output>`,
+      `      <Region>${region}</Region>`,
+      `      <Bucket>${bucket}</Bucket>`,
+      `      <Object>${input.outputKey}</Object>`,
+      `    </Output>`,
+      '    <Transcode>',
+      '      <Container><Format>mp4</Format></Container>',
+      '      <Video><Codec>H.264</Codec><Profile>main</Profile><Bitrate>1500</Bitrate></Video>',
+      '      <Audio><Codec>AAC</Codec></Audio>',
+      '    </Transcode>',
+      '  </Operation>',
+      '</Request>',
+    ].join('\n');
+
+    const xml = await this.ciRequest('POST', '/jobs', xmlBody);
+    const jobId = pickField(xml, 'JobId');
+    if (!jobId) throw new Error(`submitTranscode: could not parse JobId from response: ${xml.slice(0, 200)}`);
+    return { jobId };
+  }
+
+  async getTranscodeStatus(jobId: string): Promise<{
+    status: 'pending' | 'running' | 'done' | 'failed';
+    error?: string;
+  }> {
+    const xml = await this.ciRequest('GET', `/jobs/${jobId}`, undefined);
+    const state = pickField(xml, 'State') ?? '';
+    // COS CI states: Submitted | Running | Success | Failed | Pause | Cancel
+    if (state === 'Success') return { status: 'done' };
+    if (state === 'Running') return { status: 'running' };
+    if (state === 'Failed') {
+      const errMsg = pickField(xml, 'FailCause') ?? 'unknown error';
+      return { status: 'failed', error: errMsg };
+    }
+    // Submitted / Pause / Cancel → treat as pending
+    return { status: 'pending' };
+  }
+
+  /**
+   * 向 COS CI 域名 ({bucket}.ci.{region}.myqcloud.com) 发送签名请求。
+   * cos.request() 内部会自动附加 Authorization 头。
+   */
+  private ciRequest(method: 'GET' | 'POST', path: string, body: string | undefined): Promise<string> {
+    const { bucket, region } = this.env;
+    return new Promise((resolve, reject) => {
+      const params: Record<string, unknown> = {
+        Bucket: bucket,
+        Region: region,
+        Method: method,
+        Url: `https://${bucket}.ci.${region}.myqcloud.com${path}`,
+        RawBody: true,
+      };
+      if (body !== undefined) {
+        params.Body = body;
+        params.ContentType = 'application/xml';
+      }
+      (this.cos as any).request(params, (err: any, data: any) => {
+        if (err) return reject(new Error(`ciRequest ${method} ${path}: ${err.message || err}`));
+        // cos.request 返回的 body 字段可能是 Buffer 或 string
+        const raw = data?.Body ?? data?.body ?? data;
+        resolve(typeof raw === 'string' ? raw : Buffer.isBuffer(raw) ? raw.toString('utf8') : JSON.stringify(raw));
+      });
+    });
+  }
+
   private async fetchSnapshot(sourceKey: string, timeSec: number): Promise<Buffer> {
     const url =
       this.getPublicUrl(sourceKey) +

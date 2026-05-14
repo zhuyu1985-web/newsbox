@@ -43,11 +43,16 @@ export interface VideoJob {
   visual_result: any;
   visual_error: string | null;
 
+  transcode_status: VideoJobStepStatus;
+  transcode_job_id: string | null;
+  transcoded_key: string | null;
+  transcoded_url: string | null;
+
   retry_count: number;
   next_retry_at: string | null;
   updated_at: string;
 }
 
 export type StepName =
-  | 'download' | 'probe' | 'cover' | 'frame'
+  | 'download' | 'probe' | 'cover' | 'transcode' | 'frame'
   | 'audio' | 'visual';

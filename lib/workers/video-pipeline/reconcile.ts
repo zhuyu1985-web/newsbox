@@ -38,6 +38,7 @@ function computeOverall(job: VideoJob): { status: OverallStatus; writeReadyAt: b
     visual_status,
     probe_status,
     cover_status,
+    transcode_status,
     frame_status,
     retry_count,
   } = job;
@@ -55,6 +56,7 @@ function computeOverall(job: VideoJob): { status: OverallStatus; writeReadyAt: b
     visual_status,
     probe_status,
     cover_status,
+    transcode_status,
     frame_status,
   ];
   const hasHardFailed = retry_count >= 3 && allStepStatuses.some((s) => s === 'failed');
