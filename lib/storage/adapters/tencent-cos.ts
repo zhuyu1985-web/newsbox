@@ -119,6 +119,11 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
   }
 
   // ── MediaProcessingCapability ──────────────────────────────────────────────
+  //
+  // 实现说明：COS 数据万象 CI 通过 query param `?ci-process=...` 走 GET。
+  // 桶配置为公有读，所以 GET 不需要签名，直接 fetch 公开 URL 即可。
+  // SDK 的 cos.request + RawBody 在 CI 场景下会把 XML 当二进制返回且没默认超时，
+  // 我们改走原生 fetch + AbortSignal.timeout(60s) 更稳。
 
   async probe(sourceKey: string): Promise<{
     durationSec: number;
@@ -128,19 +133,21 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
     audioCodec: string;
     sizeBytes: number;
   }> {
-    const data = await this.ciRequest({
-      Key: sourceKey,
-      Query: { 'ci-process': 'videoinfo' },
-    });
-    const info = data?.Response?.MediaInfo;
-    if (!info) throw new Error('cos probe: empty MediaInfo');
+    const url = this.getPublicUrl(sourceKey) + '?ci-process=videoinfo';
+    const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+    if (!res.ok) throw new Error(`cos probe ${res.status}: ${await res.text().catch(() => '')}`);
+    const xml = await res.text();
+    const fmt = pickTag(xml, 'Format');
+    const stream = pickTag(xml, 'Stream');
+    const videoStream = pickTag(stream, 'Video');
+    const audioStream = pickTag(stream, 'Audio');
     return {
-      durationSec: Number(info.Format?.Duration ?? 0),
-      width: Number(info.Stream?.Video?.Width ?? 0),
-      height: Number(info.Stream?.Video?.Height ?? 0),
-      videoCodec: String(info.Stream?.Video?.Codec_name ?? ''),
-      audioCodec: String(info.Stream?.Audio?.Codec_name ?? ''),
-      sizeBytes: Number(info.Format?.Size ?? 0),
+      durationSec: Number(pickField(fmt, 'Duration') ?? 0),
+      sizeBytes: Number(pickField(fmt, 'Size') ?? 0),
+      width: Number(pickField(videoStream, 'Width') ?? 0),
+      height: Number(pickField(videoStream, 'Height') ?? 0),
+      videoCodec: String(pickField(videoStream, 'CodecName') ?? ''),
+      audioCodec: String(pickField(audioStream, 'CodecName') ?? ''),
     };
   }
 
@@ -148,13 +155,8 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
     sourceKey: string;
     outputKey: string;
   }): Promise<{ key: string; url: string }> {
-    const data = await this.ciRequest({
-      Key: input.sourceKey,
-      Query: { 'ci-process': 'snapshot', time: '0', format: 'jpg' },
-    });
-    const body = data?.Body;
-    if (!body) throw new Error('cos snapshot: empty body');
-    await this.upload({ key: input.outputKey, body: body as Buffer, contentType: 'image/jpeg' });
+    const buf = await this.fetchSnapshot(input.sourceKey, 0);
+    await this.upload({ key: input.outputKey, body: buf, contentType: 'image/jpeg' });
     return { key: input.outputKey, url: this.getPublicUrl(input.outputKey) };
   }
 
@@ -165,14 +167,9 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
   }): Promise<Array<{ timestamp: number; key: string; url: string }>> {
     const results: Array<{ timestamp: number; key: string; url: string }> = [];
     for (const t of input.timestamps) {
-      const data = await this.ciRequest({
-        Key: input.sourceKey,
-        Query: { 'ci-process': 'snapshot', time: String(t), format: 'jpg' },
-      });
-      const body = data?.Body;
-      if (!body) throw new Error(`cos snapshot at ${t}s: empty body`);
+      const buf = await this.fetchSnapshot(input.sourceKey, t);
       const outKey = `${input.outputKeyPrefix}-${String(t).padStart(6, '0')}.jpg`;
-      await this.upload({ key: outKey, body: body as Buffer, contentType: 'image/jpeg' });
+      await this.upload({ key: outKey, body: buf, contentType: 'image/jpeg' });
       results.push({ timestamp: t, key: outKey, url: this.getPublicUrl(outKey) });
     }
     return results;
@@ -184,39 +181,44 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
     rows: number;
     cols: number;
   }): Promise<{ key: string; url: string; vttKey?: string }> {
-    const data = await this.ciRequest({
-      Key: input.sourceKey,
-      Query: {
-        'ci-process': 'videoprocess',
-        operation: `sprite/${input.rows}x${input.cols}`,
-        output: input.outputKey,
-      },
-    });
-    const out = data?.Response?.OutputFile?.ObjectName ?? input.outputKey;
-    const vtt = data?.Response?.OutputVttFile?.ObjectName;
+    const url =
+      this.getPublicUrl(input.sourceKey) +
+      `?ci-process=videoprocess&operation=sprite/${input.rows}x${input.cols}` +
+      `&output=${encodeURIComponent(input.outputKey)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+    if (!res.ok) throw new Error(`cos sprite ${res.status}: ${await res.text().catch(() => '')}`);
+    const xml = await res.text();
+    const out = pickField(xml, 'ObjectName') ?? input.outputKey;
     return {
       key: out,
       url: this.getPublicUrl(out),
-      vttKey: vtt,
     };
   }
 
-  private ciRequest(params: { Key: string; Query: Record<string, string> }): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.cos.request(
-        {
-          Bucket: this.env.bucket,
-          Region: this.env.region,
-          Method: 'GET',
-          Key: params.Key,
-          Query: params.Query,
-          RawBody: true,
-        } as any,
-        (err: any, data: any) =>
-          err ? reject(new Error(`cos CI failed: ${err.message || err}`)) : resolve(data)
-      );
-    });
+  private async fetchSnapshot(sourceKey: string, timeSec: number): Promise<Buffer> {
+    const url =
+      this.getPublicUrl(sourceKey) +
+      `?ci-process=snapshot&time=${timeSec}&format=jpg`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+    if (!res.ok) {
+      throw new Error(`cos snapshot ${res.status} at ${timeSec}s: ${await res.text().catch(() => '')}`);
+    }
+    const ab = await res.arrayBuffer();
+    if (ab.byteLength === 0) throw new Error(`cos snapshot at ${timeSec}s: empty body`);
+    return Buffer.from(ab);
   }
+}
+
+/** 极简 XML tag/field 提取（COS CI 的 videoinfo / sprite 响应只有简单嵌套，不引入 xml2js）*/
+function pickTag(xml: string | undefined, tagName: string): string | undefined {
+  if (!xml) return undefined;
+  const re = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`);
+  const m = xml.match(re);
+  return m?.[1];
+}
+
+function pickField(xml: string | undefined, tagName: string): string | undefined {
+  return pickTag(xml, tagName)?.trim();
 }
 
 function toBuffer(body: Buffer | ReadableStream | Blob): Buffer {

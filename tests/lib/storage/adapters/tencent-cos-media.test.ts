@@ -1,12 +1,16 @@
 // tests/lib/storage/adapters/tencent-cos-media.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const requestMock = vi.fn();
-const putObjectMock = vi.fn();
+const { fetchMock, putObjectMock } = vi.hoisted(() => ({
+  fetchMock: vi.fn(),
+  putObjectMock: vi.fn(),
+}));
+
+vi.stubGlobal('fetch', fetchMock);
 
 vi.mock('cos-nodejs-sdk-v5', () => ({
   default: class MockCos {
-    request = requestMock;
+    request = vi.fn();
     putObject = putObjectMock;
     deleteObject = vi.fn();
     headObject = vi.fn();
@@ -26,21 +30,32 @@ describe('TencentCosAdapter media processing', () => {
     delete process.env.TENCENT_COS_CUSTOM_DOMAIN;
   });
 
-  it('probe parses GetMediaInfo response', async () => {
-    requestMock.mockImplementation((_p: any, cb: any) =>
-      cb(null, {
-        statusCode: 200,
-        Response: {
-          MediaInfo: {
-            Format: { Duration: '125.5', Bitrate: '2000', Size: '12345678' },
-            Stream: {
-              Video: { Width: '1920', Height: '1080', Codec_name: 'h264' },
-              Audio: { Codec_name: 'aac' },
-            },
-          },
-        },
-      })
-    );
+  it('probe parses GetMediaInfo XML response', async () => {
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<Response>
+  <MediaInfo>
+    <Format>
+      <Duration>125.5</Duration>
+      <Bitrate>2000</Bitrate>
+      <Size>12345678</Size>
+    </Format>
+    <Stream>
+      <Video>
+        <Width>1920</Width>
+        <Height>1080</Height>
+        <CodecName>h264</CodecName>
+      </Video>
+      <Audio>
+        <CodecName>aac</CodecName>
+      </Audio>
+    </Stream>
+  </MediaInfo>
+</Response>`;
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => xml,
+    });
     const a = new TencentCosAdapter();
     const info = await a.probe('u/v.mp4');
     expect(info.durationSec).toBe(125.5);
@@ -49,12 +64,29 @@ describe('TencentCosAdapter media processing', () => {
     expect(info.videoCodec).toBe('h264');
     expect(info.audioCodec).toBe('aac');
     expect(info.sizeBytes).toBe(12345678);
+
+    // 验证 fetch 调用了 videoinfo URL
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('?ci-process=videoinfo'),
+      expect.any(Object)
+    );
+  });
+
+  it('probe throws when CI returns non-2xx', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      text: async () => 'Media processing service is not activated',
+    });
+    const a = new TencentCosAdapter();
+    await expect(a.probe('u/v.mp4')).rejects.toThrow(/403/);
   });
 
   it('extractFrames returns one URL per timestamp', async () => {
-    requestMock.mockImplementation((_p: any, cb: any) =>
-      cb(null, { statusCode: 200, Body: Buffer.from('FAKEIMG') })
-    );
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode('FAKE0').buffer })
+      .mockResolvedValueOnce({ ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode('FAKE30').buffer })
+      .mockResolvedValueOnce({ ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode('FAKE60').buffer });
     putObjectMock.mockImplementation((_p: any, cb: any) =>
       cb(null, { Location: '...' })
     );
@@ -71,9 +103,11 @@ describe('TencentCosAdapter media processing', () => {
   });
 
   it('generateSmartCover uploads cover and returns url', async () => {
-    requestMock.mockImplementation((_p: any, cb: any) =>
-      cb(null, { statusCode: 200, Body: Buffer.from('COVER') })
-    );
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => new TextEncoder().encode('COVER').buffer,
+    });
     putObjectMock.mockImplementation((_p: any, cb: any) =>
       cb(null, { Location: '...' })
     );
@@ -86,16 +120,18 @@ describe('TencentCosAdapter media processing', () => {
     expect(cover.url).toContain('u/covers/v.jpg');
   });
 
-  it('generateSpriteSheet returns sprite + vtt urls', async () => {
-    requestMock.mockImplementation((_p: any, cb: any) =>
-      cb(null, {
-        statusCode: 200,
-        Response: {
-          OutputFile: { ObjectName: 'u/sprites/v.jpg' },
-          OutputVttFile: { ObjectName: 'u/sprites/v.vtt' },
-        },
-      })
-    );
+  it('generateSpriteSheet returns sprite url', async () => {
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<Response>
+  <OutputFile>
+    <ObjectName>u/sprites/v.jpg</ObjectName>
+  </OutputFile>
+</Response>`;
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => xml,
+    });
     const a = new TencentCosAdapter();
     const r = await a.generateSpriteSheet({
       sourceKey: 'u/v.mp4',
@@ -104,6 +140,5 @@ describe('TencentCosAdapter media processing', () => {
       cols: 5,
     });
     expect(r.key).toBe('u/sprites/v.jpg');
-    expect(r.vttKey).toBe('u/sprites/v.vtt');
   });
 });
