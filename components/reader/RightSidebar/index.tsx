@@ -3,6 +3,7 @@
 import { AnnotationList } from "./AnnotationList";
 import { AIAnalysisPanel } from "./AIAnalysisPanel";
 import { TranscriptView } from "./TranscriptView";
+import { QAPanel } from "./QAPanel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Note } from "@/components/reader/ReaderPageWrapper";
 
@@ -78,9 +79,10 @@ export function RightSidebar({ note, activeTab, onTabChange, onCollapse, isCompa
         )}
         {isVideo && (
           <TabsContent value="qa" className="flex-1 overflow-y-auto scrollbar-hide mt-0">
-            <div className="p-4 text-sm text-muted-foreground">
-              Q&amp;A panel — Task 23 placeholder
-            </div>
+            <QAPanel
+              noteId={note.id}
+              prebuiltQAs={note.video_job?.audio_result?.qaPairs ?? []}
+            />
           </TabsContent>
         )}
         {isVideo && (
