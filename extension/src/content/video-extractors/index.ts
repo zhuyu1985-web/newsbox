@@ -1,8 +1,12 @@
 import type { IVideoExtractor, VideoCapture } from './base';
 import { DouyinExtractor } from './douyin';
+import { KuaishouExtractor } from './kuaishou';
+import { WeiboExtractor } from './weibo';
 
 const REGISTRY: IVideoExtractor[] = [
   new DouyinExtractor(),
+  new KuaishouExtractor(),
+  new WeiboExtractor(),
 ];
 
 export function findExtractor(url: string, doc: Document = document): IVideoExtractor | null {
