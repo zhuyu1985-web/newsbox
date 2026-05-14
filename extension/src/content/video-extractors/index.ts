@@ -1,12 +1,16 @@
 import type { IVideoExtractor, VideoCapture } from './base';
+import { BilibiliExtractor } from './bilibili';
 import { DouyinExtractor } from './douyin';
 import { KuaishouExtractor } from './kuaishou';
 import { WeiboExtractor } from './weibo';
+import { WeixinChannelExtractor } from './weixin-channel';
 
 const REGISTRY: IVideoExtractor[] = [
+  new BilibiliExtractor(),
   new DouyinExtractor(),
   new KuaishouExtractor(),
   new WeiboExtractor(),
+  new WeixinChannelExtractor(),
 ];
 
 export function findExtractor(url: string, doc: Document = document): IVideoExtractor | null {
