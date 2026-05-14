@@ -1,109 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Sparkles, Clock } from "lucide-react";
+import { useState } from "react";
+import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-
-interface Chapter {
-  id: string;
-  title: string;
-  start_time: number;
-  end_time: number | null;
-  position: number;
-  generated_by_ai: boolean;
-  confidence_score: number | null;
-}
+import type { Note } from "@/components/reader/ReaderPageWrapper";
+import type { Chapter } from "@/lib/ai-analysis/types";
 
 interface VideoChaptersProps {
-  noteId: string;
+  note: Note;
 }
 
-export function VideoChapters({ noteId }: VideoChaptersProps) {
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [activeChapter, setActiveChapter] = useState<string>("");
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
-  useEffect(() => {
-    loadChapters();
-  }, [noteId]);
+export function VideoChapters({ note }: VideoChaptersProps) {
+  const [activeStart, setActiveStart] = useState<number | null>(null);
 
-  const loadChapters = async () => {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("video_chapters")
-      .select("*")
-      .eq("note_id", noteId)
-      .order("position", { ascending: true });
+  // 从 video_job.audio_result.chapters 读取章节
+  const chapters: Chapter[] = note.video_job?.audio_result?.chapters ?? [];
 
-    if (!error && data) {
-      setChapters(data);
-    }
-    setLoading(false);
-  };
-
-  const handleGenerateChapters = async () => {
-    setGenerating(true);
-    try {
-      const response = await fetch("/api/chapters/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noteId }),
-      });
-
-      if (response.ok) {
-        await loadChapters();
-      } else {
-        toast.error("生成章节失败");
-      }
-    } catch (error) {
-      console.error("Generate chapters error:", error);
-      toast.error("生成章节失败");
-    } finally {
-      setGenerating(false);
-    }
-  };
+  // 非视频笔记或者 video_job 不存在时早返
+  if (note.content_type !== "video") {
+    return null;
+  }
 
   const handleChapterClick = (chapter: Chapter) => {
-    // TODO: 触发视频跳转到对应时间
-    setActiveChapter(chapter.id);
+    setActiveStart(chapter.start);
     window.dispatchEvent(
-      new CustomEvent("video-seek", { detail: { time: chapter.start_time } })
+      new CustomEvent("video:seek", { detail: { time: chapter.start } })
     );
   };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  if (loading) {
-    return (
-      <div className="p-4 text-center text-sm text-muted-foreground">
-        加载中...
-      </div>
-    );
-  }
 
   if (chapters.length === 0) {
     return (
-      <div className="p-4 space-y-3">
-        <p className="text-sm text-muted-foreground text-center">
-          暂无章节信息
-        </p>
-        <Button
-          onClick={handleGenerateChapters}
-          disabled={generating}
-          className="w-full"
-          size="sm"
-        >
-          <Sparkles className="h-4 w-4 mr-2" />
-          {generating ? "AI生成中..." : "AI生成章节"}
-        </Button>
+      <div className="p-4 text-sm text-muted-foreground text-center">
+        章节生成中...
       </div>
     );
   }
@@ -115,10 +49,10 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
 
       <ul className="space-y-1 relative">
         {chapters.map((chapter) => {
-          const isActive = activeChapter === chapter.id;
+          const isActive = activeStart === chapter.start;
 
           return (
-            <li key={chapter.id} className="relative">
+            <li key={chapter.start} className="relative">
               {/* 活动点指示器 */}
               {isActive && (
                 <div className="absolute left-[13px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-800 ring-4 ring-slate-100 z-10 dark:bg-slate-200 dark:ring-slate-800" />
@@ -127,36 +61,29 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
               <button
                 onClick={() => handleChapterClick(chapter)}
                 className={cn(
-                  "w-full text-left py-2 pr-3 pl-8 transition-all duration-200 rounded-lg group flex items-start gap-3",
+                  "w-full text-left py-2 pr-3 pl-8 transition-all duration-200 rounded-lg group flex flex-col gap-0.5",
                   isActive
                     ? "text-card-foreground bg-card shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-700/50"
                     : "text-muted-foreground hover:text-card-foreground hover:bg-muted/80"
                 )}
               >
-                <div className="flex-1 min-w-0">
-                  <div className={cn(
-                    "text-sm truncate",
-                    isActive ? "font-semibold" : "font-medium"
-                  )}>
-                    {chapter.title}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground/70 mt-1 flex items-center gap-1.5">
-                    <Clock className="h-3 w-3" />
-                    <span>{formatTime(chapter.start_time)}</span>
-                    {chapter.end_time && (
-                      <>
-                        <span className="opacity-30">|</span>
-                        <span>{formatTime(chapter.end_time)}</span>
-                      </>
-                    )}
-                  </div>
+                <div className={cn(
+                  "text-sm truncate",
+                  isActive ? "font-semibold" : "font-medium"
+                )}>
+                  {chapter.title}
                 </div>
-                {chapter.generated_by_ai && (
-                  <Sparkles className={cn(
-                    "h-3 w-3 shrink-0 mt-1",
-                    isActive ? "text-pink-500" : "text-muted-foreground/50 group-hover:text-pink-400 dark:group-hover:text-pink-300"
-                  )} />
+                {chapter.summary && (
+                  <div className="text-xs text-muted-foreground/70 line-clamp-2">
+                    {chapter.summary}
+                  </div>
                 )}
+                <div className="text-[11px] text-muted-foreground/70 flex items-center gap-1.5">
+                  <Clock className="h-3 w-3" />
+                  <span>{formatTime(chapter.start)}</span>
+                  <span className="opacity-30">-</span>
+                  <span>{formatTime(chapter.end)}</span>
+                </div>
               </button>
             </li>
           );
@@ -165,4 +92,3 @@ export function VideoChapters({ noteId }: VideoChaptersProps) {
     </div>
   );
 }
-

@@ -2,14 +2,7 @@
 
 import { ArticleOutline } from "./ArticleOutline";
 import { VideoChapters } from "./VideoChapters";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
-
-interface Note {
-  id: string;
-  content_type: "article" | "video" | "audio";
-  content_html: string | null;
-}
+import type { Note } from "@/components/reader/ReaderPageWrapper";
 
 interface LeftSidebarProps {
   note: Note;
@@ -35,7 +28,7 @@ export function LeftSidebar({ note, currentView, onCollapse }: LeftSidebarProps)
       {/* 侧栏内容 */}
       <div className="flex-1 overflow-y-auto">
         {note.content_type === "video" ? (
-          <VideoChapters noteId={note.id} />
+          <VideoChapters note={note} />
         ) : (
           <ArticleOutline content={note.content_html} />
         )}

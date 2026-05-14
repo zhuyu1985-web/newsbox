@@ -72,60 +72,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoveToFolderDialog } from "./GlobalHeader/MoveToFolderDialog";
 import { TagPopup } from "./GlobalHeader/TagPopup";
-
-// ============================================================================
-// Type Definitions (类型定义)
-// ============================================================================
-
-/**
- * 笔记数据结构
- *
- * 包含从数据库查询的笔记完整信息。
- */
-interface Note {
-  /** 笔记 ID */
-  id: string;
-  /** 原始 URL */
-  source_url: string;
-  /** 内容类型：article=图文，video=视频，audio=音频 */
-  content_type: "article" | "video" | "audio";
-  /** 标题 */
-  title: string | null;
-  /** 作者 */
-  author: string | null;
-  /** 来源站点名称 */
-  site_name: string | null;
-  /** 封面图 URL */
-  cover_image_url: string | null;
-  /** 摘要 */
-  excerpt: string | null;
-  /** HTML 格式内容 */
-  content_html: string | null;
-  /** 纯文本内容 */
-  content_text: string | null;
-  /** 媒体 URL（视频/音频）*/
-  media_url: string | null;
-  /** 媒体时长（秒）*/
-  media_duration: number | null;
-  /** 阅读状态：unread/reading/archived */
-  status: string;
-  /** 创建时间 */
-  created_at: string;
-  /** 发布时间 */
-  published_at: string | null;
-  /** 阅读位置（像素）*/
-  reading_position?: number;
-  /** 阅读百分比 (0-100) */
-  read_percentage?: number;
-  /** 预估阅读时间（分钟）*/
-  estimated_read_time?: number;
-  /** 阅读器偏好设置（JSON）*/
-  reader_preferences?: any;
-  /** 是否已星标 */
-  is_starred?: boolean;
-  /** 所属文件夹 ID */
-  folder_id?: string | null;
-}
+import type { Note } from "./ReaderPageWrapper";
 
 /**
  * 文件夹数据结构

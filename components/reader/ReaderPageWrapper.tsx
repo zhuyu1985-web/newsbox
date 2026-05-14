@@ -7,8 +7,23 @@ import { ReaderLayout } from "./ReaderLayout";
 import { ReaderSkeleton } from "./ReaderSkeleton";
 import { addBrowseHistoryEntry } from "@/lib/browse-history";
 import { motion, AnimatePresence } from "framer-motion";
+import type { AudioAnalysisResult, VisualFrameAnalysis } from "@/lib/ai-analysis/types";
 
-interface Note {
+export interface VideoJobRow {
+  id: string;
+  audio_result: AudioAnalysisResult | null;
+  visual_result: VisualFrameAnalysis[] | null;
+  frames: Array<{ timestamp: number; key: string; url: string }> | null;
+  cover_url: string | null;
+  cos_url: string | null;
+  transcoded_url: string | null;
+  download_status: string;
+  audio_status: string;
+  visual_status: string;
+  transcode_status: string;
+}
+
+export interface Note {
   id: string;
   source_url: string;
   content_type: "article" | "video" | "audio";
@@ -31,6 +46,7 @@ interface Note {
   folder_id?: string | null;
   deleted_at?: string | null;
   is_starred?: boolean;
+  video_job?: VideoJobRow | null;
 }
 
 interface Folder {
@@ -159,12 +175,16 @@ export function ReaderPageWrapper({
       return;
     }
 
-    // 一次性获取笔记和文件夹数据（使用 JOIN 减少往返）
+    // 一次性获取笔记和文件夹数据（使用 JOIN 减少往返），同时 join video_jobs 用于视频分析
     const { data: noteData, error: noteError } = await supabase
       .from("notes")
       .select(`
         *,
-        folder:folders(id, name, parent_id)
+        folder:folders(id, name, parent_id),
+        video_job:video_jobs(
+          id, audio_result, visual_result, frames, cover_url, cos_url, transcoded_url,
+          download_status, audio_status, visual_status, transcode_status
+        )
       `)
       .eq("id", noteId)
       .eq("user_id", user.id)

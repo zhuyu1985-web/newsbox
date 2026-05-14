@@ -1,5 +1,20 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { AudioAnalysisResult, VisualFrameAnalysis } from "@/lib/ai-analysis/types";
+
+interface VideoJobRow {
+  id: string;
+  audio_result: AudioAnalysisResult | null;
+  visual_result: VisualFrameAnalysis[] | null;
+  frames: Array<{ timestamp: number; key: string; url: string }> | null;
+  cover_url: string | null;
+  cos_url: string | null;
+  transcoded_url: string | null;
+  download_status: string;
+  audio_status: string;
+  visual_status: string;
+  transcode_status: string;
+}
 
 interface Note {
   id: string;
@@ -25,6 +40,7 @@ interface Note {
   deleted_at?: string | null;
   is_starred?: boolean;
   user_id: string;
+  video_job?: VideoJobRow | null;
 }
 
 interface Folder {
@@ -50,12 +66,16 @@ export async function NoteDetailAuthCheck({
     redirect("/auth/login");
   }
 
-  // 一次性获取笔记和文件夹数据，避免客户端重复查询
+  // 一次性获取笔记和文件夹数据，避免客户端重复查询，同时 join video_jobs 用于视频分析
   const { data: note, error } = await supabase
     .from("notes")
     .select(`
       *,
-      folder:folders(id, name, parent_id)
+      folder:folders(id, name, parent_id),
+      video_job:video_jobs(
+        id, audio_result, visual_result, frames, cover_url, cos_url, transcoded_url,
+        download_status, audio_status, visual_status, transcode_status
+      )
     `)
     .eq("id", id)
     .eq("user_id", user.id)
