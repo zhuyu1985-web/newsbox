@@ -171,7 +171,9 @@ describe('runProbeAndCoverStep', () => {
     await runProbeAndCoverStep(baseJob as any);
 
     expect(markStepMock).toHaveBeenCalledWith('j1', 'probe', 'in_progress');
-    expect(markStepMock).toHaveBeenCalledWith('j1', 'probe', 'failed');
+    expect(markStepMock).toHaveBeenCalledWith('j1', 'probe', 'failed', expect.objectContaining({
+      probe_data: expect.objectContaining({ error: expect.stringContaining('CI probe timeout') }),
+    }));
 
     // Cover should still run
     expect(markStepMock).toHaveBeenCalledWith('j1', 'cover', 'in_progress');

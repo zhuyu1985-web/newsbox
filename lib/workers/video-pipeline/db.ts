@@ -66,3 +66,19 @@ export async function incrementRetry(jobId: string): Promise<void> {
 export function isStale(updatedAt: string, thresholdMs: number): boolean {
   return Date.now() - new Date(updatedAt).getTime() > thresholdMs;
 }
+
+/**
+ * 重新拉取一条 video_job 的最新状态。
+ * scheduler 在两个 step 之间调用，确保下一个 step 看到的不是过期 snapshot
+ * （markStep 写 DB 但不 mutate 内存对象）。
+ */
+export async function refetchJob(jobId: string): Promise<VideoJob | null> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('video_jobs')
+    .select('*')
+    .eq('id', jobId)
+    .single();
+  if (error) throw new Error(`refetchJob: ${error.message}`);
+  return (data ?? null) as VideoJob | null;
+}

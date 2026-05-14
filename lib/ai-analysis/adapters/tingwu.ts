@@ -28,7 +28,8 @@ export class TingwuAdapter implements AudioAnalysisProvider {
     const body = {
       AppKey: process.env.ALI_TINGWU_APPKEY,
       Input: {
-        SourceLanguage: input.language ?? 'cn',
+        // 听悟的语言码与 ISO 639-1 不同：中文是 'cn'，英文是 'en'，自动是 'auto'
+        SourceLanguage: mapLanguageToTingwu(input.language),
         FileUrl: input.mediaUrl,
         Format: undefined,  // 自动识别
       },
@@ -61,15 +62,47 @@ export class TingwuAdapter implements AudioAnalysisProvider {
   }
 }
 
+function mapLanguageToTingwu(lang: 'zh' | 'en' | 'auto' | undefined): string {
+  switch (lang) {
+    case 'zh':
+    case undefined:
+      return 'cn';
+    case 'en':
+      return 'en';
+    case 'auto':
+      return 'auto';
+    default:
+      return 'cn';
+  }
+}
+
 function buildCapabilityParameters(caps: Array<string>): Record<string, any> {
-  return {
+  const params: Record<string, any> = {
     Transcription: { DiarizationEnabled: caps.includes('transcript') },
-    AutoChaptersEnabled: caps.includes('chapters'),
-    SummarizationEnabled: caps.includes('summary'),
-    KeyPointsEnabled: caps.includes('key_points'),
-    // 注：Q&A 是否真的能开取决于 spike 验证；不可用时不传
-    AskQuestionEnabled: caps.includes('qa'),
   };
+
+  if (caps.includes('chapters')) {
+    params.AutoChaptersEnabled = true;
+  }
+
+  if (caps.includes('summary')) {
+    // 听悟要求 SummarizationEnabled=true 时同时传 Summarization.Types
+    params.SummarizationEnabled = true;
+    params.Summarization = { Types: ['Paragraph'] };
+  }
+
+  if (caps.includes('key_points')) {
+    // 听悟没有独立的"关键词"开关；通过 ExtraParams.MaxKeywords 启用
+    params.ExtraParams = { ...(params.ExtraParams ?? {}), MaxKeywords: 10 };
+  }
+
+  if (caps.includes('qa')) {
+    // Q&A 走 MeetingAssistance（需要听悟控制台先开通对应能力）
+    params.MeetingAssistanceEnabled = true;
+    params.MeetingAssistance = { Types: ['Question', 'Conclusion'] };
+  }
+
+  return params;
 }
 
 /**

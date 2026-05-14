@@ -36,8 +36,12 @@ export async function runProbeAndCoverStep(job: VideoJob): Promise<void> {
         .from('notes')
         .update({ media_duration: Math.round(info.durationSec) })
         .eq('id', job.note_id);
-    } catch {
-      await markStep(job.id, 'probe', 'failed');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[video-worker] probe failed (job=${job.id})`, msg);
+      await markStep(job.id, 'probe', 'failed', {
+        probe_data: { error: msg.slice(0, 500) },
+      });
     }
   }
 
@@ -55,7 +59,9 @@ export async function runProbeAndCoverStep(job: VideoJob): Promise<void> {
         outputKey: outKey,
       });
       await markStep(job.id, 'cover', 'done', { cover_url: cover.url });
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[video-worker] cover failed (job=${job.id})`, msg);
       await markStep(job.id, 'cover', 'failed');
     }
   }

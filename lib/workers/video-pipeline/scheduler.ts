@@ -1,5 +1,5 @@
 // lib/workers/video-pipeline/scheduler.ts
-import { fetchPendingJobs } from './db';
+import { fetchPendingJobs, refetchJob } from './db';
 import { runDownloadStep } from './step-download';
 import { runProbeAndCoverStep } from './step-probe-and-cover';
 import { runExtractFramesStep } from './step-extract-frames';
@@ -42,17 +42,37 @@ export async function tick(): Promise<void> {
   }
 }
 
-async function processJob(job: VideoJob): Promise<void> {
+async function processJob(initial: VideoJob): Promise<void> {
+  // 每个 step 之间 refetch，避免上一个 step 通过 markStep 改了 DB 但内存对象仍是过期 snapshot，
+  // 导致下一个 step 的前置条件检查（例如 download_status === 'done'）误判为未就绪。
+  const steps: Array<{ name: string; run: (j: VideoJob) => Promise<void> }> = [
+    { name: 'download', run: runDownloadStep },
+    { name: 'probe+cover', run: runProbeAndCoverStep },
+    { name: 'audio', run: runAnalyzeAudioStep },
+    { name: 'frame', run: runExtractFramesStep },
+    { name: 'visual', run: runAnalyzeVisualStep },
+  ];
+
+  let job: VideoJob | null = initial;
+  for (const step of steps) {
+    if (!job) break;
+    try {
+      await step.run(job);
+    } catch (err) {
+      // Error isolation: single step failure does not abort remaining steps
+      console.error(`[video-worker] step ${step.name} error (job=${job.id})`, err);
+    }
+    try {
+      job = await refetchJob(initial.id);
+    } catch (err) {
+      console.error(`[video-worker] refetch after ${step.name} error (job=${initial.id})`, err);
+      job = null;
+    }
+  }
+
   try {
-    // 顺序：download → probe & cover → audio → frame → visual → reconcile
-    await runDownloadStep(job);
-    await runProbeAndCoverStep(job);
-    await runAnalyzeAudioStep(job);
-    await runExtractFramesStep(job);
-    await runAnalyzeVisualStep(job);
-    await reconcileJob(job.id);
+    await reconcileJob(initial.id);
   } catch (err) {
-    // Error isolation: single job failure does not abort remaining jobs
-    console.error(`[video-worker] processJob error (job=${job.id})`, err);
+    console.error(`[video-worker] reconcile error (job=${initial.id})`, err);
   }
 }

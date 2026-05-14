@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ---------------------------------------------------------------------------
 const {
   fetchPendingJobsMock,
+  refetchJobMock,
   runDownloadStepMock,
   runProbeAndCoverStepMock,
   runAnalyzeAudioStepMock,
@@ -14,6 +15,7 @@ const {
   reconcileJobMock,
 } = vi.hoisted(() => ({
   fetchPendingJobsMock: vi.fn(),
+  refetchJobMock: vi.fn(),
   runDownloadStepMock: vi.fn(),
   runProbeAndCoverStepMock: vi.fn(),
   runAnalyzeAudioStepMock: vi.fn(),
@@ -24,6 +26,7 @@ const {
 
 vi.mock('@/lib/workers/video-pipeline/db', () => ({
   fetchPendingJobs: fetchPendingJobsMock,
+  refetchJob: refetchJobMock,
 }));
 
 vi.mock('@/lib/workers/video-pipeline/step-download', () => ({
@@ -101,6 +104,8 @@ describe('scheduler', () => {
     vi.clearAllMocks();
     // Ensure all step mocks resolve successfully by default
     fetchPendingJobsMock.mockResolvedValue([]);
+    // refetchJob returns a minimal stub by default — tests that care can override
+    refetchJobMock.mockImplementation(async (id: string) => makeJob(id));
     runDownloadStepMock.mockResolvedValue(undefined);
     runProbeAndCoverStepMock.mockResolvedValue(undefined);
     runAnalyzeAudioStepMock.mockResolvedValue(undefined);
