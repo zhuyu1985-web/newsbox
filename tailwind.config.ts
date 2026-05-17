@@ -56,6 +56,10 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // 扩展，便于消除 rounded-[Npx] 自定义值
+        "4xl": "2rem",     // 32px - 大卡片
+        "5xl": "2.5rem",   // 40px - 超大卡片
+        "6xl": "3rem",     // 48px - 巨型容器
       },
     },
   },

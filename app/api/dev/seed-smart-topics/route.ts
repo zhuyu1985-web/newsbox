@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rebuildTopicsForUser } from "../../knowledge/topics/rebuild/route";
+import type { Database } from "@/lib/supabase/database.types";
+
+type NotesInsert = Database["public"]["Tables"]["notes"]["Insert"];
 
 function buildSeedNotes(now = new Date()) {
   const iso = (d: Date) => d.toISOString();
@@ -241,7 +244,7 @@ export async function POST(req: NextRequest) {
   const shouldRebuild = url.searchParams.get("rebuild") === "1";
 
   const notes = buildSeedNotes(new Date());
-  const rows = notes.map((n) => ({
+  const rows: NotesInsert[] = notes.map((n) => ({
     user_id: user.id,
     source_url: n.source_url,
     content_type: "article",

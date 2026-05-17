@@ -53,9 +53,9 @@ export async function POST(request: NextRequest) {
       .upsert({
         note_id: noteId,
         user_id: user.id,
-        summary: analysis.summary || null,
-        journalist_view: analysis.journalist_view || null,
-        timeline: analysis.timeline || null,
+        summary: analysis.summary ?? "",
+        journalist_view: analysis.journalist_view ?? null,
+        timeline: analysis.timeline ?? null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'note_id' })
       .select()

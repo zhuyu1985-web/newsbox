@@ -67,14 +67,15 @@ export async function NoteDetailAuthCheck({
   }
 
   // 一次性获取笔记和文件夹数据，避免客户端重复查询，同时 join video_jobs 用于视频分析
+  // notes 与 video_jobs 之间有两条 FK（forward + reverse），必须显式指定走 notes.video_job_id → video_jobs.id
   const { data: note, error } = await supabase
     .from("notes")
     .select(`
       *,
       folder:folders(id, name, parent_id),
-      video_job:video_jobs(
+      video_job:video_jobs!notes_video_job_id_fkey(
         id, audio_result, visual_result, frames, cover_url, cos_url, transcoded_url,
-        download_status, audio_status, visual_status, transcode_status
+        download_status, probe_status, audio_status, visual_status, transcode_status
       )
     `)
     .eq("id", id)
@@ -82,6 +83,13 @@ export async function NoteDetailAuthCheck({
     .single();
 
   if (error || !note) {
+    console.error("[NoteDetailAuthCheck] load note error", {
+      id,
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+    });
     redirect("/dashboard");
   }
 

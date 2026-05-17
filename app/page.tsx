@@ -407,9 +407,9 @@ export default function LandingPage() {
                       {/* Header */}
                       <div className="h-10 bg-muted border-b border-border flex items-center px-5 gap-2">
                         <div className="flex gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57] shadow-sm shadow-red-500/30" />
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E] shadow-sm shadow-yellow-500/30" />
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#28C840] shadow-sm shadow-green-500/30" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/30" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-yellow-500/30" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm shadow-green-500/30" />
                         </div>
                         <div className="flex-1 text-center text-[10px] text-muted-foreground font-medium tracking-tight">
                           newsbox.app/dashboard
@@ -669,7 +669,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="p-10 lg:p-16 rounded-[40px] bg-gradient-to-br from-blue-600/10 to-indigo-600/5 border border-blue-600/10 relative overflow-hidden group"
+            className="p-10 lg:p-16 rounded-5xl bg-gradient-to-br from-blue-600/10 to-indigo-600/5 border border-blue-600/10 relative overflow-hidden group"
           >
             <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full group-hover:bg-blue-600/20 transition-colors duration-1000" />
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-10">
@@ -733,7 +733,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.2 }}
                 viewport={{ once: true }}
-                className="relative group p-10 rounded-[32px] bg-card border-border hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden"
+                className="relative group p-10 rounded-4xl bg-card border-border hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-8 text-6xl font-black text-muted-foreground/20 group-hover:text-blue-500/5 transition-colors leading-none">{item.id}</div>
                 <div className={`w-16 h-16 rounded-2xl ${item.color} flex items-center justify-center text-white mb-8 shadow-lg shadow-black/10`}>
@@ -749,7 +749,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features/Scenarios Section */}
-      <section id="scenarios" className="py-24 lg:py-40 bg-white dark:bg-[#050505] text-slate-900 dark:text-white scroll-mt-16">
+      <section id="scenarios" className="py-24 lg:py-40 bg-white dark:bg-slate-950 text-slate-900 dark:text-white scroll-mt-16">
         <div className="container mx-auto px-6">
           <div className="flex flex-col lg:flex-row justify-between items-end gap-10 mb-24">
             <div className="max-w-2xl space-y-6">
@@ -800,7 +800,7 @@ export default function LandingPage() {
                   </div>
                   <p className="text-xl text-slate-600 dark:text-white/50 leading-relaxed max-w-xl">{scene.desc}</p>
                 </div>
-                <div className="flex-1 w-full aspect-[4/3] rounded-[48px] overflow-hidden relative group">
+                <div className="flex-1 w-full aspect-[4/3] rounded-6xl overflow-hidden relative group">
                   <img src={scene.img} alt={scene.title} className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-1000" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
                 </div>

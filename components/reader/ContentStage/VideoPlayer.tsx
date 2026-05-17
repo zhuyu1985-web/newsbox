@@ -28,6 +28,17 @@ interface Note {
   title: string | null;
   media_url: string | null;
   media_duration: number | null;
+  // 视频流水线可能产生 HEVC → H.264 转码版本，浏览器只能播放 H.264
+  video_job?: {
+    id?: string;
+    transcoded_url: string | null;
+    cos_url: string | null;
+    transcode_status?: string;
+    download_status?: string;
+    probe_status?: string;
+    audio_status?: string;
+    visual_status?: string;
+  } | null;
 }
 
 export function VideoPlayer({ note }: { note: Note }) {
@@ -41,32 +52,51 @@ export function VideoPlayer({ note }: { note: Note }) {
   const [duration, setDuration] = useState(0);
   const [isAnnotationOpen, setIsAnnotationOpen] = useState(false);
   const [currentCapture, setCurrentCapture] = useState<{ time: number; dataUrl: string } | null>(null);
+  const [playbackError, setPlaybackError] = useState<{ code?: number; message?: string } | null>(null);
+
+  // 浏览器播放优先级：转码后的 H.264 → COS 原文件 → 来源 media_url
+  // 注：原 media_url 可能是 HEVC（iOS 默认编码），Chrome/Firefox 不支持 → 触发下载行为
+  const playableUrl =
+    note.video_job?.transcoded_url ||
+    note.video_job?.cos_url ||
+    note.media_url;
 
   useEffect(() => {
-    if (!note.media_url) return;
+    if (!playableUrl || !videoRef.current) return;
 
-    // 判断是否为 direct video URL
-    const isDirectVideo = 
-      note.media_url.endsWith(".mp4") || 
-      note.media_url.endsWith(".m3u8") || 
-      note.media_url.includes("storage.googleapis.com") || // 常见存储
-      note.media_url.includes("supabase.co/storage");    // 本项目存储
+    // 抓取下来的视频一律走 Video.js 播放
+    // 即便扩展名不在白名单里也尝试播放：Video.js 自带格式错误 UI，比 iframe / "去原始链接" 体验好
+    setIsVideoJs(true);
+    const videoElement = document.createElement("video-js");
+    videoElement.classList.add("vjs-big-play-centered", "vjs-theme-city");
+    videoRef.current.appendChild(videoElement);
 
-    if (isDirectVideo && videoRef.current) {
-      setIsVideoJs(true);
-      const videoElement = document.createElement("video-js");
-      videoElement.classList.add("vjs-big-play-centered", "vjs-theme-city");
-      videoRef.current.appendChild(videoElement);
+    // 通过 pathname 判断 HLS（避免被签名 URL 的 query string 干扰）
+    let isHls = false;
+    try {
+      const pathname = new URL(playableUrl).pathname.toLowerCase();
+      isHls = pathname.endsWith(".m3u8");
+    } catch {
+      isHls = /\.m3u8($|\?)/i.test(playableUrl);
+    }
 
-      const player = playerRef.current = videojs(videoElement, {
+    const player = (playerRef.current = videojs(
+      videoElement,
+      {
         autoplay: false,
         controls: true,
         responsive: true,
         fluid: true,
-        sources: [{
-          src: note.media_url,
-          type: note.media_url.endsWith(".m3u8") ? "application/x-mpegURL" : "video/mp4"
-        }],
+        preload: "metadata",
+        // 注：不设 crossOrigin。设了会让浏览器 send CORS preflight，
+        // COS 若没配 CORS 头会直接 fail。截图功能在跨域时会 taint canvas，
+        // 这是已知 trade-off：要截图请在 COS 配 Access-Control-Allow-Origin。
+        sources: [
+          {
+            src: playableUrl,
+            type: isHls ? "application/x-mpegURL" : "video/mp4",
+          },
+        ],
         playbackRates: [0.5, 1, 1.5, 2],
         controlBar: {
           children: [
@@ -78,42 +108,51 @@ export function VideoPlayer({ note }: { note: Note }) {
             "volumePanel",
             "playbackRateMenuButton",
             "fullscreenToggle",
-          ]
-        }
-      }, () => {
+          ],
+        },
+      },
+      () => {
         console.log("Player is ready");
+      }
+    ));
+
+    player.on("play", () => setIsPlaying(true));
+    player.on("pause", () => setIsPlaying(false));
+    player.on("timeupdate", () => setCurrentTime(player.currentTime() ?? 0));
+    player.on("loadedmetadata", () => setDuration(player.duration() ?? 0));
+    player.on("error", () => {
+      const err = player.error();
+      console.error("[VideoPlayer] playback error", {
+        code: err?.code,
+        message: err?.message,
+        src: playableUrl,
       });
+      setPlaybackError({ code: err?.code, message: err?.message });
+    });
+    player.on("loadstart", () => setPlaybackError(null));
 
-      player.on("play", () => setIsPlaying(true));
-      player.on("pause", () => setIsPlaying(false));
-      player.on("timeupdate", () => setCurrentTime(player.currentTime() ?? 0));
-      player.on("loadedmetadata", () => setDuration(player.duration() ?? 0));
+    const handleGlobalSeek = (e: Event) => {
+      const time = (e as CustomEvent).detail?.time;
+      if (typeof time === "number") {
+        player.currentTime(time);
+        player.play();
+      }
+    };
 
-      const handleGlobalSeek = (e: any) => {
-        const time = e.detail?.time;
-        if (typeof time === "number") {
-          player.currentTime(time);
-          player.play();
-        }
-      };
+    window.addEventListener("video:seek", handleGlobalSeek);
 
-      window.addEventListener("video:seek", handleGlobalSeek);
-
-      return () => {
-        window.removeEventListener("video:seek", handleGlobalSeek);
-        if (player) {
-          player.dispose();
-          playerRef.current = null;
-        }
-      };
-    } else {
-      setIsVideoJs(false);
-    }
-  }, [note.media_url]);
+    return () => {
+      window.removeEventListener("video:seek", handleGlobalSeek);
+      if (player) {
+        player.dispose();
+        playerRef.current = null;
+      }
+    };
+  }, [playableUrl]);
 
   const handleCapture = async () => {
-    if (!playerRef.current || !isVideoJs) {
-      toast.error("当前播放模式不支持截图");
+    if (!playerRef.current) {
+      toast.error("播放器尚未就绪");
       return;
     }
 
@@ -157,7 +196,7 @@ export function VideoPlayer({ note }: { note: Note }) {
     }
   };
 
-  if (!note.media_url) {
+  if (!playableUrl) {
     return (
       <div className="flex items-center justify-center h-96 bg-muted rounded-2xl border-2 border-dashed border-border">
         <p className="text-muted-foreground/70">暂无视频内容</p>
@@ -165,25 +204,124 @@ export function VideoPlayer({ note }: { note: Note }) {
     );
   }
 
+  // 转码尚未完成提示（HEVC 原片浏览器无法播放）
+  const transcodeStatus = note.video_job?.transcode_status;
+  const stillTranscoding =
+    transcodeStatus &&
+    transcodeStatus !== "completed" &&
+    transcodeStatus !== "skipped" &&
+    !note.video_job?.transcoded_url;
+
   return (
     <div className="w-full max-w-[1000px] mx-auto py-8 px-4">
       <Card className="overflow-hidden bg-black border-none shadow-2xl rounded-2xl relative group">
-        {isVideoJs ? (
-          <div ref={videoRef} className="aspect-video" />
-        ) : (
-          <div className="aspect-video">
-            <iframe
-              src={note.media_url}
-              className="w-full h-full"
-              allowFullScreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              title={note.title || "Video"}
-            />
+        {/* 始终用 Video.js 播放（错误由 Video.js 自身的 UI 展示） */}
+        <div ref={videoRef} className="aspect-video" />
+
+        {/* 转码进行中覆盖层：用 video_jobs.transcode_status 判定，覆盖在播放器上方 */}
+        {stillTranscoding && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/85 text-slate-100 text-sm font-medium backdrop-blur-sm">
+            <div className="text-center px-6">
+              <div className="mb-2 text-base font-semibold">视频转码中</div>
+              <div className="text-slate-300 text-xs leading-relaxed">
+                原视频编码（HEVC）浏览器不支持，正在后台转为 H.264。<br />
+                稍后刷新即可在线播放。
+              </div>
+            </div>
           </div>
         )}
 
-        {/* 顶部悬浮控制栏 (仅在 video.js 模式显示) */}
-        {isVideoJs && (
+        {/* 播放失败诊断面板 */}
+        {playbackError && !stillTranscoding && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/90 text-slate-100 backdrop-blur-sm overflow-y-auto py-6">
+            <div className="max-w-md px-6">
+              <div className="mb-3 text-base font-semibold text-center">视频无法播放</div>
+              <div className="text-xs text-slate-300 space-y-1.5 mb-4">
+                <div>错误：<code className="font-mono">code={playbackError.code}</code></div>
+                {note.video_job?.id ? (
+                  <>
+                    <div className="pt-1 text-slate-400">流水线状态：</div>
+                    <ul className="font-mono text-[10px] space-y-0.5 pl-3 text-slate-300">
+                      <li>download · {note.video_job.download_status ?? "—"}</li>
+                      <li>probe · {note.video_job.probe_status ?? "—"}</li>
+                      <li>transcode · {note.video_job.transcode_status ?? "—"}</li>
+                      <li>audio · {note.video_job.audio_status ?? "—"}</li>
+                      <li>visual · {note.video_job.visual_status ?? "—"}</li>
+                    </ul>
+                  </>
+                ) : (
+                  <div className="pt-1 px-2 py-1.5 rounded-md bg-amber-500/10 text-amber-200 text-[11px] leading-relaxed">
+                    此视频<b>没有处理记录</b>（video_job 缺失）。文件已在 COS 上，但从未进入转码流水线。
+                    点下方「提交转码任务」即可补建。
+                  </div>
+                )}
+                <div className="pt-1 text-slate-400">当前 URL：</div>
+                <div className="font-mono break-all text-[10px] text-slate-300 bg-black/40 p-2 rounded-md">
+                  {playableUrl}
+                </div>
+              </div>
+              <div className="flex gap-2 justify-center flex-wrap">
+                {note.video_job?.id ? (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/ai/video/${note.video_job!.id}/retry`, {
+                          method: "POST",
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || "重试失败");
+                        toast.success("已重新提交处理，请稍候刷新页面");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "重试失败");
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 rounded-md transition-colors font-medium"
+                  >
+                    重新处理视频
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/ai/video/note/${note.id}/init-pipeline`, {
+                          method: "POST",
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || "补建失败");
+                        toast.success(
+                          data.mode === "created"
+                            ? "已补建流水线，请稍候刷新页面"
+                            : "已重置流水线，请稍候刷新页面"
+                        );
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "补建失败");
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 rounded-md transition-colors font-medium"
+                  >
+                    提交转码任务
+                  </button>
+                )}
+                {playableUrl && (
+                  <a
+                    href={playableUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
+                  >
+                    新窗口打开
+                  </a>
+                )}
+              </div>
+              <div className="mt-4 text-[10px] text-slate-500 leading-relaxed">
+                若 transcode = pending / 空 → 服务端转码未完成；done / skipped 仍失败 → 检查 COS Content-Type 或文件本身。
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 顶部悬浮控制栏 */}
+        {!stillTranscoding && (
           <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-gradient-to-b from-black/60 to-transparent">
             <h2 className="text-white font-medium truncate max-w-[70%]">{note.title}</h2>
             <div className="flex gap-2">
@@ -207,14 +345,6 @@ export function VideoPlayer({ note }: { note: Note }) {
           </div>
         )}
 
-        {/* 底部功能提示 (当为 iframe 模式时) */}
-        {!isVideoJs && (
-          <div className="bg-slate-100/95 dark:bg-slate-900/80 backdrop-blur-sm p-3 text-center border-t border-slate-200 dark:border-slate-700">
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-              当前为嵌入播放模式。部分高级功能（如一键截帧、播放器内批注）仅支持直接视频链接。
-            </p>
-          </div>
-        )}
       </Card>
 
       {/* 视频元信息 */}

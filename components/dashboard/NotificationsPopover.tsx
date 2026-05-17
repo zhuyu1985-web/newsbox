@@ -12,9 +12,9 @@ type Notification = {
   title: string;
   message: string;
   type: string;
-  link?: string;
-  is_read: boolean;
-  created_at: string;
+  link?: string | null;
+  is_read: boolean | null;
+  created_at: string | null;
 };
 
 const MOCK_NOTIFICATIONS: Notification[] = [
@@ -42,7 +42,8 @@ function getNotificationIcon(type: string) {
 }
 
 // 格式化日期
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return "—";
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -130,7 +131,7 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
         <div className="relative">
           {children}
           {unreadCount > 0 && (
-            <span className="absolute top-[10px] right-[10px] w-2.5 h-2.5 bg-[#FF4D4D] rounded-full border-[2.5px] border-[#EBECEE] shadow-sm pointer-events-none" />
+            <span className="absolute top-[10px] right-[10px] w-2.5 h-2.5 bg-red-500 rounded-full border-[2.5px] border-[#EBECEE] shadow-sm pointer-events-none" />
           )}
         </div>
       </PopoverTrigger>
@@ -154,7 +155,7 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
             )}
             
             {!activeNote && unreadCount > 0 && (
-              <span className="bg-[#FF4D4D]/10 text-[#FF4D4D] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              <span className="bg-red-500/10 text-red-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {unreadCount} 未读
               </span>
             )}
@@ -196,7 +197,7 @@ export function NotificationsPopover({ children }: { children: React.ReactNode }
                   <div
                     className={cn(
                       "w-2 h-2 rounded-full mt-2 shrink-0 transition-colors",
-                      !note.is_read ? "bg-[#FF4D4D]" : "bg-transparent"
+                      !note.is_read ? "bg-red-500" : "bg-transparent"
                     )}
                   />
                   <div className="flex-1 min-w-0 space-y-1">

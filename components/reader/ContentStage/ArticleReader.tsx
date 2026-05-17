@@ -23,7 +23,7 @@ interface Note {
   content_html: string | null;
   content_text: string | null;
   source_url: string | null;
-  created_at: string;
+  created_at: string | null;
   published_at: string | null;
   estimated_read_time?: number;
 }
@@ -54,13 +54,13 @@ export function ArticleReader({ note }: { note: Note }) {
   // Reader theme colors (independent of global theme)
   const articleBgClass =
     prefs.theme === "sepia"
-      ? "bg-[#f8f2e3]"
+      ? "bg-amber-50"
       : prefs.theme === "dark"
         ? "bg-slate-950"
         : "bg-white";
   const articleTextClass =
     prefs.theme === "sepia"
-      ? "text-[#3b2f2f]"
+      ? "text-stone-800"
       : prefs.theme === "dark"
         ? "text-slate-200"
         : "text-slate-900";
@@ -609,7 +609,7 @@ export function ArticleReader({ note }: { note: Note }) {
         <header className="mb-12">
           <h1 className={cn(
             "text-[32px] font-bold leading-tight mb-6 tracking-tight",
-            prefs.theme === "sepia" ? "text-[#2f2626]" :
+            prefs.theme === "sepia" ? "text-slate-800" :
             prefs.theme === "dark" ? "text-white" :
             "text-slate-900"
           )}>
@@ -618,14 +618,14 @@ export function ArticleReader({ note }: { note: Note }) {
 
           <div className={cn(
             "flex items-center gap-4 text-[13px]",
-            prefs.theme === "sepia" ? "text-[#6b5b4b]" :
+            prefs.theme === "sepia" ? "text-stone-500" :
             prefs.theme === "dark" ? "text-slate-300" :
             "text-slate-600"
           )}>
             {note.site_name && (
               <span className={cn(
                 "flex items-center gap-1.5 font-medium",
-                prefs.theme === "sepia" ? "text-[#5b4a3b]" :
+                prefs.theme === "sepia" ? "text-stone-600" :
                 prefs.theme === "dark" ? "text-white" :
                 "text-slate-700"
               )}>
@@ -657,25 +657,25 @@ export function ArticleReader({ note }: { note: Note }) {
         ) : (
           <div className={cn(
             "text-center py-24 rounded-2xl border-2 border-dashed",
-            prefs.theme === "sepia" ? "bg-[#fbf6ea] border-[#eadfcf]" :
+            prefs.theme === "sepia" ? "bg-amber-50 border-[#eadfcf]" :
             prefs.theme === "dark" ? "bg-slate-800/50 border-slate-700" :
             "bg-slate-50 border-slate-200",
           )}>
             <Globe className={cn(
               "h-12 w-12 mx-auto mb-4",
-              prefs.theme === "sepia" ? "text-[#eadfcf]" :
+              prefs.theme === "sepia" ? "text-amber-100" :
               prefs.theme === "dark" ? "text-slate-500" :
               "text-slate-300"
             )} />
             <h3 className={cn(
               "text-lg font-medium mb-2",
-              prefs.theme === "sepia" ? "text-[#2f2626]" :
+              prefs.theme === "sepia" ? "text-slate-800" :
               prefs.theme === "dark" ? "text-white" :
               "text-slate-800"
             )}>内容尚未加载</h3>
             <p className={cn(
               "text-sm mb-8 max-w-[280px] mx-auto",
-              prefs.theme === "sepia" ? "text-[#6b5b4b]" :
+              prefs.theme === "sepia" ? "text-stone-500" :
               prefs.theme === "dark" ? "text-slate-300" :
               "text-slate-600"
             )}>

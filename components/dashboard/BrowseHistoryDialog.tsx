@@ -137,7 +137,7 @@ export function BrowseHistoryPopover({
                 className={cn(
                   "text-base font-semibold tracking-tight pb-2 border-b-[2px] transition-colors",
                   tab === "local"
-                    ? "text-[#2F6BFF] border-[#2F6BFF]"
+                    ? "text-blue-600 border-[#2F6BFF]"
                     : "text-slate-900/70 dark:text-white/70 border-transparent hover:text-slate-900 dark:hover:text-white"
                 )}
                 onClick={() => setTab("local")}

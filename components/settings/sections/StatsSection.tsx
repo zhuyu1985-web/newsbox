@@ -80,7 +80,7 @@ export function StatsSection() {
               </div>
 
               <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#f5f5f7] rounded-2xl p-6">
+                <div className="bg-slate-100 rounded-2xl p-6">
                   <div className="text-sm font-semibold text-card-foreground mb-4">
                     收藏卡片类型统计（柱状）
                   </div>
@@ -92,7 +92,7 @@ export function StatsSection() {
                         </div>
                         <div className="flex-1 h-2.5 bg-card rounded-full overflow-hidden border border-black/5">
                           <div
-                            className="h-full bg-[#2F6BFF] rounded-full"
+                            className="h-full bg-blue-600 rounded-full"
                             style={{ width: `${Math.round((v / maxType) * 100)}%` }}
                           />
                         </div>
@@ -132,7 +132,7 @@ export function StatsSection() {
 
 function Metric({ label, value }: { label: string; value: any }) {
   return (
-    <div className="bg-[#f5f5f7] rounded-2xl p-5">
+    <div className="bg-slate-100 rounded-2xl p-5">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-lg font-bold text-card-foreground mt-2">{value}</div>
     </div>
@@ -151,9 +151,9 @@ function TopList({ rows }: { rows: Array<{ domain: string; count: number }> }) {
           <div className="w-5 text-xs text-muted-foreground/70">{idx + 1}</div>
           <div className="flex-1 min-w-0">
             <div className="text-sm text-card-foreground truncate">{r.domain}</div>
-            <div className="h-2 bg-[#f5f5f7] rounded-full overflow-hidden mt-1 border border-black/5">
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-1 border border-black/5">
               <div
-                className={cn("h-full rounded-full", idx < 3 ? "bg-[#2F6BFF]" : "bg-slate-300")}
+                className={cn("h-full rounded-full", idx < 3 ? "bg-blue-600" : "bg-slate-300")}
                 style={{ width: `${Math.round((r.count / max) * 100)}%` }}
               />
             </div>

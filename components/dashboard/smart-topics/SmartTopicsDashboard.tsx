@@ -137,7 +137,7 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
   }, [displayCount, filteredTopics.length]);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden">
+    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden">
       <div 
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto custom-scrollbar"
@@ -182,7 +182,7 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
               { label: "今日生成专题", value: stats.todayTopics, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
               { label: "今日入库文章", value: stats.todayArticles, icon: History, color: "text-indigo-600", bg: "bg-indigo-50" },
             ].map((stat, i) => (
-              <div key={i} className="bg-card p-5 rounded-[20px] border border-border flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+              <div key={i} className="bg-card p-5 rounded-lg border border-border flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
                 <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0", stat.bg)}>
                   <stat.icon className={cn("h-6 w-6", stat.color)} />
                 </div>
@@ -195,7 +195,7 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
           </div>
 
           {/* Row 3: Search & Filters */}
-          <div className="flex flex-col md:flex-row items-center gap-4 bg-card p-4 rounded-[20px] border border-border shadow-sm">
+          <div className="flex flex-col md:flex-row items-center gap-4 bg-card p-4 rounded-lg border border-border shadow-sm">
             <div className="flex-1 w-full relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
               <Input 
@@ -255,8 +255,8 @@ export const SmartTopicsDashboard: React.FC<SmartTopicsDashboardProps> = ({
                 <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">正在构建智能视图...</p>
               </div>
             ) : filteredTopics.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center bg-card border border-dashed border-border rounded-[32px]">
-                <div className="h-20 w-20 rounded-[28px] bg-muted flex items-center justify-center mb-6">
+              <div className="flex flex-col items-center justify-center py-24 text-center bg-card border border-dashed border-border rounded-4xl">
+                <div className="h-20 w-20 rounded-3xl bg-muted flex items-center justify-center mb-6">
                   <Sparkles className="h-8 w-8 text-slate-200" />
                 </div>
                 <h3 className="text-lg font-bold text-card-foreground">未找到相关专题</h3>

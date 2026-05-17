@@ -2,7 +2,7 @@
   "name": "newsbox",
   "private": true,
   "scripts": {
-    "dev": "env -u OPENAI_API_KEY -u OPENAI_API_BASE_URL -u OPENAI_MODEL next dev",
+    "dev": "env -u OPENAI_API_KEY -u OPENAI_API_BASE_URL -u OPENAI_MODEL next dev -p 3001 --hostname 127.0.0.1",
     "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "eslint .",

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 interface Tag {
   id: string;
   name: string;
-  color: string;
+  color: string | null;
 }
 
 interface TagManagerProps {
@@ -79,13 +79,16 @@ export function TagManager({ noteId, className }: TagManagerProps) {
 
       // 如果标签不存在，创建新标签
       if (!tagId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
         const { data: newTag, error: createError } = await supabase
           .from("tags")
           .insert({
             name: newTagName.trim(),
             color: getRandomColor(),
+            user_id: user.id,
           })
-          .select()
+          .select("id, name, color")
           .single();
 
         if (createError) throw createError;
@@ -145,7 +148,7 @@ export function TagManager({ noteId, className }: TagManagerProps) {
     return (
       <div className={cn("flex items-center gap-2", className)}>
         <TagIcon className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">加载中...</span>
+        <span className="text-sm text-muted-foreground">加载中…</span>
       </div>
     );
   }
@@ -160,7 +163,7 @@ export function TagManager({ noteId, className }: TagManagerProps) {
           key={tag.id}
           variant="secondary"
           className="group relative pr-6 hover:pr-7 transition-all"
-          style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
+          style={{ backgroundColor: `${tag.color ?? "#888"}20`, color: tag.color ?? undefined }}
         >
           {tag.name}
           <button

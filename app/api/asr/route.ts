@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { transcribeAudio } from "@/lib/services/tencent-asr";
+import type { Json } from "@/lib/supabase/database.types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
         .from("transcripts")
         .update({
           full_text: result.fullText,
-          segments: result.segments,
+          segments: result.segments as unknown as Json,
           status: 'completed',
           updated_at: new Date().toISOString()
         })

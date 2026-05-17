@@ -162,7 +162,7 @@ export function MembershipIndicator({ className }: { className?: string }) {
     <Link
       href="/pricing"
       className={cn(
-        "w-[46px] h-[46px] rounded-[15px] flex items-center justify-center",
+        "w-[46px] h-[46px] rounded-2xl flex items-center justify-center",
         "transition-all duration-300 hover:scale-105 group relative",
         className
       )}
@@ -181,7 +181,7 @@ export function MembershipIndicator({ className }: { className?: string }) {
       {/* 会员光晕效果 */}
       <div
         className={cn(
-          "absolute inset-0 rounded-[15px] opacity-0 group-hover:opacity-100",
+          "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100",
           "transition-opacity duration-300",
           config.color,
           "blur-xl -z-10"

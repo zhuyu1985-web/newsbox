@@ -105,7 +105,7 @@ export function TrashSection() {
               {items.map((n) => (
                 <div
                   key={n.id}
-                  className="bg-[#f5f5f7] rounded-2xl p-5 flex items-center justify-between gap-4"
+                  className="bg-slate-100 rounded-2xl p-5 flex items-center justify-between gap-4"
                 >
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-card-foreground truncate">

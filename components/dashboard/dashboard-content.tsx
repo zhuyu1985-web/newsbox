@@ -15,6 +15,9 @@ import { toast } from "sonner";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/lib/supabase/database.types";
+
+type NotesInsert = Database["public"]["Tables"]["notes"]["Insert"];
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -217,7 +220,7 @@ type NoteContentRecord = {
   excerpt: string | null;
   source_url: string | null;
   site_name: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 
 type HighlightRecord = {
@@ -1662,9 +1665,16 @@ export function DashboardContent() {
       query = query.order(sortBy, { ascending: sortOrder === "asc" });
 
       if (searchQuery.trim()) {
-        const keyword = `%${searchQuery.trim().replace(/%/g, "\\%")}%`;
+        // PostgREST .or() 用逗号分隔过滤器；当值里含 `,` `"` `(` `)` 等特殊字符时
+        // 必须用双引号包裹值，且内部 `"` 要转义，否则解析失败（错误体可能为空）
+        const safe = searchQuery
+          .trim()
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"')
+          .replace(/%/g, "\\%");
+        const keyword = `%${safe}%`;
         query = query.or(
-          `title.ilike.${keyword},excerpt.ilike.${keyword},site_name.ilike.${keyword}`,
+          `title.ilike."${keyword}",excerpt.ilike."${keyword}",site_name.ilike."${keyword}"`,
         );
       }
 
@@ -1675,8 +1685,14 @@ export function DashboardContent() {
 
       const { data, error, count } = await query;
       if (error) {
-        console.error("load notes error", error);
-        setNotesLoadingError(error.message);
+        // PostgrestError 字段非枚举，直接 console 看不到，显式展开
+        console.error("load notes error", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
+        setNotesLoadingError(error.message || error.details || error.hint || "加载失败，请稍后重试");
       } else {
         const noteRows = (data ?? []) as unknown as RawNote[];
         const normalized = noteRows.map(normalizeNote);
@@ -2734,9 +2750,8 @@ export function DashboardContent() {
     format: "text" | "markdown" | "html",
   ) => {
     const title = note.title || "无标题";
-    const meta = `来源: ${note.site_name || "未知"}\n采集时间: ${new Date(
-      note.created_at,
-    ).toLocaleString()}`;
+    const capturedAt = note.created_at ? new Date(note.created_at).toLocaleString() : "未知";
+    const meta = `来源: ${note.site_name || "未知"}\n采集时间: ${capturedAt}`;
     if (format === "text") {
       const text =
         note.content_text || htmlToPlainText(note.content_html, note.excerpt);
@@ -2896,16 +2911,22 @@ ${
         const {
           data: { user: currentUser },
         } = await supabase.auth.getUser();
+        if (!currentUser) {
+          toast.error("用户未认证，请重新登录");
+          setIsAddingNote(false);
+          return;
+        }
         const urlValue = newNoteUrl.trim();
-        const contentType = urlValue.match(/(bilibili|youtube|youtu.be|douyin|iesdouyin|kuaishou|kuaishouapp)/i)
-          ? "video"
-          : urlValue.match(/(podcast|spotify|soundcloud)/i)
-          ? "audio"
-          : "article";
+        const contentType: "article" | "video" | "audio" =
+          urlValue.match(/(bilibili|youtube|youtu.be|douyin|iesdouyin|kuaishou|kuaishouapp)/i)
+            ? "video"
+            : urlValue.match(/(podcast|spotify|soundcloud)/i)
+            ? "audio"
+            : "article";
         const { data, error } = await supabase
           .from("notes")
           .insert({
-            user_id: currentUser?.id,
+            user_id: currentUser.id,
             source_url: urlValue,
             content_type: contentType,
             status: "unread",
@@ -2981,15 +3002,40 @@ ${
           fileType: uploadFile.type,
         });
 
-        const fd = new FormData();
-        fd.append("file", uploadFile);
-        const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!uploadRes.ok) {
-          const errText = await uploadRes.text();
-          console.error("❌ Upload API error:", errText);
-          throw new Error(errText || "文件上传失败");
+        // 客户端直传 COS：服务端签名 → 浏览器 PUT → 拿到公开 URL。
+        // 避免 Next.js 16 / Turbopack 对 multipart body 的解析限制（大文件会失败）。
+        const credRes = await fetch("/api/upload-cred", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: uploadFile.name,
+            contentType: uploadFile.type,
+          }),
+        });
+        if (!credRes.ok) {
+          const errText = await credRes.text();
+          console.error("❌ Upload cred error:", errText);
+          throw new Error(errText || "获取上传凭证失败");
         }
-        const { url: publicUrl } = await uploadRes.json();
+        const cred = await credRes.json() as {
+          uploadUrl: string;
+          method: string;
+          headers: Record<string, string>;
+          publicUrl: string;
+          contentType: string;
+        };
+
+        const putRes = await fetch(cred.uploadUrl, {
+          method: cred.method,
+          headers: cred.headers,
+          body: uploadFile,
+        });
+        if (!putRes.ok) {
+          const errText = await putRes.text().catch(() => "");
+          console.error("❌ COS PUT error:", putRes.status, errText);
+          throw new Error(`文件上传到 COS 失败 (${putRes.status})`);
+        }
+        const publicUrl = cred.publicUrl;
 
         console.log("✅ 文件上传成功:", publicUrl);
 
@@ -3007,10 +3053,11 @@ ${
         const isAudio = mime.startsWith("audio/");
         
         // 准备插入数据
-        const insertData = {
+        const ctype: "article" | "video" | "audio" = isVideo ? "video" : isAudio ? "audio" : "article";
+        const insertData: NotesInsert = {
           user_id: currentUser.id,
           source_url: publicUrl,
-          content_type: isVideo ? "video" : isAudio ? "audio" : "article",
+          content_type: ctype,
           title: uploadTitle || uploadFile.name,
           cover_image_url: isImage ? publicUrl : null,
           media_url: isVideo || isAudio ? publicUrl : null,
@@ -3034,9 +3081,12 @@ ${
           .from("notes")
           .select("id")
           .eq("user_id", currentUser.id)
-          .eq("source_url", insertData.source_url)
+          .eq("source_url", publicUrl)
           .maybeSingle();
           
+        // 跟踪最终落库的 note id，用于视频笔记触发流水线
+        let finalNoteId: string | undefined;
+
         if (existingNote) {
           // 如果已存在，更新现有记录而不是创建新记录
           const { error: updateError } = await supabase
@@ -3053,11 +3103,12 @@ ${
               updated_at: new Date().toISOString(),
             })
             .eq("id", existingNote.id);
-            
+
           if (updateError) {
             console.error("Notes update error:", updateError);
             throw updateError;
           }
+          finalNoteId = existingNote.id;
         } else {
           // 插入新记录
           const { data: insertedNote, error: insertError } = await supabase
@@ -3065,13 +3116,13 @@ ${
             .insert(insertData)
             .select()
             .single();
-            
+
           if (insertError) {
             console.error("Notes insert error:", insertError);
             console.error("Insert data:", insertData);
             console.error("Current user ID:", currentUser.id);
             console.error("Auth UID check:", await supabase.auth.getUser());
-            
+
             // 如果是唯一约束冲突，提供更友好的错误信息
             if (insertError.code === "23505") {
               throw new Error("该文件已存在，请勿重复上传");
@@ -3081,6 +3132,23 @@ ${
               throw new Error(`权限错误: ${insertError.message}。请确保已登录且用户 ID 正确。`);
             }
             throw insertError;
+          }
+          finalNoteId = insertedNote?.id;
+        }
+
+        // 视频笔记：自动补建 video_jobs 行（不阻塞 UI；如果失败，用户仍可在
+        // 阅读页诊断面板手动点「提交转码任务」按钮兜底）
+        if (isVideo && finalNoteId) {
+          try {
+            const res = await fetch(`/api/ai/video/note/${finalNoteId}/init-pipeline`, {
+              method: "POST",
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              console.warn("init-pipeline failed (non-fatal):", data);
+            }
+          } catch (err) {
+            console.warn("init-pipeline failed (non-fatal):", err);
           }
         }
       }
@@ -3383,7 +3451,7 @@ ${
     return (
       <Card
         key={note.id}
-        className="group relative bg-card backdrop-blur-none ring-0 border border-border shadow-none hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden h-full flex flex-col rounded-[14px]"
+        className="group relative bg-card backdrop-blur-none ring-0 border border-border shadow-none hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden h-full flex flex-col rounded-2xl"
       >
         {/* 选择遮罩层 (选中时显示) */}
         <div
@@ -3458,7 +3526,7 @@ ${
 
               {/* 右侧图片区 (如果有) */}
               {note.cover_image_url && (
-                <div className="shrink-0 w-24 h-16 rounded-[10px] overflow-hidden bg-muted border border-border">
+                <div className="shrink-0 w-24 h-16 rounded-xl overflow-hidden bg-muted border border-border">
                   <img
                     src={note.cover_image_url}
                     alt=""
@@ -3488,7 +3556,7 @@ ${
 
             {/* 右侧：批注条数 */}
             {annotationCount > 0 && (
-              <div className="shrink-0 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-[#FFD700] text-black text-[10px] font-bold rounded shadow-sm ml-2">
+              <div className="shrink-0 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-amber-400 text-black text-[10px] font-bold rounded shadow-sm ml-2">
                 {annotationCount}
               </div>
             )}
@@ -3634,7 +3702,7 @@ ${
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-50 pb-[10vh]"
+            className="fixed inset-0 bg-blue-100/40 backdrop-blur-sm flex items-center justify-center z-50 pb-[10vh]"
             onClick={() => setShowAddNoteDialog(false)}
           >
             <motion.div
@@ -3750,7 +3818,7 @@ ${
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[60] pb-[10vh]"
+            className="fixed inset-0 bg-blue-100/40 backdrop-blur-sm flex items-center justify-center z-[60] pb-[10vh]"
             onClick={() => setShowMoveDialog(false)}
           >
             <motion.div
@@ -3849,7 +3917,7 @@ ${
       toast.error(`创建标签失败: ${error.message}`);
       return;
     }
-    setTags((prev) => [...prev, data]);
+    setTags((prev) => [...prev, { ...data, note_count: 0 } as TagWithCount]);
     setTagDialogSelection((prev) => [...prev, data.id]);
     setTagDialogNewName("");
   };
@@ -3863,7 +3931,7 @@ ${
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[60] pb-[10vh]"
+            className="fixed inset-0 bg-blue-100/40 backdrop-blur-sm flex items-center justify-center z-[60] pb-[10vh]"
             onClick={() => setShowTagDialog(false)}
           >
             <motion.div
@@ -4010,7 +4078,7 @@ ${
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[70] pb-[10vh]"
+            className="fixed inset-0 bg-blue-100/40 backdrop-blur-sm flex items-center justify-center z-[70] pb-[10vh]"
             onClick={closeFolderDialog}
           >
             <motion.div
@@ -4182,7 +4250,7 @@ ${
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[70] pb-[10vh]"
+            className="fixed inset-0 bg-blue-100/40 backdrop-blur-sm flex items-center justify-center z-[70] pb-[10vh]"
             onClick={closeTagDialog2}
           >
             <motion.div
@@ -4313,14 +4381,14 @@ ${
   }
 
   return (
-    <div className="h-screen bg-[#f5f5f7] dark:bg-slate-950 flex font-sans text-sm overflow-hidden">
+    <div className="h-screen bg-slate-100 dark:bg-slate-950 flex font-sans text-sm overflow-hidden">
       {/* Primary Sidebar */}
-      <aside className="w-[64px] h-screen bg-[#EBECEE] dark:bg-slate-900 flex flex-col items-center py-5 gap-0 flex-shrink-0 z-50 border-r border-black/5 dark:border-white/10">
+      <aside className="w-[64px] h-screen bg-slate-200 dark:bg-slate-900 flex flex-col items-center py-5 gap-0 flex-shrink-0 z-50 border-r border-black/5 dark:border-white/10">
         {/* Top Logo */}
         <Link
           href="/"
           aria-label="返回首页"
-          className="w-11 h-11 bg-gradient-to-b from-[#5C7CFF] to-[#4D6EF3] rounded-[15px] flex items-center justify-center shadow-[0_4px_12px_rgba(77,110,243,0.3)] shrink-0 mb-8 relative overflow-hidden group"
+          className="w-11 h-11 bg-gradient-to-b from-[#5C7CFF] to-[#4D6EF3] rounded-2xl flex items-center justify-center shadow-[0_4px_12px_rgba(77,110,243,0.3)] shrink-0 mb-8 relative overflow-hidden group"
         >
           <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <Sparkles className="h-6 w-6 text-white relative z-10" />
@@ -4335,10 +4403,10 @@ ${
               <button
                 key={id}
                 className={cn(
-                  "w-[46px] h-[46px] rounded-[15px] flex items-center justify-center transition-all duration-300 relative group",
+                  "w-[46px] h-[46px] rounded-2xl flex items-center justify-center transition-all duration-300 relative group",
                   activePrimary === id
-                    ? "text-[#333333]"
-                    : "text-[#4A4A4A] hover:bg-black/5 hover:text-[#1A1A1A]",
+                    ? "text-slate-700"
+                    : "text-slate-600 hover:bg-black/5 hover:text-slate-900",
                 )}
                 onClick={() => {
                   setActivePrimary(id);
@@ -4359,7 +4427,7 @@ ${
                 {activePrimary === id && (
                   <motion.div
                     layoutId="active-nav-bg"
-                    className="absolute inset-0 bg-[#DCDDE3] rounded-[15px]"
+                    className="absolute inset-0 bg-slate-200 rounded-2xl"
                     transition={{ type: "spring", stiffness: 400, damping: 35 }}
                   />
                 )}
@@ -4390,31 +4458,31 @@ ${
               }}
             >
               <button
-                className="w-[46px] h-[46px] rounded-[15px] flex items-center justify-center text-[#4A4A4A] hover:bg-black/5 hover:text-[#1A1A1A] transition-all duration-200 ease-out hover:scale-105 active:scale-95 group"
+                className="w-[46px] h-[46px] rounded-2xl flex items-center justify-center text-slate-600 hover:bg-black/5 hover:text-slate-900 transition-all duration-200 ease-out hover:scale-105 active:scale-95 group"
               >
                 <History className="h-[22px] w-[22px] stroke-[1.8px] transition-transform duration-200 group-hover:scale-110" />
               </button>
             </BrowseHistoryPopover>
           ) : (
             <button
-              className="w-[46px] h-[46px] rounded-[15px] flex items-center justify-center text-[#4A4A4A] hover:bg-black/5 hover:text-[#1A1A1A] transition-all duration-200 ease-out hover:scale-105 active:scale-95 group"
+              className="w-[46px] h-[46px] rounded-2xl flex items-center justify-center text-slate-600 hover:bg-black/5 hover:text-slate-900 transition-all duration-200 ease-out hover:scale-105 active:scale-95 group"
             >
               <History className="h-[22px] w-[22px] stroke-[1.8px] transition-transform duration-200 group-hover:scale-110" />
             </button>
           )}
 
           <NotificationsPopover>
-            <button className="w-[46px] h-[46px] rounded-[15px] flex items-center justify-center text-[#4A4A4A] hover:bg-black/5 hover:text-[#1A1A1A] transition-all duration-200 ease-out hover:scale-105 active:scale-95 group">
+            <button className="w-[46px] h-[46px] rounded-2xl flex items-center justify-center text-slate-600 hover:bg-black/5 hover:text-slate-900 transition-all duration-200 ease-out hover:scale-105 active:scale-95 group">
               <Bell className="h-[22px] w-[22px] stroke-[1.8px] transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
             </button>
           </NotificationsPopover>
 
           <button
             className={cn(
-              "w-[46px] h-[46px] rounded-[15px] flex items-center justify-center transition-all duration-300 relative group",
+              "w-[46px] h-[46px] rounded-2xl flex items-center justify-center transition-all duration-300 relative group",
               activePrimary === "settings"
-                ? "text-[#333333]"
-                : "text-[#4A4A4A] hover:bg-black/5 hover:text-[#1A1A1A]",
+                ? "text-slate-700"
+                : "text-slate-600 hover:bg-black/5 hover:text-slate-900",
             )}
             onClick={() => {
               setActivePrimary("settings");
@@ -4425,7 +4493,7 @@ ${
             {activePrimary === "settings" && (
               <motion.div
                 layoutId="active-nav-bg"
-                className="absolute inset-0 bg-[#DCDDE3] rounded-[15px]"
+                className="absolute inset-0 bg-slate-200 rounded-2xl"
                 transition={{ type: "spring", stiffness: 400, damping: 35 }}
               />
             )}
@@ -4437,13 +4505,13 @@ ${
                   : "stroke-[#4A4A4A] stroke-[1.8px] group-hover:rotate-12",
               )}
             />
-            <div className="absolute top-[10px] right-[10px] w-2.5 h-2.5 bg-[#FF4D4D] rounded-full border-[2.5px] border-[#EBECEE] shadow-sm transition-opacity group-hover:opacity-0 pointer-events-none" />
+            <div className="absolute top-[10px] right-[10px] w-2.5 h-2.5 bg-red-500 rounded-full border-[2.5px] border-[#EBECEE] shadow-sm transition-opacity group-hover:opacity-0 pointer-events-none" />
           </button>
         </div>
       </aside>
 
       {/* Secondary Sidebar */}
-      <aside className="w-60 h-screen bg-[#fbfbfd] dark:bg-slate-900/50 border-r border-black/[0.03] dark:border-white/5 flex flex-col flex-shrink-0">
+      <aside className="w-60 h-screen bg-slate-50 dark:bg-slate-900/50 border-r border-black/[0.03] dark:border-white/5 flex flex-col flex-shrink-0">
         <div className="h-14 flex items-center justify-between px-5 border-b border-black/[0.03] dark:border-white/5 bg-card/50">
           <h2 className="text-base font-bold text-gray-800 dark:text-gray-100 tracking-tight">
             {activePrimary === "collections"
@@ -4746,7 +4814,7 @@ ${
                   className={cn(
                     "w-[calc(100%-8px)] mx-1 flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group mb-3",
                     !selectedAnnotationNoteId
-                      ? "bg-[#FFD700] text-black shadow-[0_4px_12px_rgba(255,215,0,0.25)] font-semibold"
+                      ? "bg-amber-400 text-black shadow-[0_4px_12px_rgba(255,215,0,0.25)] font-semibold"
                       : "text-muted-foreground hover:bg-card hover:shadow-sm",
                   )}
                   onClick={() => setSelectedAnnotationNoteId(null)}
@@ -4816,7 +4884,7 @@ ${
                           </div>
                           <div className="flex items-center justify-between mt-2">
                             {(note.annotation_count ?? 0) > 0 && (
-                              <div className="inline-flex items-center px-1.5 py-0.5 bg-[#FFD700] text-black text-[10px] font-bold rounded shadow-sm">
+                              <div className="inline-flex items-center px-1.5 py-0.5 bg-amber-400 text-black text-[10px] font-bold rounded shadow-sm">
                                 {note.annotation_count} 条标注
                               </div>
                             )}
@@ -5591,7 +5659,7 @@ ${
               {viewMode === "compact-card" ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {[...Array(8)].map((_, i) => (
-                    <div key={i} className="bg-card rounded-[14px] border border-border overflow-hidden">
+                    <div key={i} className="bg-card rounded-2xl border border-border overflow-hidden">
                       <div className="aspect-[1.91/1] w-full bg-muted animate-pulse" />
                       <div className="p-3 space-y-2">
                         <div className="flex items-center gap-2 mb-2">

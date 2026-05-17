@@ -1,0 +1,8 @@
+# Newsbox 数据库备份目录
+#
+# 默认忽略所有 SQL 备份产物（体积大、含数据，不入库）；
+# 保留 MANIFEST.md（版本登记表）和本 .gitignore。
+
+*
+!.gitignore
+!MANIFEST.md

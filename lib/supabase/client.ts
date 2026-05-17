@@ -41,6 +41,7 @@
  */
 
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "./database.types";
 
 /**
  * 创建 Supabase 客户端客户端
@@ -183,7 +184,7 @@ export function createClient() {
   // 1. 避免创建多个 Realtime 连接（每个连接都会消耗资源）
   // 2. 确保 Auth 状态在整个应用中一致
   // 3. 减少内存占用
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
   );

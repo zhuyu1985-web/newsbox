@@ -49,7 +49,7 @@ export function AppearanceSection() {
           <h3 className="text-base font-bold text-card-foreground">外观主题</h3>
         </div>
         <div className="p-6">
-          <div className="flex bg-[#f5f5f7] p-1 rounded-xl w-[360px] max-w-full">
+          <div className="flex bg-slate-100 p-1 rounded-xl w-[360px] max-w-full">
             <ThemeBtn active={theme === "system"} onClick={() => setTheme("system")}>
               <Monitor className="h-4 w-4 mr-2" />
               自动跟随系统

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server-service';
 import { getStorageProvider, buildStorageKey } from '@/lib/storage';
+import { resolveContentType } from '@/lib/storage/mime';
 
 interface CapturePayload {
   platform: string;
@@ -62,9 +63,13 @@ export async function POST(req: NextRequest) {
   }
   await service.from('notes').update({ video_job_id: job.id }).eq('id', note.id);
 
+  // 扩展传过来的 contentType 在某些情况下会是空 / octet-stream（比如从剪贴板取的视频）
+  // 服务端按扩展名兜底，确保最终签发到 COS 的 PUT 携带正确 Content-Type
+  const safeContentType = resolveContentType(body.contentType, `x.${body.ext}`);
+
   const cred = await getStorageProvider().createUploadCredential({
     key,
-    contentType: body.contentType,
+    contentType: safeContentType,
     expiresIn: 3600,
   });
 

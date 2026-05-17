@@ -272,12 +272,14 @@ export function EditMetaDialog({
         if (existingDbTag) {
           tagToAdd = existingDbTag;
         } else {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Not authenticated");
           const { data: newTag, error } = await supabase
             .from("tags")
-            .insert({ name: tagName })
+            .insert({ name: tagName, user_id: user.id })
             .select("id, name")
             .single();
-          
+
           if (error) throw error;
           tagToAdd = newTag;
           // Add to allTags for future reference

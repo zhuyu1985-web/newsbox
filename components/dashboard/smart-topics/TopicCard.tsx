@@ -51,7 +51,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({
   return (
     <Card
       key={topic.id}
-      className="group relative bg-card dark:bg-slate-900 border border-border/90 dark:border-slate-700/50 shadow-none dark:shadow-none hover:shadow-[0_20px_60px_rgba(15,23,42,0.06)] dark:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:-translate-y-1 transition-all duration-500 overflow-hidden flex flex-row rounded-[20px] cursor-pointer min-h-[140px]"
+      className="group relative bg-card dark:bg-slate-900 border border-border/90 dark:border-slate-700/50 shadow-none dark:shadow-none hover:shadow-[0_20px_60px_rgba(15,23,42,0.06)] dark:hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:-translate-y-1 transition-all duration-500 overflow-hidden flex flex-row rounded-lg cursor-pointer min-h-[140px]"
       onClick={() => onViewTimeline(topic.id)}
     >
       {/* Left Content Area */}

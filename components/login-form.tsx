@@ -18,6 +18,9 @@ import { Home } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
+// 暂时隐藏第三方登录入口（Google / GitHub），改为 false 即可恢复
+const ENABLE_OAUTH = false;
+
 // SVG logos for OAuth providers
 const GoogleIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -171,57 +174,61 @@ export function LoginForm({
                 </Button>
               </div>
 
-              {/* OAuth Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-200 dark:border-slate-700" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white dark:bg-slate-950 px-2 text-slate-500">或</span>
-                </div>
-              </div>
+              {ENABLE_OAUTH && (
+                <>
+                  {/* OAuth Divider */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-slate-200 dark:border-slate-700" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white dark:bg-slate-950 px-2 text-slate-500">或</span>
+                    </div>
+                  </div>
 
-              {/* OAuth Buttons */}
-              <div className="grid gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-11 rounded-xl text-base font-semibold bg-white dark:bg-white text-slate-900 border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-100 transition-all"
-                  onClick={() => handleOAuthLogin("google")}
-                  disabled={isLoading || oauthLoading !== null}
-                >
-                  {oauthLoading === "google" ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
-                      <span>正在连接...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <GoogleIcon />
-                      <span className="ml-2">使用 Google 登录</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-11 rounded-xl text-base font-semibold bg-slate-900 dark:bg-slate-800 text-white border-slate-900 dark:border-slate-700 hover:bg-slate-800 dark:hover:bg-slate-700 transition-all"
-                  onClick={() => handleOAuthLogin("github")}
-                  disabled={isLoading || oauthLoading !== null}
-                >
-                  {oauthLoading === "github" ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      <span>正在连接...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <GitHubIcon />
-                      <span className="ml-2">使用 GitHub 登录</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+                  {/* OAuth Buttons */}
+                  <div className="grid gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-11 rounded-xl text-base font-semibold bg-white dark:bg-white text-slate-900 border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-100 transition-all"
+                      onClick={() => handleOAuthLogin("google")}
+                      disabled={isLoading || oauthLoading !== null}
+                    >
+                      {oauthLoading === "google" ? (
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
+                          <span>正在连接...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <GoogleIcon />
+                          <span className="ml-2">使用 Google 登录</span>
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-11 rounded-xl text-base font-semibold bg-slate-900 dark:bg-slate-800 text-white border-slate-900 dark:border-slate-700 hover:bg-slate-800 dark:hover:bg-slate-700 transition-all"
+                      onClick={() => handleOAuthLogin("github")}
+                      disabled={isLoading || oauthLoading !== null}
+                    >
+                      {oauthLoading === "github" ? (
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          <span>正在连接...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <GitHubIcon />
+                          <span className="ml-2">使用 GitHub 登录</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
             <div className="mt-6 text-center text-sm text-slate-500">
               还没有账户？{" "}

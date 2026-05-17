@@ -24,10 +24,12 @@
  *
  * 配置位置：
  * ---------
- * 在 `middleware.ts` 中调用：
+ * 在项目根 `proxy.ts`（Next.js 16+）中调用：
  * ```ts
- * export { middleware as GET, middleware as POST } from '@/lib/supabase/proxy';
- * export const middleware = updateSession;
+ * import { updateSession } from "@/lib/supabase/proxy";
+ * export async function proxy(request: NextRequest) {
+ *   return await updateSession(request);
+ * }
  * ```
  *
  * @module lib/supabase/proxy
@@ -36,6 +38,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
+import {
+  BASIC_AUTH_REALM,
+  getExpectedAdminCredentials,
+  verifyAdminAuth,
+} from "../admin-auth";
+import type { Database } from "./database.types";
 
 /**
  * 中间件主函数：更新会话并处理路由保护
@@ -66,16 +74,64 @@ import { hasEnvVars } from "../utils";
  *
  * @example
  * ```ts
- * // middleware.ts
+ * // proxy.ts（项目根，Next.js 16+）
  * import { updateSession } from '@/lib/supabase/proxy';
+ * import { type NextRequest } from 'next/server';
  *
- * export const middleware = updateSession;
+ * export async function proxy(request: NextRequest) {
+ *   return await updateSession(request);
+ * }
  * export const config = {
  *   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
  * };
  * ```
  */
+/**
+ * Admin 路由 Basic Auth 守门
+ *
+ * 现状：自行注册已关闭，账号统一由后台添加。
+ * `/admin/*` 与 `/api/admin/*` 用固定 ADMIN_USER / ADMIN_PASS 做 HTTP Basic Auth，
+ * 浏览器原生弹窗输入即可。
+ *
+ * 与 Supabase 会话彼此独立——admin 后端走 SUPABASE_SERVICE_ROLE_KEY，
+ * 不依赖 Supabase user session。Basic Auth 通过后直接放行，
+ * 跳过下面的 Supabase 会话刷新（避免无谓的 cookie 写入）。
+ *
+ * 注意：API Route 内部还会再做一次同样的 Basic Auth 校验，
+ * 用于防御中间件被绕过的 CVE 类问题（CVE-2025-29927 之类）。
+ */
+function checkAdminBasicAuth(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
+    return null;
+  }
+
+  if (!getExpectedAdminCredentials()) {
+    return new NextResponse(
+      "Admin 入口未启用（请在 .env.local 配置 ADMIN_USER / ADMIN_PASS）",
+      { status: 503 }
+    );
+  }
+
+  if (!verifyAdminAuth(request.headers.get("authorization"))) {
+    return new NextResponse("Authentication required", {
+      status: 401,
+      headers: { "WWW-Authenticate": BASIC_AUTH_REALM },
+    });
+  }
+
+  return NextResponse.next({ request });
+}
+
 export async function updateSession(request: NextRequest) {
+  // ========================================================================
+  // Step 0: Admin 路由优先用 Basic Auth 拦截
+  // ========================================================================
+  const adminResp = checkAdminBasicAuth(request);
+  if (adminResp) {
+    return adminResp;
+  }
+
   // ========================================================================
   // Step 1: 初始化响应对象
   // ========================================================================
@@ -110,7 +166,7 @@ export async function updateSession(request: NextRequest) {
   // - 用户会话混乱（用户 A 看到用户 B 的数据）
   // - 内存泄漏
   // - 难以调试的间歇性错误
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {

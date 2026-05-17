@@ -334,7 +334,7 @@ export function EntityProfilePanel({ userId, entityId, selectedLink, demo, demoM
         {loading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <p className="text-sm font-bold text-muted-foreground">加载中...</p>
+            <p className="text-sm font-bold text-muted-foreground">加载中…</p>
           </div>
         ) : entity ? (
           <div className="p-6 space-y-8">

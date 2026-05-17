@@ -83,7 +83,7 @@ export function AnimatedThemeSwitcher({ variant = "default" }: AnimatedThemeSwit
         {/* 触发按钮 */}
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-[46px] h-[46px] rounded-[15px] flex items-center justify-center text-[#4A4A4A] dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-[#1A1A1A] dark:hover:text-slate-200 transition-all duration-200 ease-out group"
+          className="w-[46px] h-[46px] rounded-2xl flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-out group"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           title={`当前主题: ${currentTheme.label}`}

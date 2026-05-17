@@ -443,7 +443,7 @@ export function AISnapshotView({ noteId, title, content }: AISnapshotViewProps) 
                             <div className="w-16 h-16 rounded-2xl bg-card shadow-lg flex items-center justify-center">
                               <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
                             </div>
-                            <p className="text-sm font-medium text-muted-foreground mt-3">加载中...</p>
+                            <p className="text-sm font-medium text-muted-foreground mt-3">加载中…</p>
                           </motion.div>
                         </motion.div>
                       )}

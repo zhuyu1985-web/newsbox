@@ -27,7 +27,7 @@ export function WebView({ url }: { url: string }) {
         <Card className="flex-1 flex flex-col overflow-hidden">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-              <div className="text-muted-foreground">加载中...</div>
+              <div className="text-muted-foreground">加载中…</div>
             </div>
           )}
           <iframe

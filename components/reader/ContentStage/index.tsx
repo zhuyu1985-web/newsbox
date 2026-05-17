@@ -37,9 +37,19 @@ interface Note {
   content_text: string | null;
   media_url: string | null;
   media_duration: number | null;
-  created_at: string;
+  created_at: string | null;
   published_at: string | null;
   estimated_read_time?: number;
+  video_job?: {
+    id?: string;
+    transcoded_url: string | null;
+    cos_url: string | null;
+    transcode_status?: string;
+    download_status?: string;
+    probe_status?: string;
+    audio_status?: string;
+    visual_status?: string;
+  } | null;
 }
 
 interface ContentStageProps {

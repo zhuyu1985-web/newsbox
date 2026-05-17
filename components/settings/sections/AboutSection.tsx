@@ -81,7 +81,7 @@ export function AboutSection() {
 
 function Row({ label, right }: { label: string; right: React.ReactNode }) {
   return (
-    <div className="bg-[#f5f5f7] rounded-2xl p-6 flex items-center justify-between gap-6">
+    <div className="bg-slate-100 rounded-2xl p-6 flex items-center justify-between gap-6">
       <div className="text-sm font-medium text-card-foreground">{label}</div>
       <div className="text-sm">{right}</div>
     </div>

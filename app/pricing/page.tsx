@@ -81,7 +81,7 @@ export default function PricingPage() {
 // 加载骨架屏
 function PricingPageSkeleton() {
   return (
-    <main className="min-h-screen bg-[#FBFBFD] dark:bg-black">
+    <main className="min-h-screen bg-slate-50 dark:bg-black">
       <div className="pt-32 pb-16 lg:pt-48 lg:pb-24">
         <div className="container mx-auto px-6 text-center">
           <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
@@ -266,7 +266,7 @@ function PricingPageContent() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#FBFBFD] dark:bg-black selection:bg-blue-100 selection:text-blue-900 font-sans">
+    <main className="min-h-screen bg-slate-50 dark:bg-black selection:bg-blue-100 selection:text-blue-900 font-sans">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-black/[0.03] dark:border-white/[0.03] bg-white/70 dark:bg-black/70 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -382,7 +382,7 @@ function PricingPageContent() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1, duration: 0.8 }}
-                className={`relative flex flex-col p-8 lg:p-10 rounded-[32px] bg-white dark:bg-[#111] border ${
+                className={`relative flex flex-col p-8 lg:p-10 rounded-4xl bg-white dark:bg-slate-900 border ${
                   tier.highlight 
                     ? "border-blue-600 shadow-[0_32px_64px_-16px_rgba(59,130,246,0.15)] ring-1 ring-blue-600/50" 
                     : "border-black/[0.05] dark:border-white/[0.05] shadow-xl shadow-black/[0.02]"
@@ -516,7 +516,7 @@ function PricingPageContent() {
       </section>
 
       {/* Trust & Transparency */}
-      <section className="py-24 bg-white dark:bg-[#050505] border-y border-black/[0.03] dark:border-white/[0.03]">
+      <section className="py-24 bg-white dark:bg-slate-950 border-y border-black/[0.03] dark:border-white/[0.03]">
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
             {[
@@ -558,7 +558,7 @@ function PricingPageContent() {
             {faqs.map((faq, i) => (
               <div 
                 key={i} 
-                className="rounded-2xl border border-black/[0.05] dark:border-white/[0.05] bg-white dark:bg-[#111] overflow-hidden"
+                className="rounded-2xl border border-black/[0.05] dark:border-white/[0.05] bg-white dark:bg-slate-900 overflow-hidden"
               >
                 <button 
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
@@ -585,7 +585,7 @@ function PricingPageContent() {
       {/* Final CTA */}
       <section className="pb-32">
         <div className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto p-12 lg:p-20 rounded-[48px] bg-blue-600 relative overflow-hidden text-center text-white">
+          <div className="max-w-5xl mx-auto p-12 lg:p-20 rounded-6xl bg-blue-600 relative overflow-hidden text-center text-white">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent)]" />
             <div className="relative z-10 space-y-8">
               <h2 className="text-3xl lg:text-5xl font-black">开启你的深度阅读之旅</h2>

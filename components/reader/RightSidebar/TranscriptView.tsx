@@ -54,7 +54,7 @@ export function TranscriptView({ note }: { note: Note }) {
         .single();
 
       if (!error && data?.segments) {
-        setLegacySegments(data.segments as TranscriptSegment[]);
+        setLegacySegments(data.segments as unknown as TranscriptSegment[]);
       }
       setLegacyLoading(false);
     };

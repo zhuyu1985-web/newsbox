@@ -216,11 +216,11 @@ export function SelectionMenu({
       {/* Top Bubble: Colors */}
       <div className="bg-card border rounded-full shadow-xl px-3 py-1.5 flex items-center gap-2">
         {[
-          { id: "yellow", class: "bg-[#fef08a]" },
-          { id: "green", class: "bg-[#bbf7d0]" },
-          { id: "blue", class: "bg-[#bfdbfe]" },
-          { id: "pink", class: "bg-[#fbcfe8]" },
-          { id: "purple", class: "bg-[#e9d5ff]" },
+          { id: "yellow", class: "bg-yellow-200" },
+          { id: "green", class: "bg-green-200" },
+          { id: "blue", class: "bg-blue-200" },
+          { id: "pink", class: "bg-pink-200" },
+          { id: "purple", class: "bg-purple-200" },
         ].map((color) => (
           <button
             key={color.id}

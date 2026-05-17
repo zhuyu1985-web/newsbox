@@ -1,5 +1,6 @@
 // lib/supabase/server-service.ts
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 
 /**
  * Service role client（绕 RLS），用于后台 worker 操作。
@@ -11,7 +12,7 @@ export function createServiceClient() {
   if (!url || !serviceKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY required for worker DB access');
   }
-  return createClient(url, serviceKey, {
+  return createClient<Database>(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

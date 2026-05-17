@@ -193,7 +193,7 @@ export function ReaderSkeletonCompact() {
       <div className="space-y-4 text-center">
         <div className="w-12 h-12 mx-auto border-3 border-primary border-t-transparent rounded-full animate-spin" />
         <div className="text-sm text-muted-foreground animate-pulse">
-          加载中...
+          加载中…
         </div>
       </div>
     </div>

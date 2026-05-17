@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { isSupabaseStorageUrl } from "@/lib/storage/url";
 import {
   Archive,
   BookOpen,
@@ -189,8 +190,14 @@ function isTopicNew(lastIngestedAt?: string | null) {
 }
 
 function isDirectVideoUrl(url: string) {
-  const u = (url || "").trim().toLowerCase();
-  return u.endsWith(".mp4") || u.endsWith(".m3u8") || u.includes("supabase.co/storage") || u.includes("storage.googleapis.com");
+  const raw = (url || "").trim();
+  const u = raw.toLowerCase();
+  return (
+    u.endsWith(".mp4") ||
+    u.endsWith(".m3u8") ||
+    u.includes("storage.googleapis.com") ||
+    isSupabaseStorageUrl(raw)
+  );
 }
 
 function toVideoPreviewUrl(rawUrl: string): { url: string; kind: "iframe" | "direct" } {
@@ -1708,7 +1715,7 @@ export function KnowledgeView({
   );
 
   return (
-    <div className={cn("flex flex-1 min-h-0", subView === "topics" ? "bg-[#F8FAFC] dark:bg-slate-950" : "bg-slate-50/30", className)}>
+    <div className={cn("flex flex-1 min-h-0", subView === "topics" ? "bg-slate-50 dark:bg-slate-950" : "bg-slate-50/30", className)}>
       {/* Sidebar - 只在 chat 模式下显示列表，topics 采用沉浸式仪表盘 */}
       {subView === "chat" ? (
         <div
@@ -2570,7 +2577,7 @@ export function KnowledgeView({
         </DialogContent>
       </Dialog>
 
-      <div className={cn("flex-1 flex flex-col min-w-0 overflow-hidden", subView === "topics" ? "bg-[#F8FAFC] dark:bg-slate-950" : "bg-white dark:bg-slate-900")}>
+      <div className={cn("flex-1 flex flex-col min-w-0 overflow-hidden", subView === "topics" ? "bg-slate-50 dark:bg-slate-950" : "bg-white dark:bg-slate-900")}>
         {subView === "graph" ? (
           <KnowledgeGraphView userId={userId || ""} />
         ) : subView === "quotes" ? (
@@ -2888,7 +2895,7 @@ export function KnowledgeView({
                           disabled={!hasMoreHistory || loadingOlderMessages}
                           onClick={() => void loadOlderMessages()}
                         >
-                          {loadingOlderMessages ? "加载中..." : "加载更早消息"}
+                          {loadingOlderMessages ? "加载中…" : "加载更早消息"}
                         </Button>
                       </div>
                     )}

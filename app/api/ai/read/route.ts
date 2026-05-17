@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateDeepAnalysis, generateFlashRead, generateKeyQuestions } from "@/lib/services/openai";
 import { requireAuth } from "@/lib/middleware/membership";
+import type { Json } from "@/lib/supabase/database.types";
 
 function estimateReadTimeMinutes(text: string): number {
   const trimmed = (text || "").trim();
@@ -161,9 +162,9 @@ export async function POST(request: NextRequest) {
             note_id: noteId,
             user_id: user.id,
             summary: fastRead.hook || deepAnalysis.overview || (note.title || "") || "",
-            key_questions: keyQuestions.questions || [],
-            journalist_view: mergedJournalistView,
-            timeline: mergedTimeline,
+            key_questions: (keyQuestions.questions || []) as unknown as Json,
+            journalist_view: mergedJournalistView as unknown as Json,
+            timeline: mergedTimeline as unknown as Json,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "note_id" }

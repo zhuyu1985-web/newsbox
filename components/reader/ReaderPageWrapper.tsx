@@ -37,7 +37,7 @@ export interface Note {
   media_url: string | null;
   media_duration: number | null;
   status: "unread" | "reading" | "archived";
-  created_at: string;
+  created_at: string | null;
   published_at: string | null;
   reading_position?: number;
   read_percentage?: number;
@@ -176,14 +176,15 @@ export function ReaderPageWrapper({
     }
 
     // 一次性获取笔记和文件夹数据（使用 JOIN 减少往返），同时 join video_jobs 用于视频分析
+    // notes ↔ video_jobs 之间有两条 FK，显式指定走 notes.video_job_id → video_jobs.id
     const { data: noteData, error: noteError } = await supabase
       .from("notes")
       .select(`
         *,
         folder:folders(id, name, parent_id),
-        video_job:video_jobs(
+        video_job:video_jobs!notes_video_job_id_fkey(
           id, audio_result, visual_result, frames, cover_url, cos_url, transcoded_url,
-          download_status, audio_status, visual_status, transcode_status
+          download_status, probe_status, audio_status, visual_status, transcode_status
         )
       `)
       .eq("id", noteId)
@@ -191,6 +192,13 @@ export function ReaderPageWrapper({
       .single();
 
     if (noteError || !noteData) {
+      console.error("[ReaderPageWrapper] load note error", {
+        noteId,
+        message: noteError?.message,
+        code: noteError?.code,
+        details: noteError?.details,
+        hint: noteError?.hint,
+      });
       router.push("/dashboard");
       return;
     }
@@ -206,11 +214,11 @@ export function ReaderPageWrapper({
       ? (Array.isArray(noteData.folder) ? noteData.folder[0] : noteData.folder) as Folder | null
       : null;
 
-    setNote(noteData);
+    setNote(noteData as unknown as Note);
     setFolder(folderData);
 
     // 在后台执行非关键任务
-    performBackgroundTasks(noteData, user.id);
+    performBackgroundTasks(noteData as unknown as Note, user.id);
 
     setLoading(false);
     setIsContentReady(true);

@@ -71,7 +71,7 @@ export function RewardsSection() {
         </div>
 
         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-[#f5f5f7] rounded-2xl p-6">
+          <div className="bg-slate-100 rounded-2xl p-6">
             <div className="text-sm font-semibold text-card-foreground">输入推荐码，获赠会员</div>
             <div className="text-xs text-muted-foreground mt-1">
               输入收到的推荐码领取 7 天会员（每个账号最多领取 1 次）
@@ -98,7 +98,7 @@ export function RewardsSection() {
             <div className="mt-4">
               <div className="text-xs text-muted-foreground">分享你的推荐码</div>
               <div className="mt-2 flex items-center gap-2">
-                <div className="flex-1 bg-[#f5f5f7] rounded-xl px-4 py-3 font-mono text-sm text-card-foreground">
+                <div className="flex-1 bg-slate-100 rounded-xl px-4 py-3 font-mono text-sm text-card-foreground">
                   {loading ? "加载中…" : myCode || "—"}
                 </div>
                 <Button

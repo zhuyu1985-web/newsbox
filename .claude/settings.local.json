@@ -18,7 +18,28 @@
       "Bash(timeout 30 npm run dev:*)",
       "Bash(perl:*)",
       "mcp__chrome-devtools__navigate_page",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npx tsc *)",
+      "Bash(npm test *)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox status)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox diff --stat)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox add lib/ai-analysis/adapters/qwen-vl.ts tests/lib/ai-analysis/adapters/qwen-vl.test.ts)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox commit -m ' *)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox add lib/ai-analysis/audio-provider.ts lib/ai-analysis/visual-provider.ts lib/ai-analysis/index.ts)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox log --oneline -5)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox add lib/ai-analysis/qa-service.ts tests/lib/ai-analysis/qa-service.test.ts)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox diff --stat HEAD)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox add lib/workers/video-pipeline/step-download.ts tests/lib/workers/video-pipeline/step-download.test.ts)",
+      "Bash(npx vitest *)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox add lib/workers/video-pipeline/step-extract-frames.ts lib/workers/video-pipeline/step-analyze-visual.ts tests/lib/workers/video-pipeline/step-extract-frames.test.ts tests/lib/workers/video-pipeline/step-analyze-visual.test.ts)",
+      "Bash(git -C /Users/zhuyu/dev/devbox/newsbox add lib/workers/video-pipeline/reconcile.ts tests/lib/workers/video-pipeline/reconcile.test.ts)",
+      "Bash(VIDEO_WORKER_ENABLED=false timeout 15 npm run dev)",
+      "Bash(mkdir -p /Users/zhuyu/dev/devbox/newsbox/app/api/ai/video/\\\\[jobId\\\\]/status)",
+      "Bash(mkdir -p /Users/zhuyu/dev/devbox/newsbox/app/api/ai/video/\\\\[jobId\\\\]/retry)",
+      "Bash(npx next *)",
+      "Bash(npx eslint *)",
+      "Bash(kill %1)",
+      "Bash(wait)"
     ]
   }
 }

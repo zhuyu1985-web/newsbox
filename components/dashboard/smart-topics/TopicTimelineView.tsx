@@ -138,7 +138,7 @@ export const TopicTimelineView: React.FC<TopicTimelineViewProps> = ({
 
                       {/* Content Card (Matched to renderNoteCard style) */}
                       <div 
-                        className="group bg-card border border-border/90 hover:border-blue-500/30 hover:shadow-[0_18px_50px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 transition-all duration-300 rounded-[20px] p-6 cursor-pointer"
+                        className="group bg-card border border-border/90 hover:border-blue-500/30 hover:shadow-[0_18px_50px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 transition-all duration-300 rounded-lg p-6 cursor-pointer"
                         onClick={() => onOpenNote(primary.note.id)}
                       >
                         <div className="flex items-start justify-between mb-3">
@@ -201,7 +201,7 @@ export const TopicTimelineView: React.FC<TopicTimelineViewProps> = ({
         <div className="w-[340px] border-l border-border/80 bg-card overflow-y-auto px-6 py-8 space-y-8 custom-scrollbar">
           {/* Analysis Summary Card (Replacing the map) */}
           <div className="space-y-4">
-            <div className="p-5 rounded-[24px] bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative overflow-hidden shadow-lg shadow-blue-200">
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative overflow-hidden shadow-lg shadow-blue-200">
               <div className="absolute top-0 right-0 w-32 h-32 bg-card/10 -mr-8 -mt-8 rounded-full blur-2xl" />
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">

@@ -115,7 +115,7 @@ export const TopicReportView: React.FC<TopicReportViewProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12 pt-4">
             {/* Left: Report Content */}
             <div className="space-y-10">
-              <div className="bg-card border border-border/90 rounded-[32px] shadow-sm overflow-hidden">
+              <div className="bg-card border border-border/90 rounded-4xl shadow-sm overflow-hidden">
                 {/* Content Controls */}
                 <div className="px-8 h-14 flex items-center justify-between border-b border-border bg-muted/50">
                   <span className="text-[10px] font-extrabold text-muted-foreground/70 uppercase tracking-widest">预览模式 (MARKDOWN)</span>
@@ -218,7 +218,7 @@ export const TopicReportView: React.FC<TopicReportViewProps> = ({
                   <h3 className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest">专题摘要预览</h3>
                   <Maximize2 className="h-3.5 w-3.5 text-muted-foreground/50 cursor-pointer hover:text-blue-500 transition-colors" />
                 </div>
-                <div className="aspect-[4/3] rounded-[32px] bg-card border border-border/80 shadow-sm overflow-hidden relative group p-6 flex flex-col justify-end">
+                <div className="aspect-[4/3] rounded-4xl bg-card border border-border/80 shadow-sm overflow-hidden relative group p-6 flex flex-col justify-end">
                   {/* Graph Mockup Background */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <Network className="h-32 w-32 text-blue-500/5" />

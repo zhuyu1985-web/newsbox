@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' blob: data: https: http:",
+      // 视频/音频源：COS 公开 URL（https）+ 本地 dev（http）+ blob（上传预览）
+      "media-src 'self' blob: https: http:",
       "font-src 'self' data: https:",
       // Dev needs ws/wss/http for HMR and local APIs.
       isDev ? "connect-src 'self' https: http: ws: wss:" : "connect-src 'self' https:",

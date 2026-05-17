@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   // 同步 notes.media_url
   const { data: job } = await service.from('video_jobs').select('note_id').eq('id', body.jobId).single();
-  if (job) await service.from('notes').update({ media_url: cosUrl }).eq('id', job.note_id);
+  if (job?.note_id) await service.from('notes').update({ media_url: cosUrl }).eq('id', job.note_id);
 
   return NextResponse.json({ ok: true });
 }

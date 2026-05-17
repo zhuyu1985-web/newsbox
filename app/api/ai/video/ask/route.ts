@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server-service';
 import { askVideoQuestion } from '@/lib/ai-analysis/qa-service';
+import type { TranscriptSegment } from '@/lib/ai-analysis/types';
 
 interface Body {
   noteId: string;
@@ -24,11 +25,12 @@ export async function POST(req: NextRequest) {
     .eq('note_id', body.noteId)
     .eq('user_id', user.id)
     .single();
-  if (!job?.audio_result?.transcript) return NextResponse.json({ error: 'transcript not ready' }, { status: 400 });
+  const audioResult = job?.audio_result as { transcript?: TranscriptSegment[] } | null;
+  if (!audioResult?.transcript?.length) return NextResponse.json({ error: 'transcript not ready' }, { status: 400 });
 
   try {
     const r = await askVideoQuestion({
-      transcript: job.audio_result.transcript,
+      transcript: audioResult.transcript,
       question: body.question,
       history: body.history,
     });

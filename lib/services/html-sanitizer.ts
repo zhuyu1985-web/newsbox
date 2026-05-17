@@ -157,7 +157,7 @@ export function sanitizeHtmlContent(html: string): string {
  * - H4: 18px, 半粗体, 上间距 20px, 下间距 10px
  *
  * **图片样式**：
- * - rounded-[4px]: 圆角 4px（柔和但不过度）
+ * - rounded: 圆角 4px（柔和但不过度）
  * - max-w-full: 最大宽度 100%（响应式）
  * - my-[32px]: 上下间距 32px（突出显示）
  * - mx-auto: 水平居中
@@ -195,7 +195,7 @@ export const CONTENT_STYLING_CLASSES =
   "prose-h2:text-[24px] prose-h2:leading-tight prose-h2:mt-[32px] prose-h2:mb-[14px] prose-h2:font-bold " +
   "prose-h3:text-[20px] prose-h3:leading-snug prose-h3:mt-[24px] prose-h3:mb-[12px] prose-h3:font-semibold " +
   "prose-h4:text-[18px] prose-h4:leading-snug prose-h4:mt-[20px] prose-h4:mb-[10px] prose-h4:font-semibold " +
-  "prose-img:rounded-[4px] prose-img:my-[32px] prose-img:mx-auto prose-img:block prose-img:max-w-full " +
+  "prose-img:rounded prose-img:my-[32px] prose-img:mx-auto prose-img:block prose-img:max-w-full " +
   "prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:py-3 prose-blockquote:px-4 prose-blockquote:italic prose-blockquote:bg-blue-50/50 prose-blockquote:my-[24px] " +
   "prose-ul:list-disc prose-ol:list-decimal prose-li:mb-[8px] prose-li:leading-[var(--reader-line-height)] " +
   "prose-strong:font-semibold prose-em:italic";

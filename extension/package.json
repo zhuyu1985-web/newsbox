@@ -1,0 +1,27 @@
+{
+  "name": "newsbox-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "tsc && vite build",
+    "build:zip": "npm run build && cd dist-chrome && zip -r ../newsbox-chrome.zip . && cd ../dist-firefox && zip -r ../newsbox-firefox.zip . && cd ../dist-safari && zip -r ../newsbox-safari.zip .",
+    "build:safari-xcode": "npm run build && xcrun safari-web-extension-converter dist-safari --project-location safari-xcode --app-name NewsBox --bundle-identifier com.newsbox.safari-extension --no-open"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5",
+    "vite": "^6.0.0"
+  }
+}

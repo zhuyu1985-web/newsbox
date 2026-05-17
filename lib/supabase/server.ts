@@ -55,6 +55,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "./database.types";
 
 /**
  * 创建 Supabase 服务端客户端
@@ -141,7 +142,7 @@ export async function createClient() {
   // cookies() 是 Next.js 提供的异步函数，返回当前请求的 cookies
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {

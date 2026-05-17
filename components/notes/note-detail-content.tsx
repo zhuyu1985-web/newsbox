@@ -31,7 +31,7 @@ interface Note {
   media_url: string | null;
   media_duration: number | null;
   status: "unread" | "reading" | "archived";
-  created_at: string;
+  created_at: string | null;
   published_at: string | null;
 }
 
@@ -81,7 +81,7 @@ export function NoteDetailContent({
       return;
     }
 
-    setNote(data);
+    setNote(data as unknown as Note);
     setLoading(false);
   };
 
@@ -141,7 +141,7 @@ export function NoteDetailContent({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">加载中...</div>
+        <div className="text-muted-foreground">加载中…</div>
       </div>
     );
   }
@@ -231,7 +231,7 @@ export function NoteDetailContent({
               <span>时长：{formatDuration(note.media_duration)}</span>
             )}
             <span>
-              收藏时间：{new Date(note.created_at).toLocaleDateString("zh-CN")}
+              收藏时间：{note.created_at ? new Date(note.created_at).toLocaleDateString("zh-CN") : "—"}
             </span>
           </div>
         </div>

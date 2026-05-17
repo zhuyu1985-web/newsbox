@@ -65,7 +65,7 @@ export function AccountSection({ user }: { user: User }) {
         </div>
 
         <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-[#f5f5f7] rounded-2xl p-6">
+          <div className="lg:col-span-2 bg-slate-100 rounded-2xl p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <div className="text-xs text-muted-foreground mb-2">用户名</div>
@@ -229,7 +229,7 @@ function BindingRow({
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 bg-[#f5f5f7] rounded-2xl p-5">
+    <div className="flex items-center justify-between gap-4 bg-slate-100 rounded-2xl p-5">
       <div className="flex items-center gap-4 min-w-0">
         <div className="w-10 h-10 rounded-full bg-card border border-black/5 flex items-center justify-center shrink-0">
           {icon}

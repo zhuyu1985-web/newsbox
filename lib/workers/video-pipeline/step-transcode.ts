@@ -60,8 +60,15 @@ export async function runTranscodeStep(job: VideoJob): Promise<void> {
     const probeData = job.probe_data as { videoCodec?: string } | null;
     const codec = (probeData?.videoCodec ?? '').toLowerCase();
 
-    // If already H.264 — no transcode needed
-    if (codec === 'h264' || codec === 'avc' || codec === 'avc1') {
+    // 容器格式判定：.mp4 容器才可直接浏览器播放（即便内部 codec 是 H.264）
+    // .mov / .mkv / .avi / .flv / .wmv 等容器在 Chrome/Firefox 上常因
+    // Content-Type 或解析问题导致失败 → 必须 remux 到 mp4
+    const sourceKey = job.cos_key.toLowerCase();
+    const isMp4Container = sourceKey.endsWith('.mp4');
+    const isH264 = codec === 'h264' || codec === 'avc' || codec === 'avc1';
+
+    // 仅当「H.264 codec」且「已经是 mp4 容器」才跳过转码
+    if (isH264 && isMp4Container) {
       await markStep(job.id, 'transcode', 'skipped');
       return;
     }

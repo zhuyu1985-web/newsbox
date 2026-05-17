@@ -222,7 +222,7 @@ export function TagDialog({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-[#dbeafe66] backdrop-blur-sm flex items-center justify-center z-[9999] pb-[10vh]"
+          className="fixed inset-0 bg-blue-100/40 backdrop-blur-sm flex items-center justify-center z-[9999] pb-[10vh]"
           onClick={onClose}
         >
           <motion.div
@@ -240,7 +240,7 @@ export function TagDialog({
 
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="text-muted-foreground">加载中...</div>
+                  <div className="text-muted-foreground">加载中…</div>
                 </div>
               ) : (
                 <>

@@ -473,11 +473,12 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
         for (const l of graphData.links) linksById.set(l.id, l);
       }
 
+      const seedMeta = seed.metadata as { importance?: number } | null;
       const seedNode: GraphNode = {
         id: seed.id,
         name: seed.name,
         type: (seed.type || "DEFAULT") as EntityType,
-        val: 18 + (seed.metadata?.importance || 0),
+        val: 18 + (seedMeta?.importance || 0),
         color: TYPE_COLORS[(seed.type || "DEFAULT") as EntityType] || TYPE_COLORS.DEFAULT,
       };
       nodesById.set(seedNode.id, seedNode);
@@ -617,7 +618,7 @@ export function KnowledgeGraphView({ userId }: KnowledgeGraphViewProps) {
   };
 
   return (
-    <div className="flex-1 flex min-h-0 relative overflow-hidden bg-[#F8FAFC]">
+    <div className="flex-1 flex min-h-0 relative overflow-hidden bg-slate-50">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at:1px_1px,rgba(148,163,184,0.15)_1px,transparent_0)] bg-[size:24px_24px]" />
 
       {/* Left Sidebar: Types */}
