@@ -1,0 +1,26 @@
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - img [ref=e9]
+      - generic [ref=e12]: NewsBox
+    - generic [ref=e13]:
+      - button "💻" [ref=e14] [cursor=pointer]
+      - button "test@newsbox.com 点击登出" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+  - generic [ref=e20]:
+    - heading "AI 正在重塑阅读体验：从信息过载到智能筛选" [level=2] [ref=e21]
+    - paragraph [ref=e22]: 随着大语言模型的普及，传统的"稍后阅读"工具正在被 AI 驱动的智能阅读助手所取代。这些工具不仅能帮你保存内容，还能自动生成摘要、提取关键信息...
+    - generic [ref=e23]:
+      - generic [ref=e24]: 36氪
+      - generic [ref=e25]: ·
+      - generic [ref=e26]: 张三
+  - button "💻 技术文章" [ref=e54] [cursor=pointer]:
+    - img [ref=e30]
+    - generic [ref=e55]: 💻 技术文章
+    - img [ref=e33]
+  - button "添加标签" [ref=e37] [cursor=pointer]:
+    - img [ref=e38]
+    - generic [ref=e42]: 添加标签
+    - img [ref=e43]
+  - button "保存到 NewsBox" [ref=e45] [cursor=pointer]
+  - paragraph [ref=e46]: "快捷键: Ctrl+Shift+S (Mac: ⌘⇧S)"

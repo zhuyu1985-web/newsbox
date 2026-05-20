@@ -1,0 +1,219 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "NewsBox" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e7]
+          - generic [ref=e9]: NewsBox
+        - generic [ref=e10]:
+          - link "产品功能" [ref=e12] [cursor=pointer]:
+            - /url: "#product-features"
+          - link "用户痛点" [ref=e14] [cursor=pointer]:
+            - /url: "#pain-points"
+          - link "核心理念" [ref=e16] [cursor=pointer]:
+            - /url: "#core-loop"
+          - link "场景演绎" [ref=e18] [cursor=pointer]:
+            - /url: "#scenarios"
+          - link "加入会员" [ref=e20] [cursor=pointer]:
+            - /url: /pricing
+        - generic [ref=e21]:
+          - 'button "当前主题: 自动" [ref=e23] [cursor=pointer]':
+            - img [ref=e24]
+          - link "登录" [ref=e26] [cursor=pointer]:
+            - /url: /auth/login
+            - button "登录" [ref=e27]
+          - link "立即开始" [ref=e28] [cursor=pointer]:
+            - /url: /auth/sign-up
+            - button "立即开始" [ref=e29]
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: “
+            - generic [ref=e41]: 你
+            - generic [ref=e42]: 的
+            - generic [ref=e43]: “稍
+            - generic [ref=e44]: 后
+            - generic [ref=e45]: 阅
+            - generic [ref=e46]: 读”
+            - generic [ref=e47]: 列
+            - generic [ref=e48]: 表
+            - generic [ref=e49]: ，
+            - generic [ref=e50]: 是
+            - generic [ref=e51]: 否
+            - generic [ref=e52]: 沦
+            - generic [ref=e53]: 为
+            - generic [ref=e54]: 了
+            - generic [ref=e55]: 信
+            - generic [ref=e56]: 息
+            - generic [ref=e57]: 的
+            - generic [ref=e58]: 数字冷宫
+            - generic [ref=e60]: ？ ”
+          - generic [ref=e61]:
+            - img [ref=e62]
+            - generic [ref=e64]: AI-Powered Intelligence
+        - heading "NewsBox：让 深度长文 成为你的随身智库" [level=1] [ref=e66]:
+          - generic [ref=e67]:
+            - generic [ref=e68]: NewsBox：让
+            - generic [ref=e70]: 深度长文
+          - generic [ref=e71]: 成为你的随身智库
+        - paragraph [ref=e72]: 从稍后阅读到深度洞察，我们将你的信息流转化为生产力。
+        - generic [ref=e73]:
+          - link "免费开启 NewsBox" [ref=e74] [cursor=pointer]:
+            - /url: /auth/sign-up
+            - button "免费开启 NewsBox" [ref=e75]:
+              - text: 免费开启 NewsBox
+              - img
+          - generic [ref=e76]:
+            - generic [ref=e77]: 收集 (Collect)
+            - generic [ref=e78]: •
+            - generic [ref=e79]: 净化 (Purify)
+            - generic [ref=e80]: •
+            - generic [ref=e81]: 唤醒 (Recall)
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - paragraph [ref=e87]:
+            - text: NewsBox 的核心功能旨在突显产品“从信息囤积到知识内化”的完整闭环，
+            - text: 强调 AI 在每个环节的赋能作用
+          - generic [ref=e90]:
+            - generic [ref=e96]: newsbox.app/dashboard
+            - img "NewsBox Dashboard" [ref=e98]
+        - generic:
+          - generic:
+            - generic:
+              - img
+        - generic:
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - img [ref=e103]
+              - generic [ref=e106]:
+                - heading "全媒体智能入库" [level=4] [ref=e107]
+                - paragraph [ref=e108]: Omni-Media Ingestion
+            - paragraph [ref=e110]: 统一收集，视听转文
+            - paragraph [ref=e111]: 支持收藏网页、公众号及 B站/YouTube 视频。
+          - generic [ref=e113]:
+            - generic [ref=e114]:
+              - img [ref=e116]
+              - generic [ref=e126]:
+                - heading "AI 深度伴读助手" [level=4] [ref=e127]
+                - paragraph [ref=e128]: AI Copilot
+            - paragraph [ref=e130]: 深度批注，读懂用上
+            - paragraph [ref=e131]: 在阅读时提供 AI 辅助，实现与内容的深度对话。
+          - generic [ref=e133]:
+            - generic [ref=e134]:
+              - img [ref=e136]
+              - generic [ref=e142]:
+                - heading "通勤听阅电台" [level=4] [ref=e143]
+                - paragraph [ref=e144]: Smart Podcast
+            - paragraph [ref=e146]: 碎片时间，高效听读
+            - paragraph [ref=e147]: 将待读列表转化为音频简报，像听播客一样阅读。
+          - generic [ref=e149]:
+            - generic [ref=e150]:
+              - img [ref=e152]
+              - generic [ref=e154]:
+                - heading "灵感唤醒引擎" [level=4] [ref=e155]
+                - paragraph [ref=e156]: Inspiration Engine
+            - paragraph [ref=e158]: 对话知识，唤醒记忆
+            - paragraph [ref=e159]: 基于 RAG 技术的知识检索，让积累化为灵感。
+    - generic [ref=e161]:
+      - generic [ref=e162]:
+        - heading "在信息过载时代，重塑你的阅读深度" [level=2] [ref=e163]
+        - paragraph [ref=e164]: 我们深知，作为深度阅读者，你缺的不是内容，而是驾驭内容的能力。
+      - generic [ref=e165]:
+        - generic [ref=e166]:
+          - img [ref=e168]
+          - heading "解决记忆断层" [level=3] [ref=e172]
+          - paragraph [ref=e173]: 不再为“记得看过却找不到”而苦恼。AI 帮你跨越时间，找回收藏夹深处的知识火花。
+        - generic [ref=e174]:
+          - img [ref=e176]
+          - heading "打通素材黑洞" [level=3] [ref=e180]
+          - paragraph [ref=e181]: 海量视频与研报不再是负担。一键提取金句，让优质素材从沉睡中苏醒，转化为你的生产力。
+        - generic [ref=e182]:
+          - img [ref=e184]
+          - heading "走出碎片困局" [level=3] [ref=e187]
+          - paragraph [ref=e188]: 利用通勤与运动的碎片时间。将长文转化为高效听阅电台，让深度思考不再受限于屏幕。
+      - generic [ref=e191]:
+        - generic [ref=e192]:
+          - generic [ref=e193]: Vision
+          - heading "NewsBox 不仅仅是一个收藏夹" [level=3] [ref=e194]
+          - paragraph [ref=e195]: 它是你在这个信息过载时代的“认知外骨骼”。
+        - img [ref=e197]
+    - generic [ref=e200]:
+      - generic [ref=e201]:
+        - heading "核心理念" [level=2] [ref=e202]
+        - paragraph [ref=e203]: 打造你私人的 AI 知识循环系统
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - generic [ref=e206]: "01"
+          - img [ref=e208]
+          - heading "收集 (Collect)" [level=3] [ref=e211]
+          - heading "全媒体形态的统一入口" [level=4] [ref=e212]
+          - paragraph [ref=e213]: 无论公众号长文、网页新闻，还是 B站/YouTube 视频。一键保存，自动清洗，图文影音一体化。
+        - generic [ref=e214]:
+          - generic [ref=e215]: "02"
+          - img [ref=e217]
+          - heading "净化 (Purify)" [level=3] [ref=e219]
+          - heading "AI 驱动的去伪真真" [level=4] [ref=e220]
+          - paragraph [ref=e221]: 极速筛选未读列表，AI 瞬间生成 50 字浓缩摘要。像刷 Tinder 一样处理资讯，把精力留给真知灼见。
+        - generic [ref=e222]:
+          - generic [ref=e223]: "03"
+          - img [ref=e225]
+          - heading "唤醒 (Recall)" [level=3] [ref=e228]
+          - heading "跨越时空的记忆检索" [level=4] [ref=e229]
+          - paragraph [ref=e230]: 只需描述意图，AI 帮你从海量库中找回几年前的记忆。关联视频片段与笔记，让积累化为灵感。
+    - generic [ref=e232]:
+      - generic [ref=e234]:
+        - heading "核心场景演绎" [level=2] [ref=e235]
+        - paragraph [ref=e236]: 让 AI 深入你的每一个阅读瞬间
+      - generic [ref=e238]:
+        - generic [ref=e239]:
+          - generic [ref=e240]:
+            - img [ref=e242]
+            - generic [ref=e248]:
+              - heading "通勤路上的“专属电台”" [level=3] [ref=e249]
+              - paragraph [ref=e250]: 把文章“听”进脑子里
+            - paragraph [ref=e251]: 不要浪费碎片时间。NewsBox 每日为你生成“专属简报”。由 AI 主播为你综合播报关注领域，甚至将长文转化为对话式 Podcast。
+          - img "通勤路上的“专属电台”" [ref=e253]
+        - generic [ref=e255]:
+          - generic [ref=e256]:
+            - img [ref=e258]
+            - generic [ref=e261]:
+              - heading "视频新闻的“文本化阅读”" [level=3] [ref=e262]
+              - paragraph [ref=e263]: 像查字典一样查视频
+            - paragraph [ref=e264]: 自动为视频生成带时间戳的逐字稿和章节目录。支持语音转文字、关键帧提取、金句一键复制，让音视频素材像图文一样易于检索。
+          - img "视频新闻的“文本化阅读”" [ref=e266]
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - img [ref=e271]
+            - generic [ref=e276]:
+              - heading "写稿时的“灵感矿工”" [level=3] [ref=e277]
+              - paragraph [ref=e278]: 让过去的积累成为今天的子弹
+            - paragraph [ref=e279]: 写作时 NewsBox 会自动浮现过去收藏的相关数据、专家观点。一键生成规范引用格式，建立你私有的事实核查库。
+          - img "写稿时的“灵感矿工”" [ref=e281]
+    - generic [ref=e287]:
+      - heading "打造面向未来 历久弥新的阅读方式" [level=2] [ref=e288]:
+        - generic [ref=e289]: 打造面向未来
+        - generic [ref=e290]: 历久弥新的阅读方式
+      - paragraph [ref=e291]:
+        - text: 在算法推荐横行的时代，NewsBox 坚持把“选择权”和“记忆权”交还给你
+        - text: 我们不生产新闻，我们只让优质的新闻在它的生命周期里，
+        - text: 被你读懂、记住、并创造新的价值。
+      - link "即刻加入 NewsBox" [ref=e293] [cursor=pointer]:
+        - /url: /auth/sign-up
+        - button "即刻加入 NewsBox" [ref=e294]
+    - generic [ref=e297]:
+      - generic [ref=e298]:
+        - link "隐私政策" [ref=e299] [cursor=pointer]:
+          - /url: "#"
+        - link "服务条款" [ref=e300] [cursor=pointer]:
+          - /url: "#"
+        - link "联系我们" [ref=e301] [cursor=pointer]:
+          - /url: "#"
+        - link "关于我们" [ref=e302] [cursor=pointer]:
+          - /url: "#"
+      - paragraph [ref=e303]: © 2025 NewsBox. Designed for professional readers.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e309] [cursor=pointer]:
+    - img [ref=e310]
+  - alert [ref=e313]

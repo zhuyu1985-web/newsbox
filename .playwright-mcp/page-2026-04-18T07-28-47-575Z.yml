@@ -1,0 +1,7 @@
+- generic [ref=e88]:
+  - img [ref=e90]
+  - heading "已保存到 NewsBox" [level=2] [ref=e93]
+  - paragraph [ref=e94]: 3 秒后自动关闭
+  - generic [ref=e95]:
+    - button "查看笔记" [ref=e96] [cursor=pointer]
+    - button "继续保存" [ref=e97] [cursor=pointer]

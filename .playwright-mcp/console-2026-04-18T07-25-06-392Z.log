@@ -1,0 +1,5 @@
+[      84ms] TypeError: Cannot read properties of undefined (reading 'local')
+    at k (http://localhost:3459/chunks/api-CCvWmnCQ.js:1:428)
+    at gv (http://localhost:3459/popup/popup.js:58:570)
+    at http://localhost:3459/popup/popup.js:82:710
+[      77ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3459/favicon.ico:0

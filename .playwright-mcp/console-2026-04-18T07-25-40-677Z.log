@@ -1,0 +1,4 @@
+[      75ms] TypeError: Cannot read properties of undefined (reading 'local')
+    at k (http://localhost:3459/chunks/api-CCvWmnCQ.js:1:428)
+    at gv (http://localhost:3459/popup/popup.js:58:570)
+    at http://localhost:3459/popup/popup.js:82:710

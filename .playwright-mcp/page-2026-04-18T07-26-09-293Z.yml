@@ -1,0 +1,10 @@
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - img [ref=e8]
+    - heading "NewsBox" [level=1] [ref=e11]
+    - paragraph [ref=e12]: 登录以保存网页内容
+  - generic [ref=e13]:
+    - textbox "邮箱地址" [ref=e15]
+    - textbox "密码" [ref=e17]
+    - button "登录" [ref=e18] [cursor=pointer]
+  - paragraph [ref=e19]: 还没有账号？访问 NewsBox 网站注册

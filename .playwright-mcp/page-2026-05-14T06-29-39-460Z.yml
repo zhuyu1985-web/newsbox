@@ -1,0 +1,39 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: 登录
+      - generic [ref=e10]: 欢迎回来，请输入您的凭据
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: 邮箱
+          - textbox "邮箱" [ref=e16]:
+            - /placeholder: name@example.com
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - generic "password" [ref=e19]: 密码
+            - link "忘记密码？" [ref=e20] [cursor=pointer]:
+              - /url: /auth/forgot-password
+          - textbox "密码" [ref=e21]
+        - generic [ref=e22]:
+          - button "登录" [ref=e23] [cursor=pointer]
+          - link "返回首页" [ref=e24] [cursor=pointer]:
+            - /url: /
+            - img
+            - text: 返回首页
+        - generic [ref=e29]: 或
+        - generic [ref=e30]:
+          - button "使用 Google 登录" [ref=e31] [cursor=pointer]:
+            - img
+            - generic [ref=e32]: 使用 Google 登录
+          - button "使用 GitHub 登录" [ref=e33] [cursor=pointer]:
+            - img
+            - generic [ref=e34]: 使用 GitHub 登录
+      - generic [ref=e35]:
+        - text: 还没有账户？
+        - link "立即注册" [ref=e36] [cursor=pointer]:
+          - /url: /auth/sign-up
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e42] [cursor=pointer]:
+    - img [ref=e43]
+  - alert [ref=e46]
