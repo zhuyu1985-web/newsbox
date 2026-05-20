@@ -1,77 +1,20 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Copy, ExternalLink } from "lucide-react";
-
 export function AboutSection() {
-  const copy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-  };
-
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/5">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
           <h3 className="text-base font-bold text-card-foreground">关于 NewsBox</h3>
         </div>
 
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Row
-              label="使用指南"
-              right={
-                <a
-                  className="text-muted-foreground hover:text-card-foreground inline-flex items-center gap-2"
-                  href="https://help.newsbox.pro"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  help.newsbox.pro <ExternalLink className="h-4 w-4" />
-                </a>
-              }
-            />
-            <Row
-              label="帮助文档"
-              right={
-                <a
-                  className="text-muted-foreground hover:text-card-foreground inline-flex items-center gap-2"
-                  href="https://help.newsbox.pro"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  help.newsbox.pro <ExternalLink className="h-4 w-4" />
-                </a>
-              }
-            />
-            <Row
-              label="产品反馈"
-              right={
-                <a
-                  className="text-muted-foreground hover:text-card-foreground inline-flex items-center gap-2"
-                  href="https://newsbox.canny.io"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  newsbox.canny.io <ExternalLink className="h-4 w-4" />
-                </a>
-              }
-            />
-            <Row
-              label="联系邮箱"
-              right={
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">hi@newsbox.pro</span>
-                  <Button variant="outline" size="sm" onClick={() => copy("hi@newsbox.pro")}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    复制
-                  </Button>
-                </div>
-              }
-            />
-            <Row
-              label="联系微信"
-              right={<span className="text-muted-foreground">（占位：后续可补二维码/微信号）</span>}
-            />
+            <Row label="使用指南" />
+            <Row label="帮助文档" />
+            <Row label="产品反馈" />
+            <Row label="联系邮箱" />
+            <Row label="联系微信" />
           </div>
         </div>
       </div>
@@ -79,13 +22,12 @@ export function AboutSection() {
   );
 }
 
-function Row({ label, right }: { label: string; right: React.ReactNode }) {
+function Row({ label }: { label: string }) {
   return (
-    <div className="bg-slate-100 rounded-2xl p-6 flex items-center justify-between gap-6">
+    <div className="bg-muted/70 rounded-2xl p-6 flex items-center justify-between gap-6">
       <div className="text-sm font-medium text-card-foreground">{label}</div>
-      <div className="text-sm">{right}</div>
+      <div className="text-sm text-muted-foreground">正在规划中...</div>
     </div>
   );
 }
-
 

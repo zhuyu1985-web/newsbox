@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chatWithAI } from "@/lib/services/openai";
 import { createClient } from "@/lib/supabase/server";
+import { requireAIMembership } from "@/lib/middleware/membership";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,19 +11,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "noteId and messages are required" }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const permission = await requireAIMembership();
+    if (!permission.authorized) return permission.response!;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const supabase = await createClient();
+    const userId = permission.userId!;
 
     // 1. 获取笔记内容作为上下文
     const { data: note, error: noteError } = await supabase
       .from("notes")
       .select("content_text, content_html, title")
       .eq("id", noteId)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     if (noteError || !note) {

@@ -8,7 +8,7 @@ import { useState, useEffect, Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMembership } from "@/components/providers/MembershipProvider";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseClientConfigured } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 const pricingTiers = [
@@ -100,12 +100,17 @@ function PricingPageContent() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { status: membershipStatus, isLoading: membershipLoading, refreshMembership } = useMembership();
+  const { status: membershipStatus, refreshMembership } = useMembership();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   // 检查登录状态
   useEffect(() => {
     const checkAuth = async () => {
+      if (!isSupabaseClientConfigured()) {
+        setIsLoggedIn(false);
+        return;
+      }
+
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
@@ -116,7 +121,6 @@ function PricingPageContent() {
   // 检查支付结果
   useEffect(() => {
     const payment = searchParams.get("payment");
-    const order = searchParams.get("order");
     const message = searchParams.get("message");
     const reason = searchParams.get("reason");
 

@@ -16,6 +16,11 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getMembershipBlockedCopy,
+  parseMembershipErrorPayload,
+} from "@/lib/membership/client-error";
+import { showUpgradeDialog } from "@/components/ui/upgrade-dialog";
 
 interface AIOutputRow {
   summary: string | null;
@@ -205,6 +210,25 @@ export function AIAnalysisPanel({
     setLoading(false);
   };
 
+  const showMembershipBlockedPrompt = (payload: unknown) => {
+    const membershipError = parseMembershipErrorPayload(payload);
+    if (!membershipError) return false;
+
+    const feature = "AI 解读";
+    toast.error(
+      getMembershipBlockedCopy({
+        requiredPlan: membershipError.requiredPlan,
+        feature,
+        message: membershipError.message,
+      })
+    );
+    showUpgradeDialog({
+      requiredPlan: membershipError.requiredPlan,
+      feature,
+    });
+    return true;
+  };
+
   const applyStreamEvent = (event: string, payload: any) => {
     if (event === "cached") {
       setAnalysis((prev) => ({
@@ -280,8 +304,11 @@ export function AIAnalysisPanel({
     }
 
     if (event === "error") {
+      if (showMembershipBlockedPrompt(payload)) {
+        return "membership-blocked";
+      }
       toast.error(payload?.message || "AI 解读生成失败");
-      return;
+      return "error";
     }
   };
 
@@ -326,8 +353,9 @@ export function AIAnalysisPanel({
 
           try {
             const payload = JSON.parse(parsed.data);
-            applyStreamEvent(parsed.event, payload);
+            const result = applyStreamEvent(parsed.event, payload);
             if (parsed.event === "error") hasStreamError = true;
+            if (result === "membership-blocked") hasStreamError = true;
             if (parsed.event === "done") completed = true;
           } catch {
             // ignore invalid chunks
@@ -362,7 +390,11 @@ export function AIAnalysisPanel({
         body: JSON.stringify({ noteId, messages: nextMessages }),
       });
 
-      if (!response.ok) throw new Error("对话失败");
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        if (showMembershipBlockedPrompt(payload)) return;
+        throw new Error(payload?.message || payload?.error || "对话失败");
+      }
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error("无法读取响应流");
@@ -485,22 +517,38 @@ export function AIAnalysisPanel({
         className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4"
       >
         {!analysis ? (
-          <div className="py-10 text-center">
-            <div className="w-16 h-16 bg-card dark:bg-slate-800 rounded-2xl shadow-sm border border-border dark:border-slate-700 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="h-8 w-8 text-blue-400 animate-pulse" />
+          <div className="flex min-h-[360px] items-center px-1 py-6">
+            <div className="relative w-full overflow-hidden rounded-lg border border-blue-500/15 bg-gradient-to-br from-blue-500/[0.08] via-card to-cyan-500/[0.07] p-5 shadow-sm">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-400/15 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-12 left-6 h-28 w-28 rounded-full bg-blue-500/10 blur-2xl" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-blue-500/15 bg-blue-500/10 text-blue-600 shadow-inner dark:text-blue-300">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-card-foreground dark:text-slate-100">暂无 AI 解读</h3>
+                <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
+                  生成后会在这里呈现快读、关键问题、背景脉络与后续追问。
+                </p>
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <div className="rounded-md border border-border/70 bg-background/65 px-3 py-2">
+                    <Brain className="mb-2 h-3.5 w-3.5 text-blue-500" />
+                    <div className="text-[11px] font-medium text-muted-foreground">提炼核心信息</div>
+                  </div>
+                  <div className="rounded-md border border-border/70 bg-background/65 px-3 py-2">
+                    <MessageSquare className="mb-2 h-3.5 w-3.5 text-cyan-500" />
+                    <div className="text-[11px] font-medium text-muted-foreground">继续追问细节</div>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => handleGenerate()}
+                  disabled={generating}
+                  variant="glass"
+                  className="mt-5 h-9 rounded-full px-5 text-[13px] font-semibold shadow-sm"
+                >
+                  {generating ? "正在生成..." : "生成 AI 解读"}
+                </Button>
+              </div>
             </div>
-            <h3 className="text-[15px] font-bold text-popover-foreground dark:text-slate-200 mb-2">把这篇文章变成你的外脑</h3>
-            <p className="text-[13px] text-muted-foreground/70 dark:text-muted-foreground mb-6 max-w-[280px] mx-auto leading-relaxed">
-              一次生成快读、关键问题、背景脉络、影响分析与时间线，帮你完整看懂这篇新闻。
-            </p>
-            <Button
-              onClick={() => handleGenerate()}
-              disabled={generating}
-              variant="glass"
-              className="rounded-full shadow-md px-6 h-9 text-[13px] font-bold"
-            >
-              {generating ? "正在生成..." : "生成 AI 解读"}
-            </Button>
           </div>
         ) : (
           <AnimatePresence mode="wait">

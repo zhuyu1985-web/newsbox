@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { estimateTokensFromPayload } from "@/lib/settings/token-usage";
 
 function domainFromUrl(url?: string | null) {
   if (!url) return null;
@@ -42,6 +43,8 @@ export async function GET() {
     visitsRes,
     notesMinimalRes,
     visitsMinimalRes,
+    aiOutputsRes,
+    aiSnapshotsRes,
   ] = await Promise.all([
     supabase.from("notes").select("id", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.from("folders").select("id", { count: "exact", head: true }).eq("user_id", user.id),
@@ -57,6 +60,14 @@ export async function GET() {
     supabase
       .from("note_visit_events")
       .select("source_domain")
+      .eq("user_id", user.id),
+    supabase
+      .from("ai_outputs")
+      .select("summary, key_questions, journalist_view, timeline, visual_summary, deepfake_warning, transcript")
+      .eq("user_id", user.id),
+    supabase
+      .from("ai_snapshots")
+      .select("card_data, status")
       .eq("user_id", user.id),
   ]);
 
@@ -101,6 +112,39 @@ export async function GET() {
     .slice(0, 10)
     .map(([domain, count]) => ({ domain, count }));
 
+  const aiOutputRows = (aiOutputsRes.data ?? []) as Array<{
+    summary: string | null;
+    key_questions: unknown;
+    journalist_view: unknown;
+    timeline: unknown;
+    visual_summary: unknown;
+    deepfake_warning: unknown;
+    transcript: string | null;
+  }>;
+  const aiSnapshotRows = (aiSnapshotsRes.data ?? []) as Array<{
+    card_data: unknown;
+    status: string | null;
+  }>;
+
+  const aiOutputEstimatedTokens = aiOutputRows.reduce(
+    (sum, row) =>
+      sum +
+      estimateTokensFromPayload({
+        summary: row.summary,
+        key_questions: row.key_questions,
+        journalist_view: row.journalist_view,
+        timeline: row.timeline,
+        visual_summary: row.visual_summary,
+        deepfake_warning: row.deepfake_warning,
+        transcript: row.transcript,
+      }),
+    0
+  );
+  const aiSnapshotEstimatedTokens = aiSnapshotRows.reduce(
+    (sum, row) => sum + estimateTokensFromPayload(row.card_data),
+    0
+  );
+
   return NextResponse.json({
     joinedDays,
     notesCount: notesRes.count ?? 0,
@@ -111,10 +155,12 @@ export async function GET() {
     annotationsCount: annotationsRes.count ?? 0,
     wordsCount,
     visitsCount: visitsRes.count ?? 0,
+    aiOutputsCount: aiOutputRows.length,
+    aiSnapshotsCount: aiSnapshotRows.length,
+    aiEstimatedTokensCount: aiOutputEstimatedTokens + aiSnapshotEstimatedTokens,
     contentType,
     topSavedDomains,
     topVisitedDomains,
   });
 }
-
 

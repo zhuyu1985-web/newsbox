@@ -11,10 +11,10 @@ export type ReaderLineHeight = "compact" | "comfortable" | "loose";
 export type ReaderFontFamily = "system" | "serif" | "sans" | "mono" | "custom";
 
 // Helper to map next-themes values to reader theme values
-function mapNextThemeToReaderTheme(nextTheme: string | undefined): ReaderTheme {
+function mapNextThemeToReaderTheme(nextTheme: string | undefined, resolvedTheme: string | undefined): ReaderTheme {
   if (nextTheme === "dark") return "dark";
   if (nextTheme === "light") return "light";
-  return "auto"; // system or undefined -> auto
+  return resolvedTheme === "dark" ? "dark" : "light";
 }
 
 export type ReaderPreferences = {
@@ -75,6 +75,7 @@ type ReaderPreferencesContextValue = {
   prefs: ReaderPreferences;
   setPrefs: (next: Partial<ReaderPreferences> | ((prev: ReaderPreferences) => Partial<ReaderPreferences>)) => void;
   reset: () => void;
+  prepareThemeSwitch: () => void;
   lineHeightValue: number;
   fontStack: string;
   hasCustomFont: boolean;
@@ -83,10 +84,8 @@ type ReaderPreferencesContextValue = {
 const ReaderPreferencesContext = createContext<ReaderPreferencesContextValue | null>(null);
 
 export function ReaderPreferencesProvider({ children }: { children: React.ReactNode }) {
-  const { theme } = useTheme();
-
-  // Ref to track initial sync
-  const initialSyncDoneRef = useRef(false);
+  const { theme, resolvedTheme } = useTheme();
+  const themeSwitchTimerRef = useRef<number | null>(null);
 
   const [customFont, setCustomFont] = useState<StoredFont | null>(null);
   const [prefs, setPrefsState] = useState<ReaderPreferences>(() => {
@@ -105,6 +104,35 @@ export function ReaderPreferencesProvider({ children }: { children: React.ReactN
       return DEFAULT_PREFS;
     }
   });
+
+  const prepareThemeSwitch = useCallback(() => {
+    if (typeof document === "undefined") return;
+
+    const root = document.documentElement;
+    root.classList.add("reader-theme-switching");
+
+    if (themeSwitchTimerRef.current) {
+      window.clearTimeout(themeSwitchTimerRef.current);
+    }
+
+    themeSwitchTimerRef.current = window.setTimeout(() => {
+      root.classList.remove("reader-theme-switching");
+      themeSwitchTimerRef.current = null;
+    }, 240);
+  }, []);
+
+  useEffect(() => {
+    const handleThemeSwitchStart = () => prepareThemeSwitch();
+    window.addEventListener("newsbox:theme-switch-start", handleThemeSwitchStart);
+
+    return () => {
+      window.removeEventListener("newsbox:theme-switch-start", handleThemeSwitchStart);
+      if (themeSwitchTimerRef.current) {
+        window.clearTimeout(themeSwitchTimerRef.current);
+      }
+      document.documentElement.classList.remove("reader-theme-switching");
+    };
+  }, [prepareThemeSwitch]);
 
   // load custom font from localStorage (if any)
   useEffect(() => {
@@ -159,20 +187,15 @@ export function ReaderPreferencesProvider({ children }: { children: React.ReactN
   // When user changes theme via AnimatedThemeSwitcher, sync to reader preferences for persistence
   // We do NOT sync in the opposite direction to allow the global theme switcher to work freely
   useEffect(() => {
-    // Skip initial sync to avoid overriding stored prefs on mount
-    if (!initialSyncDoneRef.current) {
-      initialSyncDoneRef.current = true;
-      return;
-    }
-
     // Map next-themes theme to reader theme
-    const readerTheme = mapNextThemeToReaderTheme(theme);
+    const readerTheme = mapNextThemeToReaderTheme(theme, resolvedTheme);
 
     // Only update if different to avoid unnecessary renders
-    if (readerTheme !== prefs.theme) {
+    if (prefs.theme !== "sepia" && readerTheme !== prefs.theme) {
+      prepareThemeSwitch();
       setPrefsState((prev) => ({ ...prev, theme: readerTheme }));
     }
-  }, [theme]);
+  }, [theme, resolvedTheme, prefs.theme, prepareThemeSwitch]);
 
   const setPrefs = useCallback<ReaderPreferencesContextValue["setPrefs"]>((next) => {
     setPrefsState((prev) => {
@@ -200,11 +223,12 @@ export function ReaderPreferencesProvider({ children }: { children: React.ReactN
       prefs,
       setPrefs,
       reset,
+      prepareThemeSwitch,
       lineHeightValue,
       fontStack,
       hasCustomFont: !!customFont?.dataUrl,
     }),
-    [prefs, setPrefs, reset, lineHeightValue, fontStack, customFont],
+    [prefs, setPrefs, reset, prepareThemeSwitch, lineHeightValue, fontStack, customFont],
   );
 
   return <ReaderPreferencesContext.Provider value={value}>{children}</ReaderPreferencesContext.Provider>;

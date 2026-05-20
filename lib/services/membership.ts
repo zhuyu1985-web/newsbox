@@ -295,21 +295,63 @@ export async function activateMembership(
  */
 export async function initializeTrial(userId: string): Promise<boolean> {
   const supabase = await createClient();
+  return initializeTrialWithClient(userId, supabase);
+}
+
+/**
+ * 使用指定 Supabase client 初始化或修复试用期。
+ *
+ * Admin API 使用 service role client 调用；普通登录流程使用当前用户 client 调用。
+ * 如果历史数据里已经有 user_memberships 记录但缺少 trial_started_at，
+ * 这里会补齐试用开始时间，避免被误判为 expired。
+ */
+export async function initializeTrialWithClient(
+  userId: string,
+  supabase: SupabaseClient
+): Promise<boolean> {
   const now = new Date();
 
-  const { error } = await supabase.from("user_memberships").upsert(
-    {
+  const { data: existing, error: fetchError } = await supabase
+    .from("user_memberships")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("[Membership] Failed to read membership:", fetchError);
+    return false;
+  }
+
+  if (!existing) {
+    const { error } = await supabase.from("user_memberships").insert({
       user_id: userId,
       plan_type: "trial",
       trial_started_at: now.toISOString(),
       updated_at: now.toISOString(),
-    },
-    { onConflict: "user_id", ignoreDuplicates: true }
-  );
+    });
 
-  if (error) {
-    console.error("[Membership] Failed to initialize trial:", error);
-    return false;
+    if (error) {
+      console.error("[Membership] Failed to initialize trial:", error);
+      return false;
+    }
+
+    return true;
+  }
+
+  if (!existing.trial_started_at) {
+    const { error } = await supabase
+      .from("user_memberships")
+      .update({
+        plan_type: existing.plan_type || "trial",
+        trial_started_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      })
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("[Membership] Failed to repair trial:", error);
+      return false;
+    }
   }
 
   return true;

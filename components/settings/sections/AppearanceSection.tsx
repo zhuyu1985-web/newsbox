@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -44,12 +44,12 @@ export function AppearanceSection() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/5">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
           <h3 className="text-base font-bold text-card-foreground">外观主题</h3>
         </div>
         <div className="p-6">
-          <div className="flex bg-slate-100 p-1 rounded-xl w-[360px] max-w-full">
+          <div className="flex bg-muted/70 p-1 rounded-xl w-[360px] max-w-full">
             <ThemeBtn active={theme === "system"} onClick={() => setTheme("system")}>
               <Monitor className="h-4 w-4 mr-2" />
               自动跟随系统
@@ -66,8 +66,8 @@ export function AppearanceSection() {
         </div>
       </div>
 
-      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/5">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
           <h3 className="text-base font-bold text-card-foreground">阅读器自定义字体</h3>
         </div>
         <div className="p-6">
@@ -111,18 +111,14 @@ function ThemeBtn({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <Button
+      type="button"
+      variant={active ? "secondary" : "ghost"}
+      size="sm"
       onClick={onClick}
-      className={cn(
-        "flex-1 flex items-center justify-center py-2 rounded-lg text-xs transition-all",
-        active
-          ? "bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white"
-          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-      )}
+      className={cn("flex-1 rounded-lg text-xs shadow-none", active && "shadow-sm")}
     >
       {children}
-    </button>
+    </Button>
   );
 }
-
-

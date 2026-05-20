@@ -65,7 +65,7 @@ import { LeftSidebar } from "./LeftSidebar";
 import { ContentStage } from "./ContentStage";
 import { RightSidebar } from "./RightSidebar";
 import { cn } from "@/lib/utils";
-import { PanelRight, Tag, Folder, Star, X } from "lucide-react";
+import { PanelLeftOpen, PanelRight, Tag, Folder, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -487,7 +487,7 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
   // ========================================================================
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-blue-100 selection:text-blue-900 dark:selection:bg-blue-900/30 dark:selection:text-blue-200">
+    <div className="reader-shell min-h-screen bg-background text-foreground flex flex-col selection:bg-blue-100 selection:text-blue-900 dark:selection:bg-blue-900/30 dark:selection:text-blue-200">
       {/* ========================================================================
           顶部导航栏 (Global Header)
           ========================================================================
@@ -552,22 +552,53 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
             - 未折叠
             - 桌面端 (lg 断点以上)
         */}
-        {!isZenMode && !leftSidebarCollapsed && (
-          <aside
-            className={cn(
-              // 固定定位 + 层级控制
-              "absolute left-0 top-0 bottom-[48px] w-[240px] bg-background/70 backdrop-blur-sm overflow-y-auto transition-all duration-300 border-r border-border/50 z-30", 
-              // 响应式：小屏幕隐藏
-              "hidden lg:block"
-            )}
-          >
-            <LeftSidebar
-              note={note}
-              currentView={currentView}
-              onCollapse={() => setLeftSidebarCollapsed(true)}
-            />
-          </aside>
-        )}
+        <AnimatePresence initial={false}>
+          {!isZenMode && !leftSidebarCollapsed && (
+            <motion.aside
+              key="reader-left-sidebar"
+              initial={{ x: -32, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -32, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className={cn(
+                // 固定定位 + 层级控制
+                "fixed left-0 top-[56px] bottom-[48px] w-[284px] xl:w-[320px] 2xl:w-[340px] bg-background/80 backdrop-blur-sm overflow-hidden transition-[width] duration-200 ease-out border-r border-border/50 z-40 shadow-2xl xl:shadow-none",
+                // 响应式：小屏幕隐藏
+                "hidden lg:block"
+              )}
+            >
+              <LeftSidebar
+                note={note}
+                currentView={currentView}
+                onCollapse={() => setLeftSidebarCollapsed(true)}
+              />
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence initial={false}>
+          {!isZenMode && leftSidebarCollapsed && currentView === "reader" && (
+            <motion.div
+              key="reader-left-expand"
+              initial={{ x: -10, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -10, opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="fixed left-3 top-[72px] z-40 hidden lg:block"
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-md shadow-sm backdrop-blur-md"
+                onClick={() => setLeftSidebarCollapsed(false)}
+                title="展开左侧栏"
+                aria-label="展开左侧栏"
+              >
+                <PanelLeftOpen className="h-3.5 w-3.5" />
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* -----------------------------------------------------------------------
             中间内容区 (Content Stage)
@@ -585,7 +616,7 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
         */}
         <main
           className={cn(
-            "flex-1 overflow-y-auto transition-all duration-500 ease-in-out bg-background scrollbar-hide",
+            "flex-1 overflow-y-auto bg-background scrollbar-hide",
             // 禅模式下保持全宽（实际上不需要这个条件，因为侧栏已经隐藏）
             isZenMode ? "max-w-full" : "max-w-full"
           )}
@@ -618,7 +649,7 @@ export function ReaderLayout({ note, folder }: ReaderLayoutProps) {
         {!isZenMode && (
           <aside
             className={cn(
-              "fixed top-[56px] right-0 bottom-[48px] bg-background border-l border-border transition-all duration-500 ease-in-out z-40 shadow-2xl xl:shadow-none",
+              "fixed top-[56px] right-0 bottom-[48px] bg-background border-l border-border transition-[width,transform,opacity] duration-300 ease-out z-40 shadow-2xl xl:shadow-none",
               // 折叠状态
               rightSidebarCollapsed
                 ? "w-0 opacity-0 pointer-events-none translate-x-full"

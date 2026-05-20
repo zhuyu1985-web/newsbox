@@ -1,11 +1,11 @@
 /**
- * 后台 Admin 的 HTTP Basic Auth 守门工具
+ * 后台 Admin 的 Basic Authorization 守门工具
  *
  * 同时被两处使用：
- *   1. 项目根 proxy.ts → lib/supabase/proxy.ts：拦截 /admin/* 与 /api/admin/*
+ *   1. 项目根 proxy.ts → lib/supabase/proxy.ts：拦截 /api/admin/*
  *   2. /api/admin/* 内部再校一次（防御 middleware 被绕过的 CVE 类问题）
  *
- * 凭据来自 .env.local：ADMIN_USER / ADMIN_PASS
+ * /admin 是页面内登录表单，凭据来自 .env.local：ADMIN_USER / ADMIN_PASS
  */
 
 export interface AdminAuthDecoded {
@@ -45,5 +45,3 @@ export function verifyAdminAuth(authHeader: string | null): boolean {
   if (!got) return false;
   return got.user === expected.user && got.pass === expected.pass;
 }
-
-export const BASIC_AUTH_REALM = 'Basic realm="Newsbox Admin", charset="UTF-8"';

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Settings } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useReaderPreferences } from "@/components/reader/ReaderPreferencesProvider";
 
@@ -20,13 +21,21 @@ interface AppearanceMenuProps {
 
 export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { prefs, setPrefs, reset, hasCustomFont } = useReaderPreferences();
+  const { prefs, setPrefs, reset, hasCustomFont, prepareThemeSwitch } = useReaderPreferences();
+  const { setTheme } = useTheme();
 
   const canUseTypography = currentView === "reader" && contentType === "article";
 
   const fontSize = prefs.fontSize;
   const decFont = () => setPrefs((p) => ({ fontSize: Math.max(12, p.fontSize - 1) }));
   const incFont = () => setPrefs((p) => ({ fontSize: Math.min(28, p.fontSize + 1) }));
+  const updateReaderTheme = (theme: "light" | "dark" | "sepia") => {
+    prepareThemeSwitch();
+    setPrefs({ theme });
+    if (theme === "light" || theme === "dark") {
+      setTheme(theme);
+    }
+  };
 
   return (
     <DropdownMenu modal={false} open={isOpen} onOpenChange={setIsOpen}>
@@ -51,13 +60,15 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium">字号</label>
-                  <button
-                    className="text-[11px] text-muted-foreground hover:text-popover-foreground"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto px-0 text-[11px]"
                     onClick={() => reset()}
                     type="button"
                   >
                     重置
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={decFont} disabled={!canUseTypography}>
@@ -80,9 +91,9 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                   ] as const).map((x) => (
                     <Button
                       key={x.id}
-                      variant="outline"
+                      variant={prefs.lineHeight === x.id ? "glass" : "outline"}
                       size="sm"
-                      className={cn("flex-1", prefs.lineHeight === x.id && "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800")}
+                      className="flex-1"
                       onClick={() => setPrefs({ lineHeight: x.id })}
                       disabled={!canUseTypography}
                     >
@@ -102,10 +113,10 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                   ] as const).map((x) => (
                     <Button
                       key={x.id}
-                      variant="outline"
+                      variant={prefs.theme === x.id ? "glass" : "outline"}
                       size="sm"
-                      className={cn("flex-1", prefs.theme === x.id && "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800")}
-                      onClick={() => setPrefs({ theme: x.id })}
+                      className="flex-1"
+                      onClick={() => updateReaderTheme(x.id)}
                       disabled={false}
                     >
                       {x.label}
@@ -124,11 +135,10 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
                   ] as const).map((x) => (
                     <Button
                       key={x.id}
-                      variant="outline"
+                      variant={prefs.fontFamily === x.id ? "glass" : "outline"}
                       size="sm"
                       className={cn(
                         "flex-1",
-                        prefs.fontFamily === x.id && "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
                         x.id === "custom" && !hasCustomFont && "opacity-50",
                       )}
                       onClick={() => setPrefs({ fontFamily: x.id })}
@@ -154,4 +164,3 @@ export function AppearanceMenu({ contentType, currentView }: AppearanceMenuProps
     </DropdownMenu>
   );
 }
-

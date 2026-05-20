@@ -13,7 +13,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseClientConfigured } from "@/lib/supabase/client";
 
 // ============================================================================
 // 类型定义
@@ -77,6 +77,11 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
 
+      if (!isSupabaseClientConfigured()) {
+        setStatus(defaultStatus);
+        return;
+      }
+
       const supabase = createClient();
       const {
         data: { user },
@@ -114,6 +119,10 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
 
   // 监听登录状态变化
   useEffect(() => {
+    if (!isSupabaseClientConfigured()) {
+      return;
+    }
+
     const supabase = createClient();
 
     const {

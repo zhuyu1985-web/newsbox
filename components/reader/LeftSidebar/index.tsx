@@ -1,7 +1,9 @@
 "use client";
 
+import { PanelLeftClose } from "lucide-react";
 import { ArticleOutline } from "./ArticleOutline";
 import { VideoChapters } from "./VideoChapters";
+import { Button } from "@/components/ui/button";
 import type { Note } from "@/components/reader/ReaderPageWrapper";
 
 interface LeftSidebarProps {
@@ -17,23 +19,34 @@ export function LeftSidebar({ note, currentView, onCollapse }: LeftSidebarProps)
   }
 
   return (
-    <div className="h-full flex flex-col bg-transparent">
-      {/* 侧栏头部 */}
-      <div className="flex items-center justify-between px-6 py-10">
-        <h3 className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em]">
-          {note.content_type === "video" ? "Chapters" : "Outline"}
-        </h3>
-      </div>
+    <div className="relative h-full flex flex-col bg-transparent">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute right-3 top-3 z-20 h-8 w-8 rounded-md"
+        onClick={onCollapse}
+        title="收起左侧栏"
+        aria-label="收起左侧栏"
+      >
+        <PanelLeftClose className="h-3.5 w-3.5" />
+      </Button>
 
       {/* 侧栏内容 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pt-9">
         {note.content_type === "video" ? (
           <VideoChapters note={note} />
         ) : (
-          <ArticleOutline content={note.content_html} />
+          <ArticleOutline
+            noteId={note.id}
+            title={note.title}
+            excerpt={note.excerpt}
+            siteName={note.site_name}
+            publishedAt={note.published_at}
+            contentHtml={note.content_html}
+            contentText={note.content_text}
+          />
         )}
       </div>
     </div>
   );
 }
-

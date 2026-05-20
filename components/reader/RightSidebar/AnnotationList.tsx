@@ -657,12 +657,29 @@ export function AnnotationList({ noteId, isCompact = false, onExpand }: Annotati
   if (items.length === 0) {
     if (isCompact) return null;
     return (
-      <div className="p-6 text-center">
-        <StickyNote className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">暂无批注或高亮</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          选中文字即可添加高亮与批注
-        </p>
+      <div className="flex min-h-[360px] items-center px-4 py-6">
+        <div className="relative w-full overflow-hidden rounded-lg border border-blue-500/15 bg-gradient-to-br from-blue-500/[0.08] via-card to-violet-500/[0.07] p-5 text-left shadow-sm">
+          <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-blue-400/15 blur-2xl" />
+          <div className="relative">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-blue-500/15 bg-blue-500/10 text-blue-600 shadow-inner dark:text-blue-300">
+              <StickyNote className="h-6 w-6" />
+            </div>
+            <h3 className="text-[14px] font-semibold text-card-foreground">还没有批注</h3>
+            <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
+              选中正文后添加高亮、批注，关键线索会沉淀在这里。
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <div className="rounded-md border border-border/70 bg-background/65 px-3 py-2">
+                <Quote className="mb-2 h-3.5 w-3.5 text-blue-500" />
+                <div className="text-[11px] font-medium text-muted-foreground">保存原文证据</div>
+              </div>
+              <div className="rounded-md border border-border/70 bg-background/65 px-3 py-2">
+                <Sparkles className="mb-2 h-3.5 w-3.5 text-violet-500" />
+                <div className="text-[11px] font-medium text-muted-foreground">沉淀阅读判断</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

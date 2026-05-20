@@ -38,11 +38,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
-import {
-  BASIC_AUTH_REALM,
-  getExpectedAdminCredentials,
-  verifyAdminAuth,
-} from "../admin-auth";
+import { getExpectedAdminCredentials, verifyAdminAuth } from "../admin-auth";
 import type { Database } from "./database.types";
 
 /**
@@ -87,37 +83,34 @@ import type { Database } from "./database.types";
  * ```
  */
 /**
- * Admin 路由 Basic Auth 守门
+ * Admin API Basic Auth 守门
  *
  * 现状：自行注册已关闭，账号统一由后台添加。
- * `/admin/*` 与 `/api/admin/*` 用固定 ADMIN_USER / ADMIN_PASS 做 HTTP Basic Auth，
- * 浏览器原生弹窗输入即可。
+ * `/admin` 是页面内登录表单，只有 `/api/admin/*` 用固定
+ * ADMIN_USER / ADMIN_PASS 生成的 Authorization 头鉴权。
  *
  * 与 Supabase 会话彼此独立——admin 后端走 SUPABASE_SERVICE_ROLE_KEY，
- * 不依赖 Supabase user session。Basic Auth 通过后直接放行，
+ * 不依赖 Supabase user session。API 通过后直接放行，
  * 跳过下面的 Supabase 会话刷新（避免无谓的 cookie 写入）。
  *
  * 注意：API Route 内部还会再做一次同样的 Basic Auth 校验，
  * 用于防御中间件被绕过的 CVE 类问题（CVE-2025-29927 之类）。
  */
-function checkAdminBasicAuth(request: NextRequest): NextResponse | null {
+function checkAdminApiAuth(request: NextRequest): NextResponse | null {
   const { pathname } = request.nextUrl;
-  if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
+  if (!pathname.startsWith("/api/admin")) {
     return null;
   }
 
   if (!getExpectedAdminCredentials()) {
-    return new NextResponse(
-      "Admin 入口未启用（请在 .env.local 配置 ADMIN_USER / ADMIN_PASS）",
-      { status: 503 }
+    return NextResponse.json(
+      { error: "Admin 入口未启用（请在 .env.local 配置 ADMIN_USER / ADMIN_PASS）" },
+      { status: 503 },
     );
   }
 
   if (!verifyAdminAuth(request.headers.get("authorization"))) {
-    return new NextResponse("Authentication required", {
-      status: 401,
-      headers: { "WWW-Authenticate": BASIC_AUTH_REALM },
-    });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   return NextResponse.next({ request });
@@ -125,9 +118,9 @@ function checkAdminBasicAuth(request: NextRequest): NextResponse | null {
 
 export async function updateSession(request: NextRequest) {
   // ========================================================================
-  // Step 0: Admin 路由优先用 Basic Auth 拦截
+  // Step 0: Admin API 优先用 Basic Auth 拦截
   // ========================================================================
-  const adminResp = checkAdminBasicAuth(request);
+  const adminResp = checkAdminApiAuth(request);
   if (adminResp) {
     return adminResp;
   }

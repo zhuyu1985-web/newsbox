@@ -64,6 +64,14 @@
 }
 
 @layer utilities {
+  html.reader-theme-switching .reader-shell,
+  html.reader-theme-switching .reader-shell *,
+  html.reader-theme-switching .reader-shell *::before,
+  html.reader-theme-switching .reader-shell *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+
   .glass {
     @apply bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
   }

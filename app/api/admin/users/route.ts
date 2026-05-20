@@ -15,13 +15,11 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server-service";
-import { BASIC_AUTH_REALM, verifyAdminAuth } from "@/lib/admin-auth";
+import { verifyAdminAuth } from "@/lib/admin-auth";
+import { initializeTrialWithClient } from "@/lib/services/membership";
 
 function unauthorized() {
-  return new NextResponse("Unauthorized", {
-    status: 401,
-    headers: { "WWW-Authenticate": BASIC_AUTH_REALM },
-  });
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 function guard(request: NextRequest): NextResponse | null {
@@ -29,6 +27,56 @@ function guard(request: NextRequest): NextResponse | null {
     return unauthorized();
   }
   return null;
+}
+
+async function findAuthUserByEmail(
+  supabase: ReturnType<typeof createServiceClient>,
+  email: string
+) {
+  const normalizedEmail = email.toLowerCase();
+  let page = 1;
+
+  while (page <= 20) {
+    const { data, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    });
+    if (error) throw error;
+
+    const matched = data.users.find(
+      (user) => user.email?.toLowerCase() === normalizedEmail
+    );
+    if (matched) return matched;
+    if (data.users.length < 1000) return null;
+    page += 1;
+  }
+
+  return null;
+}
+
+async function ensureAdminCreatedUserDefaults(
+  supabase: ReturnType<typeof createServiceClient>,
+  userId: string,
+  email: string
+) {
+  const now = new Date().toISOString();
+
+  const { error: profileError } = await supabase.from("profiles").upsert(
+    {
+      id: userId,
+      email,
+      updated_at: now,
+    },
+    { onConflict: "id" }
+  );
+  if (profileError) {
+    throw new Error(`初始化用户资料失败：${profileError.message}`);
+  }
+
+  const trialOk = await initializeTrialWithClient(userId, supabase);
+  if (!trialOk) {
+    throw new Error("初始化用户试用期失败");
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -78,21 +126,49 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
+  let action: "created" | "updated" = "created";
+  let user = await findAuthUserByEmail(supabase, email);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (user) {
+    action = "updated";
+    const { data, error } = await supabase.auth.admin.updateUserById(user.id, {
+      password,
+      email_confirm: true,
+    });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    user = data.user;
+  } else {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    user = data.user;
+  }
+
+  try {
+    await ensureAdminCreatedUserDefaults(supabase, user.id, email);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "初始化用户失败" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
+    action,
     user: {
-      id: data.user.id,
-      email: data.user.email,
-      created_at: data.user.created_at,
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at,
+      last_sign_in_at: user.last_sign_in_at ?? null,
+      email_confirmed_at: user.email_confirmed_at ?? null,
     },
   });
 }

@@ -82,6 +82,8 @@ import {
   Quote,
   BookOpen,
   Bell,
+  HelpCircle,
+  Puzzle,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -90,6 +92,10 @@ import { EditAnnotationDialog } from "./edit-annotation-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BrowseHistoryPopover } from "@/components/dashboard/BrowseHistoryPopover";
 import { NotificationsPopover } from "@/components/dashboard/NotificationsPopover";
+import {
+  ProductOnboarding,
+  openProductOnboarding,
+} from "@/components/dashboard/ProductOnboarding";
 import { AnimatedThemeSwitcher } from "@/components/animated-theme-switcher";
 import { useRouter } from "next/navigation";
 import { AccountSection } from "@/components/settings/sections/AccountSection";
@@ -4450,6 +4456,28 @@ ${
         <div className="flex flex-col gap-1 w-full px-2 items-center pb-6">
           <AnimatedThemeSwitcher variant="compact" />
 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-[46px] h-[46px] rounded-2xl transition-all duration-200 ease-out hover:scale-105 active:scale-95 group"
+            onClick={openProductOnboarding}
+            title="使用引导"
+            aria-label="打开使用引导"
+          >
+            <HelpCircle className="h-[22px] w-[22px] stroke-[1.8px] transition-transform duration-200 group-hover:scale-110" />
+          </Button>
+
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="w-[46px] h-[46px] rounded-2xl transition-all duration-200 ease-out hover:scale-105 active:scale-95 group"
+          >
+            <Link href="/extension" title="浏览器插件" aria-label="浏览器插件安装说明">
+              <Puzzle className="h-[22px] w-[22px] stroke-[1.8px] transition-transform duration-200 group-hover:rotate-12" />
+            </Link>
+          </Button>
+
           {user ? (
             <BrowseHistoryPopover
               userId={user.id}
@@ -5857,6 +5885,12 @@ ${
       {renderTagDialog()}
       {renderFolderDialog()}
       {renderTagDialog2()}
+      <ProductOnboarding
+        onCreateNote={() => {
+          setCreationMode("url");
+          setShowAddNoteDialog(true);
+        }}
+      />
     </div>
   );
 }

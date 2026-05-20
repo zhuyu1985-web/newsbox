@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getMembershipStatus, initializeTrial } from "@/lib/services/membership";
+import {
+  getMembershipStatus,
+  initializeTrialWithClient,
+} from "@/lib/services/membership";
 
 export async function DashboardAuthCheck({
   children,
@@ -26,7 +29,7 @@ export async function DashboardAuthCheck({
   // 如果是新用户（没有会员记录），初始化试用期
   if (membershipStatus.planType === "none") {
     console.log("[DashboardAuthCheck] New user, initializing trial");
-    await initializeTrial(user.id);
+    await initializeTrialWithClient(user.id, supabase);
     // 重新获取状态，此时应该是 trial
     const newStatus = await getMembershipStatus(user.id, supabase);
     console.log("[DashboardAuthCheck] After init trial:", JSON.stringify(newStatus, null, 2));
@@ -47,4 +50,3 @@ export async function DashboardAuthCheck({
   console.log("[DashboardAuthCheck] Access granted");
   return <>{children}</>;
 }
-

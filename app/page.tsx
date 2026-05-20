@@ -20,7 +20,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseClientConfigured } from "@/lib/supabase/client";
 import { AnimatedThemeSwitcher } from "@/components/animated-theme-switcher";
 
 const keywords = ["深度长文", "B站视频", "微信公众号", "网页新闻", "播客音频"];
@@ -81,6 +81,11 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
+    if (!isSupabaseClientConfigured()) {
+      setIsAuthed(false);
+      return;
+    }
+
     const supabase = createClient();
     supabase.auth
       .getUser()

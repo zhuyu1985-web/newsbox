@@ -9,21 +9,28 @@ import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff, LogOut, RefreshCw, ShieldCheck, Smartphone, Mail, MessageCircle, Crown, Sparkles, Zap } from "lucide-react";
 import { useMembership } from "@/components/providers/MembershipProvider";
 import Link from "next/link";
+import {
+  getPasswordChangeErrorMessage,
+  validatePasswordChange,
+} from "@/lib/settings/password-change";
 
 export function AccountSection({ user }: { user: User }) {
   const supabase = useMemo(() => createClient(), []);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const validatePassword = () => {
-    const p = newPassword.trim();
-    if (p.length < 8) return "密码至少 8 位";
-    if (p !== confirmPassword.trim()) return "两次输入的密码不一致";
-    return null;
+    return validatePasswordChange({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
   };
 
   const onUpdatePassword = async () => {
@@ -35,18 +42,25 @@ export function AccountSection({ user }: { user: User }) {
     setSaving(true);
     setMsg(null);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword.trim() });
-      if (error) throw error;
+      if (!user.email) {
+        throw new Error("当前账号缺少邮箱，无法验证当前密码");
+      }
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (verifyError) throw verifyError;
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setMsg({ type: "success", text: "密码已更新" });
-    } catch (e: any) {
-      const raw = String(e?.message ?? "");
-      const friendly =
-        raw.includes("Auth session") || raw.includes("JWT") || raw.includes("session")
-          ? "登录状态已过期，请重新登录后再修改密码"
-          : raw || "更新失败";
-      setMsg({ type: "error", text: friendly });
+    } catch (error: unknown) {
+      setMsg({ type: "error", text: getPasswordChangeErrorMessage(error) });
     } finally {
       setSaving(false);
     }
@@ -59,13 +73,13 @@ export function AccountSection({ user }: { user: User }) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/5">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
           <h3 className="text-base font-bold text-card-foreground">我的账户</h3>
         </div>
 
         <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-slate-100 rounded-2xl p-6">
+          <div className="lg:col-span-2 bg-muted/70 rounded-2xl p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <div className="text-xs text-muted-foreground mb-2">用户名</div>
@@ -82,22 +96,43 @@ export function AccountSection({ user }: { user: User }) {
                 <div className="text-xs text-muted-foreground mb-2">密码</div>
                 <div className="flex items-center justify-between gap-4">
                   <div className="text-sm font-medium text-card-foreground">••••••••</div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onUpdatePassword}
-                    disabled={saving || Boolean(validatePassword())}
-                  >
-                    {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : "修改密码"}
-                  </Button>
+                  <div className="text-xs text-muted-foreground">填写下方信息后修改</div>
                 </div>
               </div>
               <div className="md:col-span-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label className="text-xs text-muted-foreground">新密码</Label>
+                    <Label htmlFor="current-password" className="text-xs text-muted-foreground">当前密码</Label>
                     <div className="relative mt-2">
                       <Input
+                        id="current-password"
+                        type={showCurrent ? "text" : "password"}
+                        placeholder="输入当前密码"
+                        value={currentPassword}
+                        onChange={(e) => {
+                          setCurrentPassword(e.target.value);
+                          setMsg(null);
+                        }}
+                        className="bg-background pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground/70 hover:text-popover-foreground"
+                        onClick={() => setShowCurrent((v) => !v)}
+                        aria-label={showCurrent ? "隐藏当前密码" : "显示当前密码"}
+                      >
+                        {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="new-password" className="text-xs text-muted-foreground">新密码</Label>
+                    <div className="relative mt-2">
+                      <Input
+                        id="new-password"
                         type={showNew ? "text" : "password"}
                         placeholder="至少 8 位"
                         value={newPassword}
@@ -105,23 +140,26 @@ export function AccountSection({ user }: { user: User }) {
                           setNewPassword(e.target.value);
                           setMsg(null);
                         }}
-                        className="bg-card pr-10"
+                        className="bg-background pr-10"
                       />
-                      <button
+                      <Button
                         type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-popover-foreground"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground/70 hover:text-popover-foreground"
                         onClick={() => setShowNew((v) => !v)}
-                        aria-label={showNew ? "隐藏密码" : "显示密码"}
+                        aria-label={showNew ? "隐藏新密码" : "显示新密码"}
                       >
                         {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
                   <div>
-                    <Label className="text-xs text-muted-foreground">确认密码</Label>
+                    <Label htmlFor="confirm-password" className="text-xs text-muted-foreground">确认新密码</Label>
                     <div className="relative mt-2">
                       <Input
+                        id="confirm-password"
                         type={showConfirm ? "text" : "password"}
                         placeholder="再次输入"
                         value={confirmPassword}
@@ -129,16 +167,18 @@ export function AccountSection({ user }: { user: User }) {
                           setConfirmPassword(e.target.value);
                           setMsg(null);
                         }}
-                        className="bg-card pr-10"
+                        className="bg-background pr-10"
                       />
-                      <button
+                      <Button
                         type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-popover-foreground"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground/70 hover:text-popover-foreground"
                         onClick={() => setShowConfirm((v) => !v)}
-                        aria-label={showConfirm ? "隐藏密码" : "显示密码"}
+                        aria-label={showConfirm ? "隐藏确认密码" : "显示确认密码"}
                       >
                         {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -158,18 +198,29 @@ export function AccountSection({ user }: { user: User }) {
                     {msg.text}
                   </div>
                 ) : null}
+
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onUpdatePassword}
+                    disabled={saving || Boolean(validatePassword())}
+                  >
+                    {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : "修改密码"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-card rounded-2xl border border-black/5 p-6">
+          <div className="bg-card rounded-2xl border border-border p-6">
             <MembershipCard />
           </div>
         </div>
       </div>
 
-      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/5">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
           <h3 className="text-base font-bold text-card-foreground">账户绑定</h3>
           <p className="text-xs text-muted-foreground mt-1">
             绑定更多账号后可以使用任意账号快捷登录（本期：UI入口占位，不做真实微信/短信接入）
@@ -203,8 +254,8 @@ export function AccountSection({ user }: { user: User }) {
           />
         </div>
 
-        <div className="px-6 py-5 border-t border-black/5 flex items-center justify-between">
-          <Button variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={onSignOut}>
+        <div className="px-6 py-5 border-t border-border flex items-center justify-between">
+          <Button variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30" onClick={onSignOut}>
             <LogOut className="h-4 w-4 mr-2" />
             退出登录 / 切换账号
           </Button>
@@ -229,9 +280,9 @@ function BindingRow({
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 bg-slate-100 rounded-2xl p-5">
+    <div className="flex items-center justify-between gap-4 bg-muted/70 rounded-2xl p-5">
       <div className="flex items-center gap-4 min-w-0">
-        <div className="w-10 h-10 rounded-full bg-card border border-black/5 flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div className="min-w-0">
@@ -253,9 +304,9 @@ function MembershipCard() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-4 animate-pulse">
-        <div className="w-16 h-16 bg-slate-200 rounded-2xl mb-3"></div>
-        <div className="h-4 w-24 bg-slate-200 rounded mb-2"></div>
-        <div className="h-3 w-32 bg-slate-200 rounded"></div>
+        <div className="w-16 h-16 bg-muted rounded-2xl mb-3"></div>
+        <div className="h-4 w-24 bg-muted rounded mb-2"></div>
+        <div className="h-3 w-32 bg-muted rounded"></div>
       </div>
     );
   }
@@ -268,13 +319,13 @@ function MembershipCard() {
     switch (status.planType) {
       case "ai":
         return {
-          name: "Pro+AI 会员",
+          name: "NewsBox AI 会员",
           icon: Sparkles,
           gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
           textColor: "text-purple-600",
           bgColor: "bg-gradient-to-br from-purple-50 to-fuchsia-50",
           borderColor: "border-purple-300",
-          badgeText: "Pro+AI",
+          badgeText: "AI",
           shadowColor: "shadow-purple-500/30",
           isAI: true,
         };
@@ -336,7 +387,7 @@ function MembershipCard() {
         )}
         
         {/* 主徽章 */}
-        <div className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center shadow-xl ${info.shadowColor} ring-4 ring-white ${
+        <div className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br ${info.gradient} flex items-center justify-center shadow-xl ${info.shadowColor} ring-4 ring-background ${
           info.isAI ? 'animate-glow-pulse' : ''
         }`}>
           {/* AI 会员闪光效果 */}
@@ -350,7 +401,7 @@ function MembershipCard() {
         
         {/* 会员状态小徽章 */}
         {status.isActive && (
-          <div className={`absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-gradient-to-r ${info.gradient} shadow-lg ring-2 ring-white`}>
+          <div className={`absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-gradient-to-r ${info.gradient} shadow-lg ring-2 ring-background`}>
             {info.badgeText}
           </div>
         )}
@@ -389,7 +440,7 @@ function MembershipCard() {
           className={`w-full rounded-xl h-9 font-medium transition-all ${
             status.isActive 
               ? info.isAI
-                ? "border-purple-300 hover:border-purple-400 hover:bg-purple-50 text-purple-600"
+                ? "border-purple-300 hover:border-purple-400 hover:bg-purple-50 text-purple-600 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950/30"
                 : "border-border hover:border-slate-300 hover:bg-muted" 
               : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25"
           }`}

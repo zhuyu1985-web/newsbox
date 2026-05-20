@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 type DeletedNote = {
   id: string;
@@ -12,8 +14,9 @@ type DeletedNote = {
   deleted_at: string;
 };
 
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { toast } from "sonner";
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export function TrashSection() {
   const [loading, setLoading] = useState(true);
@@ -30,8 +33,8 @@ export function TrashSection() {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "加载失败");
       setItems(json.items || []);
-    } catch (e: any) {
-      setError(e?.message ?? "加载失败");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "加载失败"));
     } finally {
       setLoading(false);
     }
@@ -49,9 +52,10 @@ export function TrashSection() {
       if (!res.ok) throw new Error(json?.error || "恢复失败");
       toast.success("已恢复笔记");
       await load();
-    } catch (e: any) {
-      setError(e?.message ?? "恢复失败");
-      toast.error(e?.message ?? "恢复失败");
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, "恢复失败");
+      setError(message);
+      toast.error(message);
     } finally {
       setBusyId(null);
     }
@@ -71,9 +75,10 @@ export function TrashSection() {
       if (!res.ok) throw new Error(json?.error || "删除失败");
       toast.success("已永久删除");
       await load();
-    } catch (e: any) {
-      setError(e?.message ?? "删除失败");
-      toast.error(e?.message ?? "删除失败");
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, "删除失败");
+      setError(message);
+      toast.error(message);
     } finally {
       setBusyId(null);
       setShowConfirmDelete(null);
@@ -82,8 +87,8 @@ export function TrashSection() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-card rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <h3 className="text-base font-bold text-card-foreground">最近删除</h3>
           <Button variant="outline" size="sm" onClick={load}>
             刷新
@@ -105,7 +110,7 @@ export function TrashSection() {
               {items.map((n) => (
                 <div
                   key={n.id}
-                  className="bg-slate-100 rounded-2xl p-5 flex items-center justify-between gap-4"
+                  className="bg-muted/70 rounded-2xl p-5 flex items-center justify-between gap-4"
                 >
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-card-foreground truncate">
@@ -158,5 +163,3 @@ export function TrashSection() {
     </div>
   );
 }
-
-

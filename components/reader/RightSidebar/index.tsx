@@ -8,6 +8,10 @@ import { VisualFrames } from "./VisualFrames";
 import type { FrameData } from "./VisualFrames";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Note } from "@/components/reader/ReaderPageWrapper";
+import {
+  mapLegacyTabToRightSidebarTab,
+  mapRightSidebarTabToLegacyTab,
+} from "@/lib/reader/right-sidebar-tabs";
 
 function mergedFrames(note: Note): FrameData[] {
   const baseFrames = note.video_job?.frames ?? [];
@@ -43,15 +47,11 @@ export function RightSidebar({ note, activeTab, onTabChange, onCollapse, isCompa
 
   // Map internal Radix tab value back to legacy tab type for parent state sync
   const handleTabChange = (value: string) => {
-    const v = value as TabValue;
-    if (v === "transcript") onTabChange("transcript");
-    else onTabChange("annotations");
+    onTabChange(mapRightSidebarTabToLegacyTab(value as TabValue));
   };
 
   // Determine initial Radix tab value from legacy activeTab
-  const radixValue: TabValue = activeTab === "transcript" && isVideo
-    ? "transcript"
-    : "annotations";
+  const radixValue = mapLegacyTabToRightSidebarTab(activeTab, isVideo);
 
   if (isCompact) {
     // 紧凑模式只展示批注

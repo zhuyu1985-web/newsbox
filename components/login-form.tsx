@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseClientConfigured } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -66,11 +66,15 @@ export function LoginForm({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
     try {
+      if (!isSupabaseClientConfigured()) {
+        throw new Error("Supabase 未配置，请先设置 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY。");
+      }
+
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -87,11 +91,15 @@ export function LoginForm({
   };
 
   const handleOAuthLogin = async (provider: "google" | "github") => {
-    const supabase = createClient();
     setOauthLoading(provider);
     setError(null);
 
     try {
+      if (!isSupabaseClientConfigured()) {
+        throw new Error("Supabase 未配置，请先设置 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY。");
+      }
+
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -122,7 +130,6 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -229,15 +236,6 @@ export function LoginForm({
                   </div>
                 </>
               )}
-            </div>
-            <div className="mt-6 text-center text-sm text-slate-500">
-              还没有账户？{" "}
-              <Link
-                href="/auth/sign-up"
-                className="font-bold text-blue-600 hover:underline underline-offset-4"
-              >
-                立即注册
-              </Link>
             </div>
           </form>
         </CardContent>

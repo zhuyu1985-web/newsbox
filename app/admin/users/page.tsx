@@ -3,16 +3,23 @@
 /**
  * /admin/users —— 后台用户管理
  *
- * 鉴权：浏览器原生 Basic Auth 弹窗（由 proxy.ts 中间件触发）。
- * 通过后浏览器会在同源后续请求自动附带 Authorization 头，
- * 因此 fetch /api/admin/users 不需要手动传凭据。
+ * 鉴权：/admin 页面收集管理员账号密码，登录成功后把 Basic token
+ * 存在 sessionStorage。这里所有 /api/admin/users 请求都显式携带
+ * Authorization 头，避免依赖浏览器原生 Basic Auth 弹窗。
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, LogOut, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  clearAdminAuthToken,
+  getAdminAuthHeaders,
+} from "@/lib/admin-client-auth";
 
 type AdminUser = {
   id: string;
@@ -27,49 +34,98 @@ function formatTime(t: string | null): string {
   return new Date(t).toLocaleString("zh-CN", { hour12: false });
 }
 
+type FetchUsersOptions = {
+  silent?: boolean;
+  preserveMessage?: boolean;
+};
+
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<AdminUser | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    setMessage(null);
+  const redirectToLogin = useCallback(() => {
+    clearAdminAuthToken();
+    router.replace("/admin");
+  }, [router]);
+
+  const fetchUsers = useCallback(async (options: FetchUsersOptions = {}) => {
+    const headers = getAdminAuthHeaders();
+    if (!headers) {
+      setLoading(false);
+      redirectToLogin();
+      return;
+    }
+
+    if (!options.silent) setLoading(true);
+    if (!options.preserveMessage) setMessage(null);
+
     try {
-      const res = await fetch("/api/admin/users", { cache: "no-store" });
-      if (!res.ok) throw new Error(await res.text());
+      const res = await fetch(`/api/admin/users?t=${Date.now()}`, {
+        cache: "no-store",
+        headers,
+      });
       const json = await res.json();
+      if (res.status === 401) {
+        redirectToLogin();
+        return;
+      }
+      if (!res.ok) throw new Error(json.error ?? "加载用户失败");
       setUsers(json.users ?? []);
     } catch (e) {
       setMessage({ type: "err", text: e instanceof Error ? e.message : String(e) });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [redirectToLogin]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  async function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const headers = getAdminAuthHeaders();
+    if (!headers) {
+      redirectToLogin();
+      return;
+    }
+
     setCreating(true);
     setMessage(null);
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { ...headers, "content-type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const json = await res.json();
+      if (res.status === 401) {
+        redirectToLogin();
+        return;
+      }
       if (!res.ok) throw new Error(json.error ?? "创建失败");
-      setMessage({ type: "ok", text: `已创建：${json.user.email}` });
+      if (json.user) {
+        setUsers((current) => {
+          if (current.some((user) => user.id === json.user.id)) return current;
+          return [json.user, ...current];
+        });
+      }
+      setMessage({
+        type: "ok",
+        text: json.action === "updated"
+          ? `已更新登录密码：${json.user.email}`
+          : `已创建：${json.user.email}`,
+      });
       setEmail("");
       setPassword("");
-      await fetchUsers();
+      await fetchUsers({ silent: true, preserveMessage: true });
     } catch (e) {
       setMessage({ type: "err", text: e instanceof Error ? e.message : String(e) });
     } finally {
@@ -77,20 +133,42 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function handleDelete(id: string, email: string | null) {
-    if (!confirm(`确认删除用户 ${email ?? id}？此操作不可恢复。`)) return;
+  async function handleDelete() {
+    if (!pendingDelete) return;
+    const headers = getAdminAuthHeaders();
+    if (!headers) {
+      redirectToLogin();
+      return;
+    }
+
+    const user = pendingDelete;
+    setDeleting(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/admin/users?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/admin/users?id=${encodeURIComponent(user.id)}`, {
         method: "DELETE",
+        headers,
       });
       const json = await res.json();
+      if (res.status === 401) {
+        redirectToLogin();
+        return;
+      }
       if (!res.ok) throw new Error(json.error ?? "删除失败");
-      setMessage({ type: "ok", text: `已删除：${email ?? id}` });
-      await fetchUsers();
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+      setMessage({ type: "ok", text: `已删除：${user.email ?? user.id}` });
+      setPendingDelete(null);
+      await fetchUsers({ silent: true, preserveMessage: true });
     } catch (e) {
       setMessage({ type: "err", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setDeleting(false);
     }
+  }
+
+  function handleLogout() {
+    clearAdminAuthToken();
+    router.replace("/admin");
   }
 
   return (
@@ -103,9 +181,16 @@ export default function AdminUsersPage() {
               后台手工添加用户。当前已关闭自助注册，仅此入口创建账号。
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-            {loading ? "刷新中..." : "刷新"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => fetchUsers()} disabled={loading}>
+              <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              刷新
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              退出
+            </Button>
+          </div>
         </div>
 
         {message && (
@@ -152,7 +237,17 @@ export default function AdminUsersPage() {
                 />
               </div>
               <Button type="submit" disabled={creating} className="h-10">
-                {creating ? "创建中..." : "创建用户"}
+                {creating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    创建中...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    创建用户
+                  </>
+                )}
               </Button>
             </form>
             <p className="mt-3 text-xs text-slate-500">
@@ -178,6 +273,13 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {loading && users.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                        加载中...
+                      </td>
+                    </tr>
+                  )}
                   {users.length === 0 && !loading && (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
@@ -200,11 +302,12 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-4 py-2 text-right">
                         <Button
-                          variant="outline"
+                          variant="destructive"
                           size="sm"
-                          onClick={() => handleDelete(u.id, u.email)}
-                          className="h-8 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"
+                          onClick={() => setPendingDelete(u)}
+                          className="h-8"
                         >
+                          <Trash2 className="h-4 w-4" />
                           删除
                         </Button>
                       </td>
@@ -216,6 +319,19 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(pendingDelete)}
+        onClose={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={handleDelete}
+        title="删除用户"
+        description={`确认删除用户 ${pendingDelete?.email ?? pendingDelete?.id ?? ""}？此操作不可恢复。`}
+        confirmText="删除"
+        cancelText="取消"
+        variant="destructive"
+        loading={deleting}
+      />
     </div>
   );
 }

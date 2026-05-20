@@ -17,15 +17,6 @@ export function AnimatedThemeSwitcher({ variant = "default" }: AnimatedThemeSwit
 
   useEffect(() => {
     setMounted(true);
-
-    // 调试：监听主题变化
-    const handleStorageChange = () => {
-      console.log("[ThemeSwitcher] Storage changed, new theme:", localStorage.getItem("newsbox-theme"));
-      console.log("[ThemeSwitcher] HTML class:", document.documentElement.className);
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   // 点击外部关闭菜单
@@ -61,18 +52,8 @@ export function AnimatedThemeSwitcher({ variant = "default" }: AnimatedThemeSwit
   const CurrentIcon = currentTheme.icon;
 
   const handleThemeChange = (value: string) => {
-    console.log("[ThemeSwitcher] =========================================");
-    console.log("[ThemeSwitcher] Changing theme to:", value);
-    console.log("[ThemeSwitcher] HTML class BEFORE:", document.documentElement.className);
-
+    window.dispatchEvent(new Event("newsbox:theme-switch-start"));
     setTheme(value);
-
-    // 延迟检查
-    setTimeout(() => {
-      console.log("[ThemeSwitcher] HTML class AFTER:", document.documentElement.className);
-      console.log("[ThemeSwitcher] localStorage theme:", localStorage.getItem("newsbox-theme"));
-    }, 100);
-
     setIsOpen(false);
   };
 

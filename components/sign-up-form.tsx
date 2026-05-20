@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseClientConfigured } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -68,7 +68,6 @@ export function SignUpForm({
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
@@ -79,6 +78,11 @@ export function SignUpForm({
     }
 
     try {
+      if (!isSupabaseClientConfigured()) {
+        throw new Error("Supabase 未配置，请先设置 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY。");
+      }
+
+      const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -103,11 +107,15 @@ export function SignUpForm({
   };
 
   const handleOAuthSignUp = async (provider: "google" | "github") => {
-    const supabase = createClient();
     setOauthLoading(provider);
     setError(null);
 
     try {
+      if (!isSupabaseClientConfigured()) {
+        throw new Error("Supabase 未配置，请先设置 NEXT_PUBLIC_SUPABASE_URL 和 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY。");
+      }
+
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {

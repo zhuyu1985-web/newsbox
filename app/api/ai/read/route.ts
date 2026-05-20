@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateDeepAnalysis, generateFlashRead, generateKeyQuestions } from "@/lib/services/openai";
-import { requireAuth } from "@/lib/middleware/membership";
+import { requireAIMembership } from "@/lib/middleware/membership";
 import type { Json } from "@/lib/supabase/database.types";
 
 function estimateReadTimeMinutes(text: string): number {
@@ -46,11 +46,20 @@ export async function POST(request: NextRequest) {
     }
   };
 
-  const run = (async () => {
+  void (async () => {
     try {
-      const authCheck = await requireAuth();
+      const authCheck = await requireAIMembership();
       if (!authCheck.authorized) {
-        await send("error", { message: "请先登录", code: "UNAUTHORIZED" });
+        if (authCheck.response?.status === 401) {
+          await send("error", { message: "请先登录", code: "UNAUTHORIZED" });
+        } else {
+          await send("error", {
+            error: "AI_MEMBERSHIP_REQUIRED",
+            message: "此功能需要 NewsBox AI 会员",
+            code: "membership_required",
+            requiredPlan: "ai",
+          });
+        }
         return;
       }
 

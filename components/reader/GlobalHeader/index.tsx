@@ -5,18 +5,11 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Home,
-  Eye,
-  Globe,
   Sparkles,
-  Archive as ArchiveIcon,
-  Settings,
-  MoreHorizontal,
   MessageSquare,
-  StickyNote,
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { AppearanceMenu } from "./AppearanceMenu";
@@ -70,7 +63,7 @@ export function GlobalHeader({
   onToggleCompact,
 }: GlobalHeaderProps) {
   const router = useRouter();
-  const [annotationCount, setAnnotationCount] = useState(0); // TODO: 从API获取
+  const [annotationCount] = useState(0); // TODO: 从API获取
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentNote, setCurrentNote] = useState(note);
 
@@ -119,6 +112,9 @@ export function GlobalHeader({
     onRightTabChange("ai-analysis");
     if (isRightSidebarCollapsed) {
       onToggleRightSidebar();
+    }
+    if (isSidebarCompact) {
+      onToggleCompact();
     }
   };
 
@@ -264,4 +260,3 @@ export function GlobalHeader({
     </header>
   );
 }
-

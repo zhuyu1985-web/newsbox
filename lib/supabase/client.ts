@@ -43,6 +43,13 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+export function isSupabaseClientConfigured() {
+  return Boolean(supabaseUrl && supabasePublishableKey);
+}
+
 /**
  * 创建 Supabase 客户端客户端
  *
@@ -177,6 +184,12 @@ import type { Database } from "./database.types";
  * ```
  */
 export function createClient() {
+  if (!isSupabaseClientConfigured()) {
+    throw new Error(
+      "Supabase client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY."
+    );
+  }
+
   // createBrowserClient() 内部使用单例模式
   // 多次调用 createClient() 会返回同一个实例
   //
@@ -185,7 +198,7 @@ export function createClient() {
   // 2. 确保 Auth 状态在整个应用中一致
   // 3. 减少内存占用
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    supabaseUrl!,
+    supabasePublishableKey!,
   );
 }
