@@ -45,6 +45,7 @@
     "react-dom": "^19.0.0",
     "react-force-graph-2d": "^1.29.0",
     "sonner": "^2.0.7",
+    "swr": "^2.4.1",
     "tailwind-merge": "^3.3.0",
     "tencentcloud-sdk-nodejs-asr": "^4.1.162",
     "tencentcloud-sdk-nodejs-common": "^4.1.122",
