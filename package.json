@@ -49,7 +49,8 @@
     "tencentcloud-sdk-nodejs-asr": "^4.1.162",
     "tencentcloud-sdk-nodejs-common": "^4.1.122",
     "turndown": "^7.2.2",
-    "video.js": "^8.23.4"
+    "video.js": "^8.23.4",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
