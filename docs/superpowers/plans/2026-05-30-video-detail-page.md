@@ -75,6 +75,74 @@
 
 ---
 
+## ⚠️ 重要：实施前必读
+
+### 现有 `video:seek` emit 站点必须统一改造
+
+当前代码里有 **5 个组件**已经 dispatch `video:seek` 事件，载荷格式为 `{ time }`，没有 autoplay 模式：
+
+- `components/reader/LeftSidebar/VideoChapters.tsx`
+- `components/reader/RightSidebar/VisualFrames.tsx`
+- `components/reader/RightSidebar/AnnotationList.tsx`（如果存在 seek 用例）
+- `components/reader/RightSidebar/QAPanel.tsx`
+- `components/reader/RightSidebar/TranscriptView.tsx`
+
+而当前 `components/reader/ContentStage/VideoPlayer.tsx:137-139` 监听 `video:seek` 后**无条件 `player.play()`**。
+
+**新契约**（必须在 Phase 2 之前完成 Phase 0.5 的全局改造）：
+
+```ts
+// 事件载荷
+window.dispatchEvent(new CustomEvent('video:seek', {
+  detail: { time: number, autoplay?: 'preserve' | 'force' | 'none' }
+}));
+// 不传 autoplay 时默认 'preserve'（保持原 paused 状态）
+```
+
+**VideoPlayer 监听器改造**：
+
+```ts
+const onSeek = (e: Event) => {
+  const ce = e as CustomEvent<{ time: number; autoplay?: 'preserve' | 'force' | 'none' }>;
+  const player = playerRef.current;
+  if (!player) return;
+  const wasPaused = player.paused();
+  player.currentTime(ce.detail.time);
+  const mode = ce.detail.autoplay ?? 'preserve';
+  if (mode === 'force' || (mode === 'preserve' && !wasPaused)) {
+    player.play();
+  }
+};
+```
+
+5 个 emit 站点保留原有 `{ time }` 载荷即可（默认 preserve 兼容）。如果某个站点希望"force play"，改成 `{ time, autoplay: 'force' }`。
+
+### `VideoDetailLayout` 必须在 AnimatePresence 之外渲染
+
+`ReaderPageWrapper.tsx` 用了 `AnimatePresence keyed on note.id`，切换笔记会卸载所有子组件——包括我们要保留的 Tiptap 实例。**分流要在 AnimatePresence 之前**：
+
+```tsx
+// ✅ 正确
+if (note?.content_type === 'video') return <VideoDetailLayout ... />;
+return (
+  <AnimatePresence>
+    <motion.div key={note.id}>
+      <ReaderLayout ... />
+    </motion.div>
+  </AnimatePresence>
+);
+```
+
+`VideoDetailLayout` 内部也不要再用 key={note.id} 的 AnimatePresence 包整层。切换不同视频笔记时整页正常重渲染即可（Tiptap 实例随之销毁是预期的，跨 note 不需要保留编辑状态）。
+
+### `audio` content_type 暂不走 VideoDetailLayout
+
+Spec §3 提到 `audio` P0 走 VideoDetailLayout，但要求依赖 `video_jobs` 表存在对应行。**实际验证**：当前 audio 类型笔记的 capture pipeline 是否会创建 `video_jobs` 行？如果不会，audio 笔记进入 VideoDetailLayout 会因为 `videoJob === null` 在多处崩溃。
+
+**保守策略**：本期 audio 类型继续走 ReaderLayout，等 audio pipeline 也接入 video_jobs 后再开 VideoDetailLayout。分流条件改为 `content_type === 'video'`（严格匹配，不含 audio）。
+
+---
+
 ## Phase 0: Foundation（类型 + 迁移 + Tingwu keywords 映射）
 
 ### Task 0.1: 扩展 AudioAnalysisResult 类型
@@ -111,6 +179,8 @@ git commit -m "feat(types): AudioAnalysisResult 新增 keywords / speakerSummari
 ```
 
 ### Task 0.2: 测试 Tingwu adapter 正确映射 keywords
+
+> **已确认**：`lib/ai-analysis/adapters/tingwu.ts` 当前代码确实从 `keyPoints?.KeyWords ?? keyPoints?.Keywords` 拿到关键词数组，只是没写到返回对象的 `keywords` 字段。本 task 只是把它写出来。不需要额外 OpenAI fallback。
 
 **Files:**
 - Modify: `tests/lib/ai-analysis/adapters/tingwu.test.ts`（如果不存在则 Create）
@@ -170,6 +240,66 @@ Expected: PASS
 ```bash
 git add lib/ai-analysis/adapters/tingwu.ts tests/lib/ai-analysis/adapters/tingwu.test.ts
 git commit -m "feat(tingwu): 把 KeyWords 映射到 AudioAnalysisResult.keywords"
+```
+
+### Task 0.5: VideoPlayer 事件契约统一改造
+
+**Files:**
+- Modify: `components/reader/ContentStage/VideoPlayer.tsx`
+
+- [ ] **Step 1: 改造 `video:seek` 监听器支持 autoplay 模式**
+
+定位 VideoPlayer 中现有 `video:seek` 监听器（约 line 137-139），按上述「VideoPlayer 监听器改造」代码片段替换。
+
+- [ ] **Step 2: 新增 `video:timeupdate` dispatch**
+
+在 video.js 的 `timeupdate` 回调里追加（节流 250ms）：
+
+```ts
+let lastDispatch = 0;
+playerRef.current?.on('timeupdate', () => {
+  const now = Date.now();
+  if (now - lastDispatch < 250) return;
+  lastDispatch = now;
+  const time = playerRef.current?.currentTime() ?? 0;
+  window.dispatchEvent(new CustomEvent('video:timeupdate', { detail: { time } }));
+});
+```
+
+- [ ] **Step 3: 新增 `video:state` dispatch（play/pause）**
+
+```ts
+playerRef.current?.on('play', () => {
+  window.dispatchEvent(new CustomEvent('video:state', { detail: { paused: false } }));
+});
+playerRef.current?.on('pause', () => {
+  window.dispatchEvent(new CustomEvent('video:state', { detail: { paused: true } }));
+});
+```
+
+- [ ] **Step 4: 新增 `video:toggle-play` listener（MiniPlayer 用）**
+
+```ts
+useEffect(() => {
+  const handler = () => {
+    const p = playerRef.current;
+    if (!p) return;
+    if (p.paused()) p.play(); else p.pause();
+  };
+  window.addEventListener('video:toggle-play', handler);
+  return () => window.removeEventListener('video:toggle-play', handler);
+}, []);
+```
+
+- [ ] **Step 5: 验证文章详情页（ReaderLayout 里）的视频不受影响**
+
+实际上 article 笔记类型不渲染 VideoPlayer，但稳妥起见在 dev 模式下检查文章详情页 console 无新报错。
+
+- [ ] **Step 6: 提交**
+
+```bash
+git add components/reader/ContentStage/VideoPlayer.tsx
+git commit -m "feat(video-player): 统一事件契约（seek autoplay 模式 + timeupdate + state + toggle-play）"
 ```
 
 ### Task 0.3: Migration — `notes.user_notes` JSONB 字段
@@ -332,6 +462,8 @@ git commit -m "feat(video-detail): VideoDetailLayout 空壳"
 ```
 
 ### Task 1.3: ReaderPageWrapper 按 content_type 分流
+
+> **关键**：分流必须在 AnimatePresence **外层**做（避免切换笔记时 Tiptap 实例被卸载）。条件严格匹配 `content_type === 'video'`，**不包括 audio**（audio 暂时继续走 ReaderLayout）。
 
 **Files:**
 - Modify: `components/reader/ReaderPageWrapper.tsx`
@@ -555,6 +687,8 @@ git commit -m "feat(video-detail): useAnalysisProgress hook（SWR 轮询）"
 
 ## Phase 3: 主区 — 视频 + 关键帧 + Mini Player
 
+> Phase 2 之前确认已经完成 Task 0.5（VideoPlayer 事件契约改造）。否则下面的 VideoPlayerCard 拿不到 video:timeupdate 事件。
+
 ### Task 3.1: VideoPlayerCard（包装 + sticky + 事件监听）
 
 **Files:**
@@ -614,28 +748,7 @@ export function VideoPlayerCard({ note }: { note: Note }) {
 }
 ```
 
-注意：现有 `VideoPlayer` 组件可能未 dispatch `video:state`。检查 `components/reader/ContentStage/VideoPlayer.tsx`，必要时添加（在 play/pause 处理器里）：
-
-```ts
-playerRef.current?.on('play', () => {
-  window.dispatchEvent(new CustomEvent('video:state', { detail: { paused: false } }));
-});
-playerRef.current?.on('pause', () => {
-  window.dispatchEvent(new CustomEvent('video:state', { detail: { paused: true } }));
-});
-```
-
-如果 VideoPlayer 内部 video:seek 还没区分 autoplay 模式（'preserve' / 'force' / 'none'），同步补丁：
-
-```ts
-// 在 video:seek handler 里
-const { time, autoplay } = e.detail;
-const wasPaused = player.paused();
-player.currentTime(time);
-if (autoplay === 'force' || (autoplay === 'preserve' && !wasPaused)) {
-  player.play();
-}
-```
+注：上面所有事件（`video:timeupdate`, `video:state`, `video:seek` 的 autoplay 模式）已经在 **Task 0.5** 改造 VideoPlayer 时实现。本 Task 只是接入 store。
 
 - [ ] **Step 2: 验证视频播放 + IntersectionObserver 行为**
 
@@ -816,32 +929,18 @@ export function MiniPlayer({ title, duration }: { title: string; duration: numbe
 }
 ```
 
-- [ ] **Step 2: VideoPlayer 添加 `video:toggle-play` 监听**
+- [ ] **Step 2: 接入 VideoDetailLayout 并验证**
 
-在现有 `VideoPlayer.tsx` 添加：
-
-```ts
-useEffect(() => {
-  const handler = () => {
-    const p = playerRef.current;
-    if (!p) return;
-    if (p.paused()) p.play(); else p.pause();
-  };
-  window.addEventListener('video:toggle-play', handler);
-  return () => window.removeEventListener('video:toggle-play', handler);
-}, []);
-```
-
-- [ ] **Step 3: 接入 VideoDetailLayout 并验证**
+> `video:toggle-play` 监听器已经在 Task 0.5 加到 VideoPlayer 内部，此处直接 dispatch 即可。
 
 在 VideoDetailLayout 渲染 `<MiniPlayer title={note.title ?? ''} duration={note.media_duration ?? 0} />`。
 
 滚动到视频外，看到 MiniPlayer 出现；点击播放/暂停按钮，视频对应响应。
 
-- [ ] **Step 4: 提交**
+- [ ] **Step 3: 提交**
 
 ```bash
-git add components/video-detail/MiniPlayer.tsx components/video-detail/VideoDetailLayout.tsx components/reader/ContentStage/VideoPlayer.tsx
+git add components/video-detail/MiniPlayer.tsx components/video-detail/VideoDetailLayout.tsx
 git commit -m "feat(video-detail): MiniPlayer 底部跟随播放器"
 ```
 
@@ -1981,7 +2080,13 @@ git add components/video-detail/notes/extensions/KeyframeReference.ts components
 git commit -m "feat(video-detail): KeyframeReference 节点 + 关键帧加到笔记"
 ```
 
-### Task 7.4: AnnotationReference 节点（订阅式）
+### ⚠️ AnnotationReference 节点 — 移到 P1
+
+> 经审查，本期 P0 并没有从用户角度的「插入 annotation 引用」入口（spec §2 P0 列表里只有"摘录到笔记"用于 TimeReference）。本期不实现 AnnotationReference 节点；schema 移到 P1 一起做（含 Slash 命令入口/批注右键菜单"引用到笔记"等）。
+>
+> 本期不需要执行 Task 7.4。如果 schema 想提前预留，只往 editor-config.ts 里加占位扩展，不做 UI，保留 JSON 兼容性。
+
+### Task 7.4: AnnotationReference 节点（订阅式）[P1，本期跳过]
 
 **Files:**
 - Create: `components/video-detail/notes/extensions/AnnotationReference.tsx`
@@ -2271,6 +2376,12 @@ git commit -m "feat(video-detail): TopBar + SpeakerPopover"
 **Files:**
 - Create: `components/video-detail/ExportDialog.tsx`
 - Create: `app/api/notes/[id]/export/route.ts`
+
+**导出格式规则（必须明确，避免实现歧义）：**
+
+- **MD**: 包含 标题/原始链接 → 关键词（点分隔） → 全文概要 → 章节速览（时间戳-标题列表） → 原文逐字稿（每段 `**[mm:ss]** 文本`） → **默认包含**用户笔记（"## 我的笔记"小节）。后端不接受"是否含笔记"参数；如用户要纯 transcript 用 SRT。
+- **SRT**: 一段 transcript = 一个 cue。时间格式 `HH:MM:SS,mmm`。不做自动换行（保留原始 segment 文本）。不加发言人前缀（保留纯净字幕）。
+- **JSON**: 完整原始数据快照：`{ note: {...所有 notes 字段...}, video_job: {...含 audio_result/visual_result/frames...}, annotations: [...] }`。直接 `JSON.stringify(..., null, 2)`。用于完整备份/迁移。
 
 - [ ] **Step 1: 实现 export API（MD/SRT/JSON）**
 
