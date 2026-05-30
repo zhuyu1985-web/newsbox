@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>视频详情页 Mockup · NewsBox</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe',
+            400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9'
+          }
+        },
+        fontFamily: {
+          sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Microsoft YaHei"', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { background: #f5f6fb; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #c4c4d4; border-radius: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .resize-handle:hover { background: #a78bfa; }
+  .chip-keyword {
+    @apply px-3 py-1.5 rounded text-xs text-brand-700 bg-brand-50 hover:bg-brand-100 cursor-pointer transition;
+  }
+  .speaker-avatar {
+    background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+  }
+  details summary { list-style: none; cursor: pointer; }
+  details summary::-webkit-details-marker { display: none; }
+  .tab-active { color: #6d28d9; border-bottom-color: #6d28d9; }
+  .tab-inactive { color: #71717a; border-bottom-color: transparent; }
+</style>
+</head>
+<body class="font-sans text-slate-800 antialiased">
+
+<div class="h-screen grid" style="grid-template-columns: 64px 1fr 480px;">
+
+  <!-- ============ 左工具条 ============ -->
+  <aside class="bg-white border-r border-slate-200 flex flex-col items-center py-3 gap-1 text-slate-600">
+    <button class="w-11 h-11 rounded-lg hover:bg-slate-100 flex items-center justify-center" title="返回">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="w-8 h-px bg-slate-200 my-2"></div>
+    <button class="w-11 h-11 rounded-lg hover:bg-slate-100 flex flex-col items-center justify-center gap-0.5 text-[10px]" title="收藏">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="text-yellow-500"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span>收藏</span>
+    </button>
+    <button class="w-11 h-11 rounded-lg hover:bg-slate-100 flex flex-col items-center justify-center gap-0.5 text-[10px]" title="导出">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      <span>导出</span>
+    </button>
+    <button class="w-11 h-11 rounded-lg hover:bg-slate-100 flex flex-col items-center justify-center gap-0.5 text-[10px]" title="更多">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      <span>更多</span>
+    </button>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <main class="overflow-y-auto scrollbar-thin relative">
+
+    <!-- 顶栏 -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200 px-6 py-3 flex items-center justify-between">
+      <div>
+        <h1 class="text-base font-semibold text-slate-900">北京电视台影视频道：创新前行，打造智剧</h1>
+        <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
+          <span>已保存 · 刚刚</span>
+          <span>·</span>
+          <span class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            分析已完成
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1 text-slate-500">
+        <button class="px-2 h-8 rounded hover:bg-slate-100 flex items-center gap-1.5 text-xs">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M21 11l-2-2-2 2M19 9v12"/></svg>
+          发言人
+        </button>
+        <button class="px-2 h-8 rounded hover:bg-slate-100 flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          分析 100%
+        </button>
+        <button class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center" title="重新分析">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="p-6 space-y-6 pb-24">
+
+      <!-- 视频播放器 -->
+      <div class="sticky top-[60px] z-20">
+        <div class="rounded-xl overflow-hidden bg-slate-900 shadow-lg relative" style="aspect-ratio: 16/9;">
+          <!-- 视频占位 -->
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center">
+              <div class="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mx-auto cursor-pointer hover:bg-white/30 transition">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <p class="mt-3 text-white/80 text-sm">视频 · 09:58</p>
+            </div>
+          </div>
+          <!-- 上次播放提示 -->
+          <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            上次播放到 04:13 处，已自动跳转
+          </div>
+          <!-- 进度 & 控件条 -->
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8">
+            <div class="h-1 bg-white/30 rounded-full overflow-hidden">
+              <div class="h-full bg-brand-500" style="width: 42%"></div>
+            </div>
+            <div class="mt-2 flex items-center justify-between text-white text-xs">
+              <div class="flex items-center gap-3">
+                <button><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
+                <span>04:13 / 09:58</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <button class="text-xs">1.0x</button>
+                <button title="字幕">CC</button>
+                <button title="截图"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+                <button title="全屏"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V3h4M21 7V3h-4M3 17v4h4M21 17v4h-4"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 关键帧画廊 -->
+      <section class="bg-white rounded-xl p-5 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold text-slate-900 flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand-500"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            关键帧画廊
+          </h2>
+          <span class="text-xs text-slate-400">共 18 帧 · 自动抽取</span>
+        </div>
+        <div class="grid grid-cols-4 gap-3">
+          <!-- 关键帧 ×8 -->
+          <template id="kf"></template>
+          <script>
+            const kfTimes = ['00:00','01:32','02:08','02:35','03:15','04:11','05:41','06:27'];
+            const kfDescs = ['会议开场','发言人致辞','介绍嘉宾','现场感动瞬间','章节转换','滚烫歌会直播','直播传播声量','全台主持人参与'];
+            document.addEventListener('DOMContentLoaded', () => {
+              const grid = document.currentScript.parentElement;
+              kfTimes.forEach((t, i) => {
+                const el = document.createElement('div');
+                el.className = 'group relative rounded-lg overflow-hidden bg-slate-100 cursor-pointer hover:ring-2 hover:ring-brand-400 transition';
+                el.style.aspectRatio = '16/9';
+                el.innerHTML = `
+                  <div class="absolute inset-0 bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center">
+                    <span class="text-slate-500 text-xs">帧 #${i+1}</span>
+                  </div>
+                  <div class="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded">${t}</div>
+                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-end p-2">
+                    <span class="text-white text-[11px] opacity-0 group-hover:opacity-100 transition">${kfDescs[i]}</span>
+                  </div>
+                `;
+                grid.appendChild(el);
+              });
+            });
+          </script>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 底部 mini player（滚出视口后才显示，这里固定显示作示意） -->
+    <div class="fixed bottom-0 left-[64px] right-[480px] h-14 bg-white/95 backdrop-blur border-t border-slate-200 px-4 flex items-center gap-3 z-40 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
+      <button class="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="text-xs">
+        <div class="font-medium text-slate-800">北京电视台成功举行滚烫歌会直播</div>
+        <div class="text-slate-400 text-[10px]">第 2 章 · 04:13 / 09:58</div>
+      </div>
+      <div class="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden mx-2">
+        <div class="h-full bg-brand-500" style="width: 42%"></div>
+      </div>
+      <button class="text-xs text-slate-600 hover:text-brand-600">1.0x</button>
+      <button class="w-7 h-7 rounded hover:bg-slate-100 flex items-center justify-center text-slate-500" title="收起">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ============ 右栏：3 个 Tab 切换（速览 / 原文 / 笔记） ============ -->
+  <aside class="bg-white border-l border-slate-200 flex flex-col overflow-hidden">
+
+    <!-- 全局 Tab Bar -->
+    <div class="border-b border-slate-200 px-3 flex items-center gap-0.5 shrink-0">
+      <button class="px-3 h-11 text-sm font-medium border-b-2 tab-active flex items-center gap-1.5" onclick="switchTab('brief')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        速览
+      </button>
+      <button class="px-3 h-11 text-sm font-medium border-b-2 tab-inactive flex items-center gap-1.5" onclick="switchTab('transcript')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+        原文
+      </button>
+      <button class="px-3 h-11 text-sm font-medium border-b-2 tab-inactive flex items-center gap-1.5" onclick="switchTab('notes')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        笔记
+        <span class="text-[10px] text-slate-400 ml-0.5">184字</span>
+      </button>
+      <div class="ml-auto text-xs text-slate-400 pr-1">由 通义听悟 生成</div>
+    </div>
+
+    <!-- ===== 速览 Panel ===== -->
+    <div id="panel-brief" class="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-5">
+        <!-- 关键词 -->
+        <section>
+          <h3 class="text-xs font-medium text-slate-500 mb-2">关键词</h3>
+          <div class="flex flex-wrap gap-1.5">
+            <button class="chip-keyword">北京电视台</button>
+            <button class="chip-keyword">向前一步</button>
+            <button class="chip-keyword">电视剧</button>
+            <button class="chip-keyword">网剧</button>
+            <button class="chip-keyword">网络大电影</button>
+            <button class="chip-keyword">播放器</button>
+            <button class="chip-keyword">资本</button>
+            <button class="chip-keyword">市场</button>
+            <button class="chip-keyword">观众</button>
+            <button class="chip-keyword">创新</button>
+            <button class="text-xs text-brand-600 px-2">展开全部 →</button>
+          </div>
+        </section>
+
+        <!-- 全文概要 -->
+        <section>
+          <h3 class="text-xs font-medium text-slate-500 mb-2">全文概要</h3>
+          <p class="text-sm text-slate-700 leading-relaxed">
+            近年来，某影视频道中心面临巨大压力与挑战，需应对资本市场要求、满足观众多样化需求同时控制成本保持竞争力。为此，该中心积极探索创新路径，成功引入网剧和网络大电影至电视台播出，并推出高品质作品，如《向前一步》，标志其角色转型。会议开场主办方表达谢意并鼓励超越自我...
+            <button class="text-xs text-brand-600 ml-1">展开全部</button>
+          </p>
+        </section>
+
+        <!-- 子 Tab：章节 / 发言 / 问答 -->
+        <section>
+          <div class="border-b border-slate-200 flex items-center gap-4 text-xs mb-3">
+            <button class="pb-2 font-medium tab-active border-b-2">章节速览</button>
+            <button class="pb-2 tab-inactive border-b-2">发言总结</button>
+            <button class="pb-2 tab-inactive border-b-2">问答回顾</button>
+          </div>
+
+          <!-- 章节列表 -->
+          <div class="space-y-1">
+            <div class="group flex gap-3 px-2 py-2 rounded hover:bg-brand-50 cursor-pointer transition">
+              <div class="flex items-center gap-1.5 text-xs text-slate-500 shrink-0 w-14">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                <span>00:00</span>
+              </div>
+              <div class="flex-1 text-sm text-slate-700 group-hover:text-brand-700">影视频道中心：创新前行，打造智剧</div>
+            </div>
+            <div class="group flex gap-3 px-2 py-2 rounded bg-brand-50 cursor-pointer">
+              <div class="flex items-center gap-1.5 text-xs text-brand-700 shrink-0 w-14">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse"></span>
+                <span>03:15</span>
+              </div>
+              <div class="flex-1 text-sm text-brand-700 font-medium">向前一步：会议中的鼓励与交流</div>
+            </div>
+            <div class="group flex gap-3 px-2 py-2 rounded hover:bg-brand-50 cursor-pointer">
+              <div class="flex items-center gap-1.5 text-xs text-slate-500 shrink-0 w-14">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                <span>05:41</span>
+              </div>
+              <div class="flex-1 text-sm text-slate-700">滚烫歌会：传播声量与影响力</div>
+            </div>
+            <div class="group flex gap-3 px-2 py-2 rounded hover:bg-brand-50 cursor-pointer">
+              <div class="flex items-center gap-1.5 text-xs text-slate-500 shrink-0 w-14">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                <span>07:22</span>
+              </div>
+              <div class="flex-1 text-sm text-slate-700">未来展望：内容、技术与团队</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="text-center text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+          智能内容由 AI 模型生成，仅供参考
+        </div>
+      </div>
+
+      <!-- 原文 Panel (隐藏) -->
+      <div id="panel-transcript" class="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4 hidden">
+        <div class="group">
+          <div class="flex items-center gap-2 mb-1.5">
+            <div class="w-6 h-6 rounded-full speaker-avatar text-white text-[10px] flex items-center justify-center font-bold">A</div>
+            <span class="text-xs text-slate-600">发言人 1</span>
+            <button class="text-xs text-brand-600 hover:underline">00:00</button>
+          </div>
+          <div class="text-sm text-slate-700 leading-relaxed pl-8">
+            各位领导、各位同事，大家上午好。今天我们影视频道中心召开这次会议，主要是想跟大家分享一下我们最近一段时间在内容创新方面的一些思考和实践。
+          </div>
+        </div>
+        <div class="group bg-brand-50 -mx-2 px-2 py-2 rounded-lg ring-1 ring-brand-200">
+          <div class="flex items-center gap-2 mb-1.5">
+            <div class="w-6 h-6 rounded-full speaker-avatar text-white text-[10px] flex items-center justify-center font-bold">A</div>
+            <span class="text-xs text-brand-700 font-medium">发言人 1 · 正在播放</span>
+            <button class="text-xs text-brand-700 font-mono">03:15</button>
+            <button class="ml-auto text-[10px] text-brand-600 hover:underline opacity-0 group-hover:opacity-100">📥 摘录到笔记</button>
+          </div>
+          <div class="text-sm text-slate-800 leading-relaxed pl-8">
+            《向前一步》这个项目是我们今年的重点突破，标志着我们从单纯的电视台播出向多元化媒体平台的转型。<mark class="bg-yellow-200">这次的会议主要是想表达对全体团队成员的感谢</mark>，并鼓励大家在未来继续超越自我。
+          </div>
+        </div>
+        <div class="group">
+          <div class="flex items-center gap-2 mb-1.5">
+            <div class="w-6 h-6 rounded-full speaker-avatar text-white text-[10px] flex items-center justify-center font-bold">B</div>
+            <span class="text-xs text-slate-600">发言人 2</span>
+            <button class="text-xs text-brand-600">04:42</button>
+          </div>
+          <div class="text-sm text-slate-700 leading-relaxed pl-8">
+            刚才领导讲的这些非常重要。我想补充一点——我们在内容采集端做的这些尝试，归根结底是为了让观众看到更真实、更有温度的内容。
+          </div>
+        </div>
+        <div class="group">
+          <div class="flex items-center gap-2 mb-1.5">
+            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-pink-300 to-rose-500 text-white text-[10px] flex items-center justify-center font-bold">C</div>
+            <span class="text-xs text-slate-600">发言人 3</span>
+            <button class="text-xs text-brand-600">05:41</button>
+          </div>
+          <div class="text-sm text-slate-700 leading-relaxed pl-8">
+            滚烫歌会的直播也取得了不错的传播声量，到了全网话题阅读量超过了10亿，节目的主话题阅读量超过了 6.4 亿。截止到昨天的搜全网的热搜是 65 个，短视频的播放量是 3 亿。
+          </div>
+        </div>
+      </div>
+
+    <!-- ===== 笔记 Panel ===== -->
+    <div id="panel-notes" class="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-white to-slate-50 hidden">
+      <!-- 笔记工具栏 -->
+      <div class="border-b border-slate-200 px-3 py-2 flex items-center gap-0.5 text-slate-500 text-xs">
+        <button class="w-7 h-7 rounded hover:bg-slate-100 flex items-center justify-center" title="撤销">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6M3 13a9 9 0 1 0 3-7.7"/></svg>
+        </button>
+        <div class="w-px h-4 bg-slate-200 mx-1"></div>
+        <button class="px-2 h-7 rounded hover:bg-slate-100 flex items-center gap-0.5">正文 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></button>
+        <button class="px-2 h-7 rounded hover:bg-slate-100">14</button>
+        <div class="w-px h-4 bg-slate-200 mx-1"></div>
+        <button class="w-7 h-7 rounded hover:bg-slate-100 font-bold">B</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100 italic">I</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100 underline">U</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100 text-red-500 font-bold">A</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100 bg-yellow-100">🖍</button>
+        <div class="w-px h-4 bg-slate-200 mx-1"></div>
+        <button class="w-7 h-7 rounded hover:bg-slate-100" title="无序列表">≡</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100" title="有序列表">№</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100" title="勾选项">☑</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100" title="图片">🖼</button>
+        <button class="w-7 h-7 rounded hover:bg-slate-100" title="表格">⊞</button>
+        <button class="ml-auto w-7 h-7 rounded hover:bg-slate-100 text-slate-400">⋯</button>
+      </div>
+
+      <!-- 笔记内容 -->
+      <div class="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 text-sm leading-relaxed text-slate-800">
+        <h2 class="text-base font-semibold mb-3">关于「向前一步」的思考</h2>
+
+        <p class="mb-3">这次会议透露了几个关键信号：</p>
+
+        <ul class="space-y-1.5 mb-4 list-disc list-inside text-slate-700">
+          <li>影视中心正在从「电视台思维」转向「平台思维」</li>
+          <li>网剧 / 网络大电影 是新增长曲线的核心抓手</li>
+          <li>内容创新需要资本市场认可 + 成本控制双线作战</li>
+        </ul>
+
+        <!-- TimeReference 节点示例 -->
+        <div class="my-4 border-l-4 border-brand-400 bg-brand-50/50 pl-3 pr-2 py-2 rounded-r">
+          <div class="flex items-center gap-1.5 text-xs text-brand-600 mb-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <button class="font-mono font-medium hover:underline">03:15</button>
+            <span class="text-slate-400">· 发言人 1</span>
+            <button class="ml-auto text-slate-400 hover:text-rose-500" title="删除">✕</button>
+          </div>
+          <p class="text-xs text-slate-700 italic">"这次的会议主要是想表达对全体团队成员的感谢，并鼓励大家在未来继续超越自我。"</p>
+        </div>
+
+        <p class="mb-3">个人感想：作为传统媒体转型的样本，关键不在「做什么」而在「怎么定位自己」。</p>
+
+        <h3 class="text-sm font-semibold mt-5 mb-2">需要进一步了解</h3>
+        <ol class="space-y-1.5 mb-4 list-decimal list-inside text-slate-700">
+          <li>《向前一步》的具体投资规模和回报模型</li>
+          <li>和其他平台（爱奇艺/腾讯视频）的合作模式</li>
+        </ol>
+
+        <!-- KeyframeReference 节点示例 -->
+        <div class="my-4 inline-block border border-slate-200 rounded-lg overflow-hidden hover:ring-2 hover:ring-brand-300 cursor-pointer transition">
+          <div class="w-48 h-28 bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-xs text-slate-500">关键帧 · 03:15</div>
+          <div class="px-2 py-1 text-[11px] text-slate-500 flex items-center justify-between">
+            <span>章节封面</span>
+            <span class="font-mono">03:15</span>
+          </div>
+        </div>
+
+        <p class="text-slate-400 italic text-xs mt-6">灵光乍现？快记录下来吧 ✨</p>
+      </div>
+
+      <!-- 保存状态 -->
+      <div class="border-t border-slate-200 px-4 py-1.5 text-[11px] text-slate-400 flex items-center justify-between bg-white">
+        <span class="flex items-center gap-1">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+          已保存 · 刚刚
+        </span>
+        <span>共 184 字</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 选中浮窗示意 (固定位置展示) -->
+<div class="fixed top-[460px] left-[680px] z-50 bg-slate-900 text-white rounded-lg shadow-2xl py-1.5 flex items-center text-xs"
+     id="selection-menu" style="display: none;">
+  <button class="px-3 py-1.5 hover:bg-slate-700 flex items-center gap-1.5" onclick="excerptToNotes()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+    摘录到笔记
+  </button>
+  <div class="w-px h-4 bg-slate-700"></div>
+  <button class="px-3 py-1.5 hover:bg-slate-700 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-400"></span>重点</button>
+  <button class="px-3 py-1.5 hover:bg-slate-700 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-400"></span>疑问</button>
+  <button class="px-3 py-1.5 hover:bg-slate-700 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-yellow-400"></span>待办</button>
+  <div class="w-px h-4 bg-slate-700"></div>
+  <button class="px-3 py-1.5 hover:bg-slate-700">▶ 播放</button>
+</div>
+
+<script>
+  function switchTab(tab) {
+    const panels = {
+      brief: document.getElementById('panel-brief'),
+      transcript: document.getElementById('panel-transcript'),
+      notes: document.getElementById('panel-notes'),
+    };
+    document.querySelectorAll('aside > div:first-child > button').forEach(b => {
+      b.classList.remove('tab-active');
+      b.classList.add('tab-inactive');
+    });
+    if (event && event.target) {
+      const btn = event.target.closest('button');
+      btn.classList.add('tab-active');
+      btn.classList.remove('tab-inactive');
+    }
+    Object.entries(panels).forEach(([k, el]) => {
+      if (k === tab) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    });
+  }
+
+  // 摘录 → 切换到笔记 Tab + 在内容顶部插入一个 TimeReference 卡片（带闪烁动画）
+  function excerptToNotes() {
+    const sel = window.getSelection();
+    const excerpt = sel.toString().trim() || '示例摘录文字';
+    sel.removeAllRanges();
+    document.getElementById('selection-menu').style.display = 'none';
+
+    // 找到"笔记" Tab 按钮并点击它
+    const notesBtn = Array.from(document.querySelectorAll('aside > div:first-child > button'))
+      .find(b => b.textContent.includes('笔记'));
+    notesBtn.click();
+
+    // 在笔记内容顶部插入新的 TimeReference 节点
+    const notesContent = document.querySelector('#panel-notes .scrollbar-thin');
+    const newBlock = document.createElement('div');
+    newBlock.className = 'my-4 border-l-4 border-brand-400 bg-brand-50/50 pl-3 pr-2 py-2 rounded-r animate-pulse';
+    newBlock.innerHTML = `
+      <div class="flex items-center gap-1.5 text-xs text-brand-600 mb-1">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <button class="font-mono font-medium hover:underline">03:15</button>
+        <span class="text-slate-400">· 发言人 1 · 新摘录</span>
+        <button class="ml-auto text-slate-400 hover:text-rose-500" title="删除">✕</button>
+      </div>
+      <p class="text-xs text-slate-700 italic">"${excerpt}"</p>
+    `;
+    notesContent.insertBefore(newBlock, notesContent.firstChild);
+    setTimeout(() => newBlock.classList.remove('animate-pulse'), 1500);
+  }
+
+  // 模拟选中浮窗
+  document.addEventListener('mouseup', () => {
+    const sel = window.getSelection();
+    const menu = document.getElementById('selection-menu');
+    if (sel && sel.toString().length > 4 && sel.anchorNode?.parentElement?.closest('#panel-transcript')) {
+      const range = sel.getRangeAt(0).getBoundingClientRect();
+      menu.style.display = 'flex';
+      menu.style.top = (range.top - 50) + 'px';
+      menu.style.left = (range.left) + 'px';
+    } else {
+      menu.style.display = 'none';
+    }
+  });
+</script>
+
+</body>
+</html>
