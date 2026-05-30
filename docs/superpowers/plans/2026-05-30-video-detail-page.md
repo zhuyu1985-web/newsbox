@@ -2469,12 +2469,67 @@ function formatMmSs(t: number) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// 极简 Tiptap JSON → MD（递归 paragraph/heading/text/timeReference/keyframeReference）
+// 极简 Tiptap JSON → MD（递归 paragraph/heading/text/timeReference/keyframeReference/list）
 function tiptapJsonToMarkdown(json: any): string {
   if (!json) return '';
-  // ... 实现略，按 type 分支处理；time-reference 渲染成 ">  [03:15] excerpt"
-  // TODO: 完整实现
-  return JSON.stringify(json);
+  return serialize(json);
+}
+
+function serialize(node: any, depth = 0): string {
+  if (!node) return '';
+  if (node.type === 'doc') {
+    return (node.content ?? []).map((n: any) => serialize(n, depth)).join('\n\n');
+  }
+  if (node.type === 'paragraph') {
+    return (node.content ?? []).map((n: any) => serialize(n, depth)).join('');
+  }
+  if (node.type === 'heading') {
+    const level = node.attrs?.level ?? 2;
+    const text = (node.content ?? []).map((n: any) => serialize(n, depth)).join('');
+    return `${'#'.repeat(level)} ${text}`;
+  }
+  if (node.type === 'text') {
+    let text = node.text ?? '';
+    for (const mark of node.marks ?? []) {
+      if (mark.type === 'bold') text = `**${text}**`;
+      else if (mark.type === 'italic') text = `*${text}*`;
+      else if (mark.type === 'code') text = `\`${text}\``;
+    }
+    return text;
+  }
+  if (node.type === 'bulletList' || node.type === 'orderedList') {
+    return (node.content ?? []).map((li: any, i: number) => {
+      const prefix = node.type === 'orderedList' ? `${i + 1}.` : '-';
+      const inner = (li.content ?? []).map((n: any) => serialize(n, depth + 1)).join(' ');
+      return `${prefix} ${inner}`;
+    }).join('\n');
+  }
+  if (node.type === 'listItem') {
+    return (node.content ?? []).map((n: any) => serialize(n, depth)).join('');
+  }
+  if (node.type === 'timeReference') {
+    const t = node.attrs?.videoTime ?? 0;
+    const m = Math.floor(t / 60), s = Math.floor(t % 60);
+    const time = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `> **[${time}]** ${node.attrs?.speakerLabel ? `(${node.attrs.speakerLabel})` : ''} ${node.attrs?.excerpt ?? ''}`;
+  }
+  if (node.type === 'keyframeReference') {
+    const t = node.attrs?.timestamp ?? 0;
+    const m = Math.floor(t / 60), s = Math.floor(t % 60);
+    const time = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `![关键帧 ${time}](${node.attrs?.imageUrl ?? ''})`;
+  }
+  if (node.type === 'horizontalRule') return '---';
+  if (node.type === 'codeBlock') {
+    const lang = node.attrs?.language ?? '';
+    const code = (node.content ?? []).map((n: any) => n.text ?? '').join('');
+    return `\`\`\`${lang}\n${code}\n\`\`\``;
+  }
+  // 默认：递归 content
+  if (Array.isArray(node.content)) {
+    return node.content.map((n: any) => serialize(n, depth)).join('');
+  }
+  return '';
 }
 ```
 
