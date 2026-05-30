@@ -116,9 +116,32 @@ export function VideoPlayer({ note }: { note: Note }) {
       }
     ));
 
-    player.on("play", () => setIsPlaying(true));
-    player.on("pause", () => setIsPlaying(false));
-    player.on("timeupdate", () => setCurrentTime(player.currentTime() ?? 0));
+    player.on("play", () => {
+      setIsPlaying(true);
+      window.dispatchEvent(
+        new CustomEvent("video:state", { detail: { paused: false } })
+      );
+    });
+    player.on("pause", () => {
+      setIsPlaying(false);
+      window.dispatchEvent(
+        new CustomEvent("video:state", { detail: { paused: true } })
+      );
+    });
+
+    // timeupdate：本地 state 立即同步；window 事件做 250ms 节流，避免每帧广播
+    let lastTimeupdateDispatch = 0;
+    player.on("timeupdate", () => {
+      const time = player.currentTime() ?? 0;
+      setCurrentTime(time);
+      const now = Date.now();
+      if (now - lastTimeupdateDispatch < 250) return;
+      lastTimeupdateDispatch = now;
+      window.dispatchEvent(
+        new CustomEvent("video:timeupdate", { detail: { time } })
+      );
+    });
+
     player.on("loadedmetadata", () => setDuration(player.duration() ?? 0));
     player.on("error", () => {
       const err = player.error();
@@ -131,11 +154,24 @@ export function VideoPlayer({ note }: { note: Note }) {
     });
     player.on("loadstart", () => setPlaybackError(null));
 
+    // 统一事件契约：video:seek 支持 autoplay 模式
+    //   - preserve（默认）：跳转后保持原播放状态（在播继续播，暂停仍暂停）
+    //   - force：跳转后强制开始播放
+    //   - none：跳转后强制暂停
     const handleGlobalSeek = (e: Event) => {
-      const time = (e as CustomEvent).detail?.time;
-      if (typeof time === "number") {
-        player.currentTime(time);
+      const ce = e as CustomEvent<{
+        time: number;
+        autoplay?: "preserve" | "force" | "none";
+      }>;
+      const time = ce.detail?.time;
+      if (typeof time !== "number") return;
+      const wasPaused = player.paused();
+      player.currentTime(time);
+      const mode = ce.detail?.autoplay ?? "preserve";
+      if (mode === "force" || (mode === "preserve" && !wasPaused)) {
         player.play();
+      } else if (mode === "none" && !wasPaused) {
+        player.pause();
       }
     };
 
@@ -149,6 +185,21 @@ export function VideoPlayer({ note }: { note: Note }) {
       }
     };
   }, [playableUrl]);
+
+  // video:toggle-play：来自外部 mini player 等的播放/暂停切换请求
+  useEffect(() => {
+    const handler = () => {
+      const p = playerRef.current;
+      if (!p) return;
+      if (p.paused()) {
+        p.play();
+      } else {
+        p.pause();
+      }
+    };
+    window.addEventListener("video:toggle-play", handler);
+    return () => window.removeEventListener("video:toggle-play", handler);
+  }, []);
 
   const handleCapture = async () => {
     if (!playerRef.current) {
