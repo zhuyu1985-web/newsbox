@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { ReaderLayout } from "./ReaderLayout";
 import { ReaderSkeleton } from "./ReaderSkeleton";
+import { VideoDetailLayout } from "@/components/video-detail/VideoDetailLayout";
 import { addBrowseHistoryEntry } from "@/lib/browse-history";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AudioAnalysisResult, VisualFrameAnalysis } from "@/lib/ai-analysis/types";
@@ -249,6 +250,12 @@ export function ReaderPageWrapper({
         </div>
       </motion.div>
     );
+  }
+
+  // video 类型分流到 VideoDetailLayout（必须在 AnimatePresence 外层做，避免切换笔记时 Tiptap 实例被卸载）
+  // audio 类型继续走 ReaderLayout，等 audio pipeline 也接入 video_jobs 后再切换
+  if (note.content_type === 'video') {
+    return <VideoDetailLayout note={note} videoJob={note.video_job ?? null} />;
   }
 
   // 渲染阅读器布局，添加渐入动画
