@@ -41,7 +41,7 @@ interface Note {
   } | null;
 }
 
-export function VideoPlayer({ note }: { note: Note }) {
+export function VideoPlayer({ note, embedded = false }: { note: Note; embedded?: boolean }) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<VideoJsPlayer | null>(null);
   const [isVideoJs, setIsVideoJs] = useState(false);
@@ -264,7 +264,7 @@ export function VideoPlayer({ note }: { note: Note }) {
     !note.video_job?.transcoded_url;
 
   return (
-    <div className="w-full max-w-[1000px] mx-auto py-8 px-4">
+    <div className={embedded ? "w-full" : "w-full max-w-[1000px] mx-auto py-8 px-4"}>
       <Card className="overflow-hidden bg-black border-none shadow-2xl rounded-2xl relative group">
         {/* 始终用 Video.js 播放（错误由 Video.js 自身的 UI 展示） */}
         <div ref={videoRef} className="aspect-video" />

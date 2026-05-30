@@ -49,7 +49,7 @@ export function VideoPlayerCard({ note }: { note: Note }) {
 
   return (
     <div ref={ref} className="sticky top-[60px] z-20">
-      <VideoPlayer note={note as any} />
+      <VideoPlayer note={note as any} embedded />
     </div>
   );
 }
