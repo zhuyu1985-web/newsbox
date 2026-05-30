@@ -15,7 +15,7 @@ vi.mock('@/lib/ai-analysis/adapters/tingwu-client', () => ({
   callTingwu: requestMock,
 }));
 
-import { TingwuAdapter } from '@/lib/ai-analysis/adapters/tingwu';
+import { TingwuAdapter, mapTingwuToResult } from '@/lib/ai-analysis/adapters/tingwu';
 
 describe('TingwuAdapter', () => {
   beforeEach(() => {
@@ -105,5 +105,18 @@ describe('TingwuAdapter', () => {
   it('throws when env missing', () => {
     delete process.env.ALI_TINGWU_APPKEY;
     expect(() => new TingwuAdapter()).toThrow(/ALI_TINGWU_APPKEY/);
+  });
+});
+
+describe('Tingwu adapter mapping', () => {
+  it('maps keyPoints.KeyWords to result.keywords', () => {
+    const result = mapTingwuToResult({
+      transcription: { Paragraphs: [] },
+      autoChapters: { Chapters: [] },
+      summarization: { Summary: '' },
+      keyPoints: { KeyWords: ['北京电视台', '向前一步', '电视剧'] },
+      meeting: null,
+    });
+    expect(result.keywords).toEqual(['北京电视台', '向前一步', '电视剧']);
   });
 });
