@@ -48,6 +48,8 @@ export interface Note {
   deleted_at?: string | null;
   is_starred?: boolean;
   video_job?: VideoJobRow | null;
+  user_notes?: any;
+  user_notes_updated_at?: string | null;
 }
 
 interface Folder {

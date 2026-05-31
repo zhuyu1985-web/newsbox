@@ -3,6 +3,7 @@ import { useVideoDetailStore } from "../store";
 import { Sparkles, FileText, NotebookPen } from "lucide-react";
 import { BriefPanel } from "./BriefPanel";
 import { TranscriptPanel } from "./TranscriptPanel";
+import { NotesPanel } from "./NotesPanel";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 const TABS = [
@@ -55,9 +56,10 @@ export function RightPanel({
         <TranscriptPanel videoJob={videoJob} />
       </div>
       <div className={activeTab === "notes" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
-        <div className="p-4 text-sm text-slate-400 dark:text-slate-500">
-          NotesPanel — Task 6.x 占位
-        </div>
+        <NotesPanel
+          noteId={note.id}
+          initialContent={note.user_notes}
+        />
       </div>
     </aside>
   );

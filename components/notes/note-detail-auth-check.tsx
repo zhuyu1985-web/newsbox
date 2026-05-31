@@ -41,6 +41,8 @@ interface Note {
   is_starred?: boolean;
   user_id: string;
   video_job?: VideoJobRow | null;
+  user_notes?: any;
+  user_notes_updated_at?: string | null;
 }
 
 interface Folder {
