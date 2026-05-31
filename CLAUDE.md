@@ -229,9 +229,47 @@ Services in `lib/services/` encapsulate external API integrations:
 - **AI 分析**: `lib/ai-analysis/` 提供 AudioAnalysisProvider（听悟）和 VisualAnalysisProvider（Qwen-VL）
 - **API**: `/api/extension/save-video` (A 路径) + `/api/extension/video-upload-cred` + `/api/extension/video-upload-done` (B 路径)
 - **状态轮询**: `/api/ai/video/[jobId]/status`
-- **重试**: `/api/ai/video/[jobId]/retry`
+- **重试**: `/api/ai/video/[jobId]/retry`（支持 `?step=download|probe|cover|frame|audio|visual` 单步重试）
 - **Q&A**: `/api/ai/video/ask`
 - **启动**: `instrumentation.ts` → `startVideoWorker()`，由 `VIDEO_WORKER_ENABLED` env 开关控制
+
+### 视频详情页（VideoDetailLayout）
+
+`/notes/[id]` 在 `content_type === 'video'` 时分流到 `components/video-detail/VideoDetailLayout.tsx`，独立于 `ReaderLayout`。
+
+**布局**：三栏 grid + 底部 MiniPlayer
+- 左 64px：`LeftToolbar`（返回 / 收藏 / 导出 / 删除）
+- 中 1fr：`TopBar`（标题 + SpeakerPopover + AnalysisProgress）+ `MainStage`（视频 + 关键帧画廊）
+- 右 480px：`RightPanel` 3 Tab — 速览（关键词+概要+章节）/ 原文（逐字稿）/ 笔记（Tiptap）
+- 底部：`MiniPlayer` 视频滚出视口后浮出，音频风格波形 + ±15s + 倍速
+
+**响应式**：`< lg` 隐藏左右 aside，主区占满；MiniPlayer 自动撑满底部
+
+**数据流**
+- 状态管理：Zustand store at `components/video-detail/store.ts`（currentTime / isPlaying / activeTab / activeBriefSubTab / miniPlayerVisible / selectedSpeakers / notesEditor）
+- 视频事件总线（window CustomEvent）：`video:seek` (with autoplay: 'preserve'|'force'|'none') / `video:timeupdate` / `video:state` / `video:toggle-play` / `video:set-rate`
+- 分析进度：`useAnalysisProgress(jobId)` SWR 5s 轮询，所有步骤 done 后停止
+- 笔记自动保存：Tiptap onUpdate → 防抖 1.5s → 写 `notes.user_notes` JSONB；指数退避 3 次 + localStorage 草稿兜底
+
+**Tiptap 编辑器**
+- 配置：`components/video-detail/notes/editor-config.ts`，StarterKit + Underline + Highlight + Image + Table + Placeholder + CharacterCount
+- 3 个自定义节点：
+  - `TimeReference`：原文摘录引用块，时间戳可点击 seek
+  - `KeyframeReference`：关键帧缩略图引用块
+  - （`AnnotationReference` P1 暂未实现）
+- SSR-safe：`useEditor({ immediatelyRender: false })`
+
+**摘录链路**
+- 在原文 Tab 选中文字 → `SelectionMenu` 浮窗 → 点「摘录到笔记」
+- `useExcerpt` hook：切到笔记 Tab → 插入 `TimeReference` 节点 → 闪烁动画
+
+**数据模型**
+- 复用 `notes` 表 + 新增 `user_notes JSONB` (Tiptap JSON) + `user_notes_updated_at TIMESTAMPTZ`（migration 026）
+- `AudioAnalysisResult.keywords?: string[]`（migration: types only，Tingwu adapter 已映射）
+
+**导出**：`/api/notes/[id]/export?format=md|srt|json` — Markdown 含用户笔记，SRT 纯字幕，JSON 完整备份
+
+**设计语言**：使用项目 token（`bg-background` / `bg-card/40 backdrop-blur-xl` / `border-border/50` / `text-foreground` / `text-muted-foreground`）+ 蓝色 accent（`text-blue-600 dark:text-blue-400`），玻璃效果一致。无紫色。亮/暗模式全覆盖。
 
 ### Theme System Architecture
 
