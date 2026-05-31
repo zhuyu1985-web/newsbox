@@ -264,7 +264,10 @@ export function VideoPlayer({ note, embedded = false }: { note: Note; embedded?:
     !note.video_job?.transcoded_url;
 
   return (
-    <div className={embedded ? "w-full" : "w-full max-w-[1000px] mx-auto py-8 px-4"}>
+    <div
+      className={embedded ? "w-full mx-auto" : "w-full max-w-[1000px] mx-auto py-8 px-4"}
+      style={embedded ? { maxWidth: "min(100%, calc(60vh * 16 / 9))" } : undefined}
+    >
       <Card className="overflow-hidden bg-black border-none shadow-2xl rounded-2xl relative group">
         {/* 始终用 Video.js 播放（错误由 Video.js 自身的 UI 展示） */}
         <div ref={videoRef} className="aspect-video" />

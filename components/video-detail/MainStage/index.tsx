@@ -17,7 +17,7 @@ export function MainStage({
   videoJob: VideoJobRow | null;
 }) {
   return (
-    <main className="overflow-y-auto relative">
+    <main className="overflow-y-auto overflow-x-hidden relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/60 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/60 [&::-webkit-scrollbar-track]:bg-transparent">
       <div className="p-6 space-y-6 pb-24">
         <VideoPlayerCard note={note} />
         <KeyframesGallery videoJob={videoJob} />
