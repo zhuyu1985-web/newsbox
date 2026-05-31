@@ -18,7 +18,11 @@ export function MainStage({
 }) {
   return (
     <main className="overflow-y-auto overflow-x-hidden relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/60 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/60 [&::-webkit-scrollbar-track]:bg-transparent">
-      <div className="p-6 space-y-6 pb-24">
+      {/* 内容容器：限制最大宽度，让视频和关键帧统一对齐 */}
+      <div
+        className="mx-auto px-6 pt-6 pb-24 space-y-6"
+        style={{ maxWidth: "calc(60vh * 16 / 9 + 48px)" }}
+      >
         <VideoPlayerCard note={note} />
         <KeyframesGallery videoJob={videoJob} />
       </div>
