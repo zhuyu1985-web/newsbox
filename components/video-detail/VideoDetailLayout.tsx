@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Download, Share2, Star, MoreHorizontal, Search, FileDo
 import { MainStage } from "./MainStage";
 import { MiniPlayer } from "./MiniPlayer";
 import { RightPanel } from "./RightPanel";
+import { SelectionMenu } from "./shared/SelectionMenu";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 export function VideoDetailLayout({
@@ -73,6 +74,7 @@ export function VideoDetailLayout({
         <RightPanel note={note} videoJob={videoJob} />
       </div>
       <MiniPlayer title={note.title ?? ""} duration={note.media_duration ?? 0} />
+      <SelectionMenu />
     </>
   );
 }
