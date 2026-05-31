@@ -298,3 +298,21 @@
   background-size: 300% 300%;
   animation: rainbow-border 3s ease infinite;
 }
+
+/* Excerpt insert pulse animation (Phase 7) */
+@keyframes excerpt-pulse {
+  0% { background-color: rgb(221 214 254); }
+  50% { background-color: rgb(245 243 255); }
+  100% { background-color: transparent; }
+}
+@keyframes excerpt-pulse-dark {
+  0% { background-color: rgba(76, 29, 149, 0.6); }
+  50% { background-color: rgba(76, 29, 149, 0.3); }
+  100% { background-color: transparent; }
+}
+.animate-excerpt-pulse-once {
+  animation: excerpt-pulse 1.5s ease-out;
+}
+:where(.dark) .animate-excerpt-pulse-once {
+  animation: excerpt-pulse-dark 1.5s ease-out;
+}
