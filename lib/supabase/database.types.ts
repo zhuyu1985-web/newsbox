@@ -865,6 +865,8 @@ export type Database = {
           title: string | null
           updated_at: string | null
           user_id: string
+          user_notes: Json | null
+          user_notes_updated_at: string | null
           video_job_id: string | null
           video_overall_status: string | null
           video_ready_at: string | null
@@ -902,6 +904,8 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           user_id: string
+          user_notes?: Json | null
+          user_notes_updated_at?: string | null
           video_job_id?: string | null
           video_overall_status?: string | null
           video_ready_at?: string | null
@@ -939,6 +943,8 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           user_id?: string
+          user_notes?: Json | null
+          user_notes_updated_at?: string | null
           video_job_id?: string | null
           video_overall_status?: string | null
           video_ready_at?: string | null
