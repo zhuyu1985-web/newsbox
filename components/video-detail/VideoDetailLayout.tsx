@@ -1,5 +1,6 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { MiniPlayer } from "./MiniPlayer";
 import { RightPanel } from "./RightPanel";
@@ -7,6 +8,8 @@ import { SelectionMenu } from "./shared/SelectionMenu";
 import { SpeakerPopover } from "./SpeakerPopover";
 import { AnalysisProgress } from "./AnalysisProgress";
 import { LeftToolbar } from "./LeftToolbar";
+import { SearchPopover } from "./SearchPopover";
+import { useVideoDetailStore } from "./store";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 export function VideoDetailLayout({
@@ -34,9 +37,20 @@ export function VideoDetailLayout({
               </h1>
               <div className="text-[11px] text-muted-foreground mt-0.5">已保存 · 刚刚</div>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
+            <div className="relative flex items-center gap-1 text-muted-foreground">
+              <button
+                onClick={() => useVideoDetailStore.getState().setSearchOpen(true)}
+                className="w-8 h-8 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex items-center justify-center"
+                title="搜索原文"
+              >
+                <Search size={15} />
+              </button>
               {videoJob && <SpeakerPopover speakers={videoJob.audio_result?.speakers ?? []} />}
               {videoJob && <AnalysisProgress jobId={videoJob.id} />}
+              <SearchPopover
+                transcript={videoJob?.audio_result?.transcript ?? []}
+                keywords={videoJob?.audio_result?.keywords}
+              />
             </div>
           </header>
 

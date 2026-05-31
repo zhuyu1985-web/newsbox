@@ -13,6 +13,53 @@ function formatTime(s: number): string {
   return `${m.toString().padStart(2, "0")}:${ss.toString().padStart(2, "0")}`;
 }
 
+function HighlightedText({
+  text,
+  query,
+  isCurrent,
+}: {
+  text: string;
+  query: string;
+  isCurrent: boolean;
+}) {
+  if (!query) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const q = query.toLowerCase();
+  if (!lower.includes(q)) return <>{text}</>;
+  const parts: Array<{ str: string; hit: boolean }> = [];
+  let i = 0;
+  while (i < text.length) {
+    const idx = lower.indexOf(q, i);
+    if (idx === -1) {
+      parts.push({ str: text.slice(i), hit: false });
+      break;
+    }
+    if (idx > i) parts.push({ str: text.slice(i, idx), hit: false });
+    parts.push({ str: text.slice(idx, idx + q.length), hit: true });
+    i = idx + q.length;
+  }
+  return (
+    <>
+      {parts.map((p, k) =>
+        p.hit ? (
+          <mark
+            key={k}
+            className={
+              isCurrent
+                ? "bg-amber-300 dark:bg-amber-600 text-foreground rounded px-0.5"
+                : "bg-amber-100/80 dark:bg-amber-900/40 text-foreground rounded px-0.5"
+            }
+          >
+            {p.str}
+          </mark>
+        ) : (
+          <span key={k}>{p.str}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 function speakerColor(id: string | undefined): string {
   if (!id) return "from-slate-400 to-slate-600 dark:from-slate-500 dark:to-slate-700";
   const palette = [
@@ -34,6 +81,9 @@ export function TranscriptPanel({
   const transcript: TranscriptSegment[] = videoJob?.audio_result?.transcript ?? [];
   const currentTime = useVideoDetailStore((s) => s.currentTime);
   const selected = useVideoDetailStore((s) => s.selectedSpeakers);
+  const searchQuery = useVideoDetailStore((s) => s.searchQuery);
+  const searchMatches = useVideoDetailStore((s) => s.searchMatches);
+  const searchCurrentMatch = useVideoDetailStore((s) => s.searchCurrentMatch);
   const { seek } = useVideoSeek();
   const containerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
@@ -51,6 +101,16 @@ export function TranscriptPanel({
     return currentTime >= s.start && (next ? currentTime < next.start : currentTime <= s.end);
   });
 
+  // 当前搜索命中的 transcript 全量索引 → 映射到 visibleSegments 的下标
+  const currentMatchTranscriptIdx =
+    searchCurrentMatch >= 0 && searchCurrentMatch < searchMatches.length
+      ? searchMatches[searchCurrentMatch]
+      : -1;
+  const currentMatchVisibleIdx =
+    currentMatchTranscriptIdx >= 0
+      ? visibleSegments.indexOf(transcript[currentMatchTranscriptIdx])
+      : -1;
+
   // 自动滚动到当前句（除非用户在最近 5 秒内手动滚动过）
   useEffect(() => {
     if (activeIdx < 0) return;
@@ -65,6 +125,31 @@ export function TranscriptPanel({
       node.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [activeIdx]);
+
+  // 搜索命中切换：滚动到命中片段 + 同步视频时间（让用户搜索导航优先于自动滚动）
+  useEffect(() => {
+    if (currentMatchTranscriptIdx < 0) return;
+    const seg = transcript[currentMatchTranscriptIdx];
+    if (!seg) return;
+
+    // 阻止 currentTime 触发的自动滚动覆盖搜索跳转
+    userScrolledRef.current = true;
+    lastUserScrollTimeRef.current = Date.now();
+
+    if (currentMatchVisibleIdx >= 0) {
+      const node = containerRef.current?.querySelector(
+        `[data-idx="${currentMatchVisibleIdx}"]`,
+      ) as HTMLElement | null;
+      if (node) node.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("video:seek", {
+        detail: { time: seg.start, autoplay: "preserve" },
+      }),
+    );
+    // 依赖只在搜索命中实际变更时触发；transcript 引用稳定（来自父级）
+  }, [currentMatchTranscriptIdx, currentMatchVisibleIdx, transcript]);
 
   // 检测用户手动滚动
   useEffect(() => {
@@ -141,18 +226,23 @@ export function TranscriptPanel({
     >
       {visibleSegments.map((seg, i) => {
         const isActive = i === activeIdx;
+        const isCurrentMatch = i === currentMatchVisibleIdx;
         const speakerLetter = seg.speaker?.slice(0, 1).toUpperCase() ?? "?";
+        let containerCls = "group";
+        if (isCurrentMatch) {
+          containerCls =
+            "group bg-amber-50/70 dark:bg-amber-950/30 -mx-2 px-2 py-2 rounded-lg ring-2 ring-amber-400 dark:ring-amber-600";
+        } else if (isActive) {
+          containerCls =
+            "group bg-blue-50/80 dark:bg-blue-950/40 -mx-2 px-2 py-2 rounded-lg ring-1 ring-blue-200 dark:ring-blue-800/40";
+        }
         return (
           <div
             key={i}
             data-idx={i}
             data-time={seg.start}
             data-speaker={seg.speaker ?? ""}
-            className={
-              isActive
-                ? "group bg-blue-50/80 dark:bg-blue-950/40 -mx-2 px-2 py-2 rounded-lg ring-1 ring-blue-200 dark:ring-blue-800/40"
-                : "group"
-            }
+            className={containerCls}
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div
@@ -178,7 +268,11 @@ export function TranscriptPanel({
               </button>
             </div>
             <div className="text-sm text-foreground leading-relaxed pl-8 select-text">
-              {seg.text}
+              <HighlightedText
+                text={seg.text}
+                query={searchQuery}
+                isCurrent={isCurrentMatch}
+              />
             </div>
           </div>
         );
