@@ -5,6 +5,8 @@ import { useVideoDetailStore } from "../store";
 import { KeywordsRow } from "./KeywordsRow";
 import { SummaryBlock } from "./SummaryBlock";
 import { ChaptersTab } from "./ChaptersTab";
+import { QATab } from "./QATab";
+import { SpeakerSummaryTab } from "./SpeakerSummaryTab";
 import type { VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 const SUBTABS = [
@@ -60,24 +62,13 @@ export function BriefPanel({ videoJob }: { videoJob: VideoJobRow | null }) {
                 }
               >
                 {t.label}
-                {t.key !== "chapters" && (
-                  <span className="ml-1 text-[9px] text-muted-foreground">P1</span>
-                )}
               </button>
             );
           })}
         </div>
         {subTab === "chapters" && <ChaptersTab chapters={audio?.chapters} />}
-        {subTab === "speakers" && (
-          <div className="text-sm text-muted-foreground py-6 text-center">
-            发言总结 · 后续版本支持
-          </div>
-        )}
-        {subTab === "qa" && (
-          <div className="text-sm text-muted-foreground py-6 text-center">
-            问答回顾 · 后续版本支持
-          </div>
-        )}
+        {subTab === "speakers" && <SpeakerSummaryTab audio={audio} />}
+        {subTab === "qa" && <QATab qaPairs={audio?.qaPairs} />}
       </section>
 
       <p className="text-center text-[11px] text-muted-foreground pt-2 border-t border-border/50">
