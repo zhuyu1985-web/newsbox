@@ -1,10 +1,12 @@
 "use client";
 
-import { ArrowLeft, Save, Download, Share2, Star, MoreHorizontal, Search, FileDown, Layers, Filter, Languages, Video, Users, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Download, Share2, Star, MoreHorizontal } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { MiniPlayer } from "./MiniPlayer";
 import { RightPanel } from "./RightPanel";
 import { SelectionMenu } from "./shared/SelectionMenu";
+import { SpeakerPopover } from "./SpeakerPopover";
+import { AnalysisProgress } from "./AnalysisProgress";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 export function VideoDetailLayout({
@@ -54,15 +56,9 @@ export function VideoDetailLayout({
               </h1>
               <div className="text-[11px] text-muted-foreground mt-0.5">已保存 · 刚刚</div>
             </div>
-            <div className="flex items-center gap-0.5 text-muted-foreground">
-              {[Search, FileDown, Layers, Filter, Languages, Video, Users, Sparkles].map((Icon, i) => (
-                <button
-                  key={i}
-                  className="w-8 h-8 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex items-center justify-center"
-                >
-                  <Icon size={15} />
-                </button>
-              ))}
+            <div className="flex items-center gap-1 text-muted-foreground">
+              {videoJob && <SpeakerPopover speakers={videoJob.audio_result?.speakers ?? []} />}
+              {videoJob && <AnalysisProgress jobId={videoJob.id} />}
             </div>
           </header>
 

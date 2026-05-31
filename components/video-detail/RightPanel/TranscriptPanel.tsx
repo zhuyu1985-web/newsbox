@@ -31,14 +31,21 @@ export function TranscriptPanel({
 }) {
   const transcript: TranscriptSegment[] = videoJob?.audio_result?.transcript ?? [];
   const currentTime = useVideoDetailStore((s) => s.currentTime);
+  const selected = useVideoDetailStore((s) => s.selectedSpeakers);
   const { seek } = useVideoSeek();
   const containerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
   const lastUserScrollTimeRef = useRef(0);
 
-  // 找到当前句索引
-  const activeIdx = transcript.findIndex((s, i) => {
-    const next = transcript[i + 1];
+  // 发言人筛选：空集合 = 显示全部；否则只显示选中的发言人；未标注 speaker 的句子始终保留
+  const visibleSegments = transcript.filter((seg) => {
+    if (selected.size === 0) return true;
+    return seg.speaker ? selected.has(seg.speaker) : true;
+  });
+
+  // 找到当前句索引（基于可见片段）
+  const activeIdx = visibleSegments.findIndex((s, i) => {
+    const next = visibleSegments[i + 1];
     return currentTime >= s.start && (next ? currentTime < next.start : currentTime <= s.end);
   });
 
@@ -96,13 +103,20 @@ export function TranscriptPanel({
       </div>
     );
   }
+  if (visibleSegments.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground px-4 py-8 text-center">
+        当前筛选下没有可显示的发言内容
+      </div>
+    );
+  }
 
   return (
     <div
       ref={containerRef}
       className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
     >
-      {transcript.map((seg, i) => {
+      {visibleSegments.map((seg, i) => {
         const isActive = i === activeIdx;
         const speakerLetter = seg.speaker?.slice(0, 1).toUpperCase() ?? "?";
         return (
