@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Sparkles } from "lucide-react";
 import { useExcerpt } from "../hooks/useExcerpt";
+import { useAnnotate } from "../hooks/useAnnotate";
 
 interface MenuState {
   visible: boolean;
@@ -12,8 +13,13 @@ interface MenuState {
   speaker: string | null;
 }
 
-export function SelectionMenu() {
+interface Props {
+  noteId: string;
+}
+
+export function SelectionMenu({ noteId }: Props) {
   const excerpt = useExcerpt();
+  const annotate = useAnnotate();
   const [state, setState] = useState<MenuState>({
     visible: false,
     x: 0,
@@ -97,6 +103,26 @@ export function SelectionMenu() {
       >
         <Download size={12} />
         摘录到笔记
+      </button>
+
+      <div className="w-px h-4 bg-slate-700" />
+
+      <button
+        className="px-3 py-1.5 hover:bg-slate-700 dark:hover:bg-slate-700 flex items-center gap-1.5 rounded-r-lg"
+        onClick={async () => {
+          const ok = await annotate({
+            noteId,
+            text: state.text,
+            videoTime: state.time,
+          });
+          if (ok) {
+            window.getSelection()?.removeAllRanges();
+            setState((s) => ({ ...s, visible: false }));
+          }
+        }}
+      >
+        <Sparkles size={12} />
+        标记
       </button>
     </div>
   );

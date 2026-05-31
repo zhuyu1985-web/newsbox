@@ -50,7 +50,7 @@ export function VideoDetailLayout({
         </div>
       </div>
       <MiniPlayer title={note.title ?? ""} duration={note.media_duration ?? 0} />
-      <SelectionMenu />
+      <SelectionMenu noteId={note.id} />
     </>
   );
 }
