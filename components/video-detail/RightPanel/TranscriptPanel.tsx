@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { AlertCircle, RotateCw } from "lucide-react";
+import { toast } from "sonner";
 import { useVideoDetailStore } from "../store";
 import { useVideoSeek } from "../hooks/useVideoSeek";
 import type { TranscriptSegment } from "@/lib/ai-analysis/types";
@@ -85,6 +87,27 @@ export function TranscriptPanel({
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground px-4 py-8 text-center">
         视频任务初始化中...
+      </div>
+    );
+  }
+  if (videoJob.audio_status === "failed") {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+        <AlertCircle size={28} className="text-rose-500" />
+        <div className="text-sm text-foreground">AI 分析失败</div>
+        {videoJob.audio_error && (
+          <div className="text-xs text-muted-foreground max-w-xs">{videoJob.audio_error}</div>
+        )}
+        <button
+          onClick={async () => {
+            await fetch(`/api/ai/video/${videoJob.id}/retry?step=audio`, { method: "POST" });
+            toast.success("已重新提交分析任务");
+          }}
+          className="mt-1 px-3 py-1.5 rounded-md bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white text-xs flex items-center gap-1.5"
+        >
+          <RotateCw size={12} />
+          重新分析
+        </button>
       </div>
     );
   }

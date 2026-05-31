@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle, RotateCw } from "lucide-react";
+import { toast } from "sonner";
 import { ImageLightbox } from "@/components/reader/ImageLightbox";
 import { useVideoSeek } from "../hooks/useVideoSeek";
 import { useVideoDetailStore } from "../store";
@@ -49,6 +50,29 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
       editor.commands.createParagraphNear();
     }, 50);
   };
+
+  // 关键帧抽取失败
+  if (videoJob?.frame_status === "failed") {
+    return (
+      <section className="bg-card/40 backdrop-blur-xl rounded-xl p-5 border border-border/50">
+        <h2 className="font-semibold mb-4 text-foreground">关键帧画廊</h2>
+        <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+          <AlertCircle size={24} className="text-rose-500" />
+          <div className="text-sm text-muted-foreground">关键帧抽取失败</div>
+          <button
+            onClick={async () => {
+              await fetch(`/api/ai/video/${videoJob.id}/retry?step=frame`, { method: "POST" });
+              toast.success("已重试");
+            }}
+            className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            <RotateCw size={10} />
+            重试
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   // 关键帧抽取尚未完成 → 显示骨架
   // 兼容：visual_status 是 video_jobs 中的统一状态字段，frames 数据本身依赖于 visual / frame pipeline
