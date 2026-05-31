@@ -1,6 +1,7 @@
 "use client";
 import { useVideoDetailStore } from "../store";
 import { Sparkles, FileText, NotebookPen } from "lucide-react";
+import { BriefPanel } from "./BriefPanel";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 const TABS = [
@@ -47,9 +48,7 @@ export function RightPanel({
 
       {/* Tab Panels — all mounted, controlled by hidden (preserves state) */}
       <div className={activeTab === "brief" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
-        <div className="p-4 text-sm text-slate-400 dark:text-slate-500">
-          BriefPanel — Task 4.3 占位
-        </div>
+        <BriefPanel videoJob={videoJob} />
       </div>
       <div className={activeTab === "transcript" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
         <div className="p-4 text-sm text-slate-400 dark:text-slate-500">
