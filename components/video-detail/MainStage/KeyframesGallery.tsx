@@ -56,27 +56,27 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
 
   if (!videoJob || !framesReady) {
     return (
-      <section className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800">
-        <h2 className="font-semibold mb-4">关键帧画廊</h2>
+      <section className="bg-card/80 dark:bg-card/60 backdrop-blur-xl rounded-xl p-5 border border-border/50">
+        <h2 className="font-semibold mb-4 text-foreground">关键帧画廊</h2>
         <div className="grid grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse"
+              className="aspect-video bg-muted rounded-lg animate-pulse"
             />
           ))}
         </div>
-        <p className="text-xs text-slate-400 text-center mt-3">正在抽取关键帧...</p>
+        <p className="text-xs text-muted-foreground text-center mt-3">正在抽取关键帧...</p>
       </section>
     );
   }
 
   return (
     <>
-      <section className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800">
+      <section className="bg-card/80 dark:bg-card/60 backdrop-blur-xl rounded-xl p-5 border border-border/50">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">关键帧画廊</h2>
-          <span className="text-xs text-slate-400">共 {frames.length} 帧</span>
+          <h2 className="font-semibold text-foreground">关键帧画廊</h2>
+          <span className="text-xs text-muted-foreground">共 {frames.length} 帧</span>
         </div>
         <div className="grid grid-cols-4 gap-3">
           {frames.map((f, i) => {
@@ -97,7 +97,7 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
                     activate();
                   }
                 }}
-                className="group relative aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 hover:ring-2 hover:ring-violet-400 dark:hover:ring-violet-500 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                className="group relative aspect-video rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-blue-400 dark:hover:ring-blue-500 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 aria-label={`跳转到 ${formatTime(f.timestamp)}`}
               >
                 <img
@@ -120,7 +120,7 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
                     e.stopPropagation();
                     addToNotes(f, desc);
                   }}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-violet-600 dark:bg-violet-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-violet-700 dark:hover:bg-violet-600 transition shadow-md"
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-blue-700 dark:hover:bg-blue-600 transition shadow-md"
                   title="加到笔记"
                   aria-label="加到笔记"
                 >

@@ -301,13 +301,13 @@
 
 /* Excerpt insert pulse animation (Phase 7) */
 @keyframes excerpt-pulse {
-  0% { background-color: rgb(221 214 254); }
-  50% { background-color: rgb(245 243 255); }
+  0% { background-color: rgb(191 219 254); }
+  50% { background-color: rgb(219 234 254); }
   100% { background-color: transparent; }
 }
 @keyframes excerpt-pulse-dark {
-  0% { background-color: rgba(76, 29, 149, 0.6); }
-  50% { background-color: rgba(76, 29, 149, 0.3); }
+  0% { background-color: rgba(30, 58, 138, 0.5); }
+  50% { background-color: rgba(30, 58, 138, 0.25); }
   100% { background-color: transparent; }
 }
 .animate-excerpt-pulse-once {

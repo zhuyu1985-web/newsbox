@@ -35,7 +35,7 @@ export const KeyframeReference = Node.create({
         "data-type": "keyframe-reference",
         "data-time": String(time),
         class:
-          "my-3 inline-block border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden cursor-pointer max-w-xs hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-700 transition",
+          "my-3 inline-block border border-border/60 rounded-lg overflow-hidden cursor-pointer max-w-xs hover:ring-2 hover:ring-blue-300 dark:hover:ring-blue-700 transition",
       }),
       [
         "img",
@@ -50,14 +50,14 @@ export const KeyframeReference = Node.create({
         "figcaption",
         {
           class:
-            "px-2 py-1 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between bg-slate-50 dark:bg-slate-900",
+            "px-2 py-1 text-[11px] text-muted-foreground flex items-center justify-between bg-muted/40",
         },
         ["span", { class: "truncate" }, desc || "关键帧"],
         [
           "span",
           {
             class:
-              "font-mono cursor-pointer hover:underline shrink-0 ml-2 text-violet-600 dark:text-violet-400",
+              "font-mono cursor-pointer hover:underline shrink-0 ml-2 text-blue-600 dark:text-blue-400",
             "data-time-jump": String(time),
           },
           formatTime(time),

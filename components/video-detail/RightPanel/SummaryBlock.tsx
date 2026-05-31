@@ -9,12 +9,12 @@ export function SummaryBlock({ summary }: { summary: string | undefined }) {
   if (!summary) {
     return (
       <section>
-        <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">全文概要</h3>
+        <h3 className="text-xs font-medium text-muted-foreground mb-2">全文概要</h3>
         <div className="space-y-1.5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-3 rounded bg-slate-100 dark:bg-slate-800 animate-pulse"
+              className="h-3 rounded bg-muted animate-pulse"
               style={{ width: `${90 - i * 12}%` }}
             />
           ))}
@@ -28,13 +28,13 @@ export function SummaryBlock({ summary }: { summary: string | undefined }) {
 
   return (
     <section>
-      <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">全文概要</h3>
-      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+      <h3 className="text-xs font-medium text-muted-foreground mb-2">全文概要</h3>
+      <p className="text-sm text-foreground leading-relaxed">
         {visible}
         {tooLong && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-xs text-violet-600 dark:text-violet-400 ml-1 hover:underline"
+            className="text-xs text-blue-600 dark:text-blue-400 ml-1 hover:underline"
           >
             {expanded ? "收起" : "展开全部"}
           </button>

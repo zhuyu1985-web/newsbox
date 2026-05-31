@@ -17,15 +17,15 @@ export function VideoDetailLayout({
   return (
     <>
       <div
-        className="h-screen grid bg-slate-50 dark:bg-slate-950"
+        className="h-screen grid bg-background"
         style={{ gridTemplateColumns: "64px 1fr 480px" }}
       >
         {/* 左工具条 (Phase 9 占位 — 图标已可见但暂未接入功能) */}
-        <aside className="border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col items-center py-3 gap-1 text-slate-500 dark:text-slate-400">
-          <button className="w-11 h-11 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center" title="返回">
+        <aside className="border-r border-border/50 bg-card/40 backdrop-blur-xl flex flex-col items-center py-3 gap-1 text-muted-foreground">
+          <button className="w-11 h-11 rounded-lg hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex items-center justify-center" title="返回">
             <ArrowLeft size={18} />
           </button>
-          <div className="w-8 h-px bg-slate-200 dark:bg-slate-700 my-2" />
+          <div className="w-8 h-px bg-border my-2" />
           {[
             { Icon: Save, label: "保存" },
             { Icon: Download, label: "导出" },
@@ -35,7 +35,7 @@ export function VideoDetailLayout({
           ].map(({ Icon, label }) => (
             <button
               key={label}
-              className="w-11 h-11 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex flex-col items-center justify-center gap-0.5 text-[10px]"
+              className="w-11 h-11 rounded-lg hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex flex-col items-center justify-center gap-0.5 text-[10px]"
               title={label}
             >
               <Icon size={16} />
@@ -47,18 +47,18 @@ export function VideoDetailLayout({
         {/* 主区域：顶栏 + 内容 */}
         <div className="flex flex-col overflow-hidden">
           {/* TopBar (Phase 8 占位) */}
-          <header className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-6 h-14 flex items-center justify-between">
+          <header className="shrink-0 border-b border-border/50 bg-background/70 backdrop-blur-xl px-6 h-14 flex items-center justify-between">
             <div className="min-w-0">
-              <h1 className="text-sm font-semibold truncate text-slate-900 dark:text-slate-100">
+              <h1 className="text-sm font-semibold truncate text-foreground">
                 {note.title ?? "未命名视频"}
               </h1>
-              <div className="text-[11px] text-slate-400 mt-0.5">已保存 · 刚刚</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">已保存 · 刚刚</div>
             </div>
-            <div className="flex items-center gap-0.5 text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-0.5 text-muted-foreground">
               {[Search, FileDown, Layers, Filter, Languages, Video, Users, Sparkles].map((Icon, i) => (
                 <button
                   key={i}
-                  className="w-8 h-8 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+                  className="w-8 h-8 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex items-center justify-center"
                 >
                   <Icon size={15} />
                 </button>

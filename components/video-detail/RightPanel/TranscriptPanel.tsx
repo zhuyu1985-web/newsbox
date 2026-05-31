@@ -14,7 +14,7 @@ function formatTime(s: number): string {
 function speakerColor(id: string | undefined): string {
   if (!id) return "from-slate-400 to-slate-600 dark:from-slate-500 dark:to-slate-700";
   const palette = [
-    "from-violet-400 to-violet-600",
+    "from-blue-400 to-blue-600",
     "from-cyan-400 to-cyan-600",
     "from-rose-400 to-rose-600",
     "from-amber-400 to-amber-600",
@@ -76,22 +76,22 @@ export function TranscriptPanel({
   // Loading 状态
   if (!videoJob) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500 px-4 py-8 text-center">
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground px-4 py-8 text-center">
         视频任务初始化中...
       </div>
     );
   }
   if (videoJob.audio_status !== "done") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-sm text-slate-400 dark:text-slate-500 px-4 py-8 text-center gap-2">
-        <div className="w-6 h-6 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+      <div className="flex-1 flex flex-col items-center justify-center text-sm text-muted-foreground px-4 py-8 text-center gap-2">
+        <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
         <div>字幕生成中，请稍候...</div>
       </div>
     );
   }
   if (transcript.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500 px-4 py-8 text-center">
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground px-4 py-8 text-center">
         该视频未生成字幕
       </div>
     );
@@ -100,7 +100,7 @@ export function TranscriptPanel({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/60 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/60 [&::-webkit-scrollbar-track]:bg-transparent"
+      className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
     >
       {transcript.map((seg, i) => {
         const isActive = i === activeIdx;
@@ -113,7 +113,7 @@ export function TranscriptPanel({
             data-speaker={seg.speaker ?? ""}
             className={
               isActive
-                ? "group bg-violet-50 dark:bg-violet-950/40 -mx-2 px-2 py-2 rounded-lg ring-1 ring-violet-200 dark:ring-violet-800/60"
+                ? "group bg-blue-50/80 dark:bg-blue-950/40 -mx-2 px-2 py-2 rounded-lg ring-1 ring-blue-200 dark:ring-blue-800/40"
                 : "group"
             }
           >
@@ -126,8 +126,8 @@ export function TranscriptPanel({
               <span
                 className={
                   isActive
-                    ? "text-xs text-violet-700 dark:text-violet-300 font-medium"
-                    : "text-xs text-slate-600 dark:text-slate-400"
+                    ? "text-xs text-blue-700 dark:text-blue-300 font-medium"
+                    : "text-xs text-muted-foreground"
                 }
               >
                 {seg.speaker ? `发言人 ${seg.speaker}` : "发言人"}
@@ -135,12 +135,12 @@ export function TranscriptPanel({
               </span>
               <button
                 onClick={() => seek(seg.start)}
-                className="text-xs text-violet-600 dark:text-violet-400 hover:underline font-mono"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-mono"
               >
                 {formatTime(seg.start)}
               </button>
             </div>
-            <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed pl-8 select-text">
+            <div className="text-sm text-foreground leading-relaxed pl-8 select-text">
               {seg.text}
             </div>
           </div>

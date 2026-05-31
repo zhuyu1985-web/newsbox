@@ -41,13 +41,13 @@ export const TimeReference = Node.create({
         "data-type": "time-reference",
         "data-time": String(time),
         class:
-          "my-3 border-l-4 border-violet-400 dark:border-violet-500 bg-violet-50/70 dark:bg-violet-950/40 pl-3 pr-2 py-2 rounded-r",
+          "my-3 border-l-4 border-blue-400 dark:border-blue-500 bg-blue-50/70 dark:bg-blue-950/40 pl-3 pr-2 py-2 rounded-r",
       }),
       [
         "div",
         {
           class:
-            "flex items-center gap-1.5 text-xs text-violet-600 dark:text-violet-300 mb-1",
+            "flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-300 mb-1",
         },
         [
           "span",

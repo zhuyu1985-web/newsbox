@@ -15,7 +15,7 @@ export function ChaptersTab({ chapters }: { chapters: Chapter[] | undefined }) {
 
   if (!chapters?.length) {
     return (
-      <div className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">
+      <div className="text-sm text-muted-foreground text-center py-8">
         AI 章节生成中...
       </div>
     );
@@ -36,23 +36,23 @@ export function ChaptersTab({ chapters }: { chapters: Chapter[] | undefined }) {
             onClick={() => seek(c.start)}
             className={
               active
-                ? "w-full flex gap-3 px-2 py-2 rounded bg-violet-50 dark:bg-violet-950/40 text-left"
-                : "w-full flex gap-3 px-2 py-2 rounded hover:bg-violet-50 dark:hover:bg-violet-950/30 text-left"
+                ? "w-full flex gap-3 px-2 py-2 rounded bg-blue-50/80 dark:bg-blue-950/40 text-left"
+                : "w-full flex gap-3 px-2 py-2 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/30 text-left"
             }
           >
             <div className="flex items-center gap-1.5 text-xs shrink-0 w-14">
               <span
                 className={
                   active
-                    ? "w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse"
-                    : "w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"
+                    ? "w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"
+                    : "w-1.5 h-1.5 rounded-full bg-muted-foreground/40"
                 }
               />
               <span
                 className={
                   active
-                    ? "text-violet-700 dark:text-violet-300 font-mono"
-                    : "text-slate-500 dark:text-slate-400 font-mono"
+                    ? "text-blue-700 dark:text-blue-300 font-mono"
+                    : "text-muted-foreground font-mono"
                 }
               >
                 {formatTime(c.start)}
@@ -61,8 +61,8 @@ export function ChaptersTab({ chapters }: { chapters: Chapter[] | undefined }) {
             <div
               className={
                 active
-                  ? "flex-1 text-sm font-medium text-violet-700 dark:text-violet-200"
-                  : "flex-1 text-sm text-slate-700 dark:text-slate-300"
+                  ? "flex-1 text-sm font-medium text-blue-700 dark:text-blue-200"
+                  : "flex-1 text-sm text-foreground"
               }
             >
               {c.title}

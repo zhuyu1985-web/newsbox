@@ -13,12 +13,12 @@ export function SaveIndicator({
   onRetry?: () => void;
 }) {
   return (
-    <div className="border-t border-slate-200 dark:border-slate-800 px-4 py-1.5 text-[11px] flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+    <div className="border-t border-border/50 px-4 py-1.5 text-[11px] flex items-center justify-between bg-card/40 backdrop-blur-xl shrink-0">
       <span
         className={
           state === "failed"
             ? "text-rose-500 dark:text-rose-400 cursor-pointer flex items-center gap-1 hover:underline"
-            : "text-slate-400 dark:text-slate-500 flex items-center gap-1"
+            : "text-muted-foreground flex items-center gap-1"
         }
         onClick={state === "failed" ? onRetry : undefined}
       >
@@ -42,7 +42,7 @@ export function SaveIndicator({
           </>
         )}
       </span>
-      <span className="text-slate-400 dark:text-slate-500">{charCount} 字</span>
+      <span className="text-muted-foreground">{charCount} 字</span>
     </div>
   );
 }

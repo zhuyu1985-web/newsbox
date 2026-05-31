@@ -51,7 +51,7 @@ export function NotesPanel({
 
   if (!editor) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-slate-400 dark:text-slate-500">
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
         编辑器加载中…
       </div>
     );
@@ -62,7 +62,7 @@ export function NotesPanel({
       <NotesToolbar editor={editor} />
       <div
         onClick={handleClickInsideEditor}
-        className="flex-1 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-800 dark:text-slate-200 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/60 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/60 [&::-webkit-scrollbar-track]:bg-transparent"
+        className="flex-1 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
       >
         <EditorContent editor={editor} />
       </div>

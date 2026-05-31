@@ -102,11 +102,11 @@ export function MiniPlayer({
   const playedBars = Math.round((percent / 100) * WAVEFORM_BARS);
 
   return (
-    <div className="fixed bottom-0 left-[64px] right-[480px] h-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 z-40 flex items-center px-4 gap-4">
+    <div className="fixed bottom-0 left-[64px] right-[480px] h-20 bg-background/85 backdrop-blur-xl border-t border-border/50 z-40 flex items-center px-4 gap-4">
       {/* 跳过 -15s */}
       <button
         onClick={skipBack}
-        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 relative"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-blue-50/60 dark:hover:bg-blue-950/40 relative"
         title="后退 15 秒"
       >
         <RotateCcw size={18} />
@@ -116,7 +116,7 @@ export function MiniPlayer({
       {/* 播放/暂停 */}
       <button
         onClick={togglePlay}
-        className="w-10 h-10 rounded-full bg-violet-600 dark:bg-violet-500 text-white flex items-center justify-center hover:bg-violet-700 dark:hover:bg-violet-600 shrink-0"
+        className="w-10 h-10 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center hover:bg-blue-700 dark:hover:bg-blue-600 shrink-0"
         aria-label={isPlaying ? "暂停" : "播放"}
       >
         {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" />}
@@ -125,7 +125,7 @@ export function MiniPlayer({
       {/* 跳过 +15s */}
       <button
         onClick={skipForward}
-        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 relative"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-blue-50/60 dark:hover:bg-blue-950/40 relative"
         title="快进 15 秒"
       >
         <RotateCw size={18} />
@@ -145,15 +145,15 @@ export function MiniPlayer({
                 key={i}
                 className={
                   played
-                    ? "flex-1 rounded-full bg-violet-500 dark:bg-violet-400 transition-colors"
-                    : "flex-1 rounded-full bg-slate-300/70 dark:bg-slate-600/70 transition-colors"
+                    ? "flex-1 rounded-full bg-blue-500 dark:bg-blue-400 transition-colors"
+                    : "flex-1 rounded-full bg-muted-foreground/30 transition-colors"
                 }
                 style={{ height: `${Math.round(h * 100)}%` }}
               />
             );
           })}
         </div>
-        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -164,20 +164,20 @@ export function MiniPlayer({
         <button
           ref={speedBtnRef}
           onClick={() => setSpeedOpen((v) => !v)}
-          className="px-2 h-7 rounded text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="px-2 h-7 rounded text-xs text-muted-foreground hover:bg-blue-50/60 dark:hover:bg-blue-950/40"
         >
           倍速 {speed}x
         </button>
         {speedOpen && (
-          <div className="absolute bottom-9 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-1 z-50 min-w-[80px]">
+          <div className="absolute bottom-9 right-0 bg-popover border border-border rounded-lg shadow-xl py-1 z-50 min-w-[80px]">
             {SPEEDS.map((s) => (
               <button
                 key={s}
                 onClick={() => applySpeed(s)}
                 className={
                   s === speed
-                    ? "w-full text-left px-3 py-1.5 text-xs text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40"
-                    : "w-full text-left px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    ? "w-full text-left px-3 py-1.5 text-xs text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/40"
+                    : "w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/60"
                 }
               >
                 {s}x
@@ -189,7 +189,7 @@ export function MiniPlayer({
 
       {/* 音频标识 */}
       <button
-        className="w-7 h-7 rounded flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"
+        className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-blue-50/60 dark:hover:bg-blue-950/40 shrink-0"
         title="音频模式"
       >
         <AudioLines size={15} />
