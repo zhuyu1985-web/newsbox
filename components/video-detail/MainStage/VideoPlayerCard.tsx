@@ -48,10 +48,7 @@ export function VideoPlayerCard({ note }: { note: Note }) {
   }, [setCurrentTime, setIsPlaying]);
 
   return (
-    <div
-      ref={ref}
-      className="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-3 bg-slate-50 dark:bg-slate-950"
-    >
+    <div ref={ref}>
       <VideoPlayer note={note as any} embedded />
     </div>
   );

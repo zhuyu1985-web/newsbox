@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, Save, Download, Share2, Star, MoreHorizontal, Search, FileDown, Layers, Filter, Languages, Video, Users, Sparkles } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { MiniPlayer } from "./MiniPlayer";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
@@ -17,16 +18,58 @@ export function VideoDetailLayout({
         className="h-screen grid bg-slate-50 dark:bg-slate-950"
         style={{ gridTemplateColumns: "64px 1fr 480px" }}
       >
-        <aside className="border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col items-center gap-1 py-3 text-[10px] text-slate-400">
-          {/* LeftToolbar — Phase 9 占位 */}
-          <span>左工具条</span>
-          <span>Phase 9</span>
+        {/* 左工具条 (Phase 9 占位 — 图标已可见但暂未接入功能) */}
+        <aside className="border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col items-center py-3 gap-1 text-slate-500 dark:text-slate-400">
+          <button className="w-11 h-11 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center" title="返回">
+            <ArrowLeft size={18} />
+          </button>
+          <div className="w-8 h-px bg-slate-200 dark:bg-slate-700 my-2" />
+          {[
+            { Icon: Save, label: "保存" },
+            { Icon: Download, label: "导出" },
+            { Icon: Share2, label: "分享" },
+            { Icon: Star, label: "收藏" },
+            { Icon: MoreHorizontal, label: "更多" },
+          ].map(({ Icon, label }) => (
+            <button
+              key={label}
+              className="w-11 h-11 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex flex-col items-center justify-center gap-0.5 text-[10px]"
+              title={label}
+            >
+              <Icon size={16} />
+              <span>{label}</span>
+            </button>
+          ))}
         </aside>
 
-        <MainStage note={note} videoJob={videoJob} />
+        {/* 主区域：顶栏 + 内容 */}
+        <div className="flex flex-col overflow-hidden">
+          {/* TopBar (Phase 8 占位) */}
+          <header className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-6 h-14 flex items-center justify-between">
+            <div className="min-w-0">
+              <h1 className="text-sm font-semibold truncate text-slate-900 dark:text-slate-100">
+                {note.title ?? "未命名视频"}
+              </h1>
+              <div className="text-[11px] text-slate-400 mt-0.5">已保存 · 刚刚</div>
+            </div>
+            <div className="flex items-center gap-0.5 text-slate-500 dark:text-slate-400">
+              {[Search, FileDown, Layers, Filter, Languages, Video, Users, Sparkles].map((Icon, i) => (
+                <button
+                  key={i}
+                  className="w-8 h-8 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+                >
+                  <Icon size={15} />
+                </button>
+              ))}
+            </div>
+          </header>
 
+          {/* 主区可滚动内容 */}
+          <MainStage note={note} videoJob={videoJob} />
+        </div>
+
+        {/* 右栏 (Phase 4-7 占位) */}
         <aside className="border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center text-sm text-slate-400">
-          {/* RightPanel — Phase 4-7 占位 */}
           右栏 · Phase 4-7（速览 / 原文 / 笔记）
         </aside>
       </div>
