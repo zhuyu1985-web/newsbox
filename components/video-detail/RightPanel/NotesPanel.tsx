@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import { baseExtensions } from "../notes/editor-config";
 import { NotesToolbar } from "../notes/NotesToolbar";
 import { SaveIndicator } from "../notes/SaveIndicator";
+import { ConflictDialog } from "../notes/ConflictDialog";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useVideoSeek } from "../hooks/useVideoSeek";
 import { useVideoDetailStore } from "../store";
@@ -11,9 +12,11 @@ import { useVideoDetailStore } from "../store";
 export function NotesPanel({
   noteId,
   initialContent,
+  initialUpdatedAt,
 }: {
   noteId: string;
   initialContent: any;
+  initialUpdatedAt?: string | null;
 }) {
   const setNotesEditor = useVideoDetailStore((s) => s.setNotesEditor);
   const { seek } = useVideoSeek();
@@ -47,7 +50,15 @@ export function NotesPanel({
     return () => setNotesEditor(null);
   }, [editor, setNotesEditor]);
 
-  const { state, charCount, retry } = useAutoSave(noteId, editor);
+  const {
+    state,
+    charCount,
+    retry,
+    conflict,
+    resolveOverwrite,
+    resolveReload,
+    resolveCancel,
+  } = useAutoSave(noteId, editor, initialUpdatedAt);
 
   if (!editor) {
     return (
@@ -66,7 +77,18 @@ export function NotesPanel({
       >
         <EditorContent editor={editor} />
       </div>
-      <SaveIndicator state={state} charCount={charCount} onRetry={retry} />
+      <SaveIndicator
+        state={state === "conflict" ? "failed" : state}
+        charCount={charCount}
+        onRetry={retry}
+      />
+      <ConflictDialog
+        open={state === "conflict"}
+        remoteUpdatedAt={conflict?.remoteUpdatedAt ?? null}
+        onOverwrite={resolveOverwrite}
+        onReload={resolveReload}
+        onCancel={resolveCancel}
+      />
     </>
   );
 }

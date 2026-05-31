@@ -59,6 +59,7 @@ export function RightPanel({
         <NotesPanel
           noteId={note.id}
           initialContent={note.user_notes}
+          initialUpdatedAt={note.user_notes_updated_at ?? null}
         />
       </div>
     </aside>
