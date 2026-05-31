@@ -1,0 +1,66 @@
+"use client";
+import { useVideoDetailStore } from "../store";
+import { Sparkles, FileText, NotebookPen } from "lucide-react";
+import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
+
+const TABS = [
+  { key: "brief", label: "速览", Icon: Sparkles },
+  { key: "transcript", label: "原文", Icon: FileText },
+  { key: "notes", label: "笔记", Icon: NotebookPen },
+] as const;
+
+export function RightPanel({
+  note,
+  videoJob,
+}: {
+  note: Note;
+  videoJob: VideoJobRow | null;
+}) {
+  const activeTab = useVideoDetailStore((s) => s.activeTab);
+  const setActiveTab = useVideoDetailStore((s) => s.setActiveTab);
+
+  return (
+    <aside className="border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col overflow-hidden">
+      {/* Tab Bar */}
+      <div className="border-b border-slate-200 dark:border-slate-800 px-3 flex items-center gap-0.5 shrink-0 h-14">
+        {TABS.map((t) => {
+          const active = activeTab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={
+                active
+                  ? "px-3 h-10 text-sm font-medium border-b-2 border-violet-600 text-violet-700 dark:text-violet-300 dark:border-violet-400 flex items-center gap-1.5 -mb-px"
+                  : "px-3 h-10 text-sm border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1.5 -mb-px"
+              }
+            >
+              <t.Icon size={14} />
+              {t.label}
+            </button>
+          );
+        })}
+        <div className="ml-auto text-[11px] text-slate-400 dark:text-slate-500 pr-1">
+          由 通义听悟 生成
+        </div>
+      </div>
+
+      {/* Tab Panels — all mounted, controlled by hidden (preserves state) */}
+      <div className={activeTab === "brief" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
+        <div className="p-4 text-sm text-slate-400 dark:text-slate-500">
+          BriefPanel — Task 4.3 占位
+        </div>
+      </div>
+      <div className={activeTab === "transcript" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
+        <div className="p-4 text-sm text-slate-400 dark:text-slate-500">
+          TranscriptPanel — Task 5.1 占位
+        </div>
+      </div>
+      <div className={activeTab === "notes" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
+        <div className="p-4 text-sm text-slate-400 dark:text-slate-500">
+          NotesPanel — Task 6.x 占位
+        </div>
+      </div>
+    </aside>
+  );
+}

@@ -3,6 +3,7 @@
 import { ArrowLeft, Save, Download, Share2, Star, MoreHorizontal, Search, FileDown, Layers, Filter, Languages, Video, Users, Sparkles } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { MiniPlayer } from "./MiniPlayer";
+import { RightPanel } from "./RightPanel";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 export function VideoDetailLayout({
@@ -68,10 +69,8 @@ export function VideoDetailLayout({
           <MainStage note={note} videoJob={videoJob} />
         </div>
 
-        {/* 右栏 (Phase 4-7 占位) */}
-        <aside className="border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center text-sm text-slate-400">
-          右栏 · Phase 4-7（速览 / 原文 / 笔记）
-        </aside>
+        {/* 右栏 (Phase 4-7) */}
+        <RightPanel note={note} videoJob={videoJob} />
       </div>
       <MiniPlayer title={note.title ?? ""} duration={note.media_duration ?? 0} />
     </>
