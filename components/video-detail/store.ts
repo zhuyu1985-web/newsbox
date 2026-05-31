@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { Editor } from '@tiptap/react';
 
 interface VideoDetailState {
   currentTime: number;
@@ -7,7 +8,7 @@ interface VideoDetailState {
   activeBriefSubTab: 'chapters' | 'speakers' | 'qa';
   miniPlayerVisible: boolean;
   selectedSpeakers: Set<string>;
-  notesEditor: any | null; // TODO: Phase 6 中安装 Tiptap 后改成 Editor | null
+  notesEditor: Editor | null;
 
   setCurrentTime: (t: number) => void;
   setIsPlaying: (p: boolean) => void;
@@ -15,7 +16,7 @@ interface VideoDetailState {
   setActiveBriefSubTab: (t: 'chapters' | 'speakers' | 'qa') => void;
   setMiniPlayerVisible: (v: boolean) => void;
   toggleSpeaker: (id: string) => void;
-  setNotesEditor: (e: any | null) => void;
+  setNotesEditor: (e: Editor | null) => void;
 }
 
 export const useVideoDetailStore = create<VideoDetailState>((set) => ({
