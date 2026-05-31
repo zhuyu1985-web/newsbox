@@ -5,6 +5,7 @@ import { baseExtensions } from "../notes/editor-config";
 import { NotesToolbar } from "../notes/NotesToolbar";
 import { SaveIndicator } from "../notes/SaveIndicator";
 import { useAutoSave } from "../hooks/useAutoSave";
+import { useVideoSeek } from "../hooks/useVideoSeek";
 import { useVideoDetailStore } from "../store";
 
 export function NotesPanel({
@@ -15,6 +16,18 @@ export function NotesPanel({
   initialContent: any;
 }) {
   const setNotesEditor = useVideoDetailStore((s) => s.setNotesEditor);
+  const { seek } = useVideoSeek();
+
+  const handleClickInsideEditor = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const jumpEl = target.closest("[data-time-jump]") as HTMLElement | null;
+    if (jumpEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      const t = Number(jumpEl.getAttribute("data-time-jump"));
+      if (Number.isFinite(t)) seek(t);
+    }
+  };
 
   const editor = useEditor({
     extensions: baseExtensions,
@@ -47,7 +60,10 @@ export function NotesPanel({
   return (
     <>
       <NotesToolbar editor={editor} />
-      <div className="flex-1 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-800 dark:text-slate-200 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/60 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/60 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div
+        onClick={handleClickInsideEditor}
+        className="flex-1 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-800 dark:text-slate-200 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/60 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/60 [&::-webkit-scrollbar-track]:bg-transparent"
+      >
         <EditorContent editor={editor} />
       </div>
       <SaveIndicator state={state} charCount={charCount} onRetry={retry} />
