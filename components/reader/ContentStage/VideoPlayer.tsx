@@ -201,6 +201,18 @@ export function VideoPlayer({ note, embedded = false }: { note: Note; embedded?:
     return () => window.removeEventListener("video:toggle-play", handler);
   }, []);
 
+  // video:set-rate：来自 mini player 的倍速切换
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ rate: number }>;
+      const p = playerRef.current;
+      if (!p || typeof ce.detail?.rate !== "number") return;
+      p.playbackRate(ce.detail.rate);
+    };
+    window.addEventListener("video:set-rate", handler);
+    return () => window.removeEventListener("video:set-rate", handler);
+  }, []);
+
   const handleCapture = async () => {
     if (!playerRef.current) {
       toast.error("播放器尚未就绪");
