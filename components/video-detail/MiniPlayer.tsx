@@ -102,7 +102,7 @@ export function MiniPlayer({
   const playedBars = Math.round((percent / 100) * WAVEFORM_BARS);
 
   return (
-    <div className="fixed bottom-0 left-[64px] right-[480px] h-20 bg-background/85 backdrop-blur-xl border-t border-border/50 z-40 flex items-center px-4 gap-4">
+    <div className="fixed bottom-0 left-0 right-0 lg:left-[56px] lg:right-[420px] 2xl:left-[64px] 2xl:right-[480px] h-20 bg-background/85 backdrop-blur-xl border-t border-border/50 z-40 flex items-center px-4 gap-4">
       {/* 跳过 -15s */}
       <button
         onClick={skipBack}
