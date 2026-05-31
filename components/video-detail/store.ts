@@ -23,6 +23,8 @@ interface VideoDetailState {
   translationMode: TranslationMode;
   translations: Record<number, string>;              // 索引 -> 译文
   translationLoading: boolean;
+  // 移动端底部抽屉
+  mobileSheetOpen: 'brief' | 'transcript' | 'notes' | 'more' | null;
 
   setCurrentTime: (t: number) => void;
   setIsPlaying: (p: boolean) => void;
@@ -45,6 +47,8 @@ interface VideoDetailState {
   setTranslations: (map: Record<number, string>) => void;
   setTranslationLoading: (v: boolean) => void;
   clearTranslations: () => void;
+  // 移动端底部抽屉 setter
+  setMobileSheetOpen: (v: 'brief' | 'transcript' | 'notes' | 'more' | null) => void;
 }
 
 export const useVideoDetailStore = create<VideoDetailState>((set) => ({
@@ -68,6 +72,8 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
   translationMode: 'bilingual',
   translations: {},
   translationLoading: false,
+
+  mobileSheetOpen: null,
 
   setCurrentTime: (t) => set({ currentTime: t }),
   setIsPlaying: (p) => set({ isPlaying: p }),
@@ -110,4 +116,6 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
     translations: {},
     translationTarget: null,
   }),
+
+  setMobileSheetOpen: (v) => set({ mobileSheetOpen: v }),
 }));
