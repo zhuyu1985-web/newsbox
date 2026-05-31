@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import type { Editor } from '@tiptap/react';
 
+export type TranslationLang = 'en' | 'ja' | 'ko' | 'auto-zh';
+export type TranslationMode = 'bilingual' | 'target-only';
+
 interface VideoDetailState {
   currentTime: number;
   isPlaying: boolean;
@@ -14,6 +17,12 @@ interface VideoDetailState {
   searchQuery: string;
   searchMatches: number[];          // 命中片段在 transcript 数组中的下标
   searchCurrentMatch: number;       // 当前命中在 searchMatches 中的下标；-1 表示无
+  // 翻译
+  translationOpen: boolean;
+  translationTarget: TranslationLang | null;        // null = 未翻译
+  translationMode: TranslationMode;
+  translations: Record<number, string>;              // 索引 -> 译文
+  translationLoading: boolean;
 
   setCurrentTime: (t: number) => void;
   setIsPlaying: (p: boolean) => void;
@@ -29,6 +38,13 @@ interface VideoDetailState {
   setSearchCurrentMatch: (i: number) => void;
   nextMatch: () => void;
   prevMatch: () => void;
+  // 翻译 setters
+  setTranslationOpen: (v: boolean) => void;
+  setTranslationTarget: (t: TranslationLang | null) => void;
+  setTranslationMode: (m: TranslationMode) => void;
+  setTranslations: (map: Record<number, string>) => void;
+  setTranslationLoading: (v: boolean) => void;
+  clearTranslations: () => void;
 }
 
 export const useVideoDetailStore = create<VideoDetailState>((set) => ({
@@ -46,6 +62,12 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
   searchQuery: '',
   searchMatches: [],
   searchCurrentMatch: -1,
+
+  translationOpen: false,
+  translationTarget: null,
+  translationMode: 'bilingual',
+  translations: {},
+  translationLoading: false,
 
   setCurrentTime: (t) => set({ currentTime: t }),
   setIsPlaying: (p) => set({ isPlaying: p }),
@@ -77,5 +99,15 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
     if (s.searchMatches.length === 0) return {};
     const next = s.searchCurrentMatch - 1;
     return { searchCurrentMatch: next < 0 ? s.searchMatches.length - 1 : next };
+  }),
+
+  setTranslationOpen: (v) => set({ translationOpen: v }),
+  setTranslationTarget: (t) => set({ translationTarget: t }),
+  setTranslationMode: (m) => set({ translationMode: m }),
+  setTranslations: (map) => set({ translations: map }),
+  setTranslationLoading: (v) => set({ translationLoading: v }),
+  clearTranslations: () => set({
+    translations: {},
+    translationTarget: null,
   }),
 }));

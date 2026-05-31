@@ -84,7 +84,15 @@ export function TranscriptPanel({
   const searchQuery = useVideoDetailStore((s) => s.searchQuery);
   const searchMatches = useVideoDetailStore((s) => s.searchMatches);
   const searchCurrentMatch = useVideoDetailStore((s) => s.searchCurrentMatch);
+  const translations = useVideoDetailStore((s) => s.translations);
+  const translationTarget = useVideoDetailStore((s) => s.translationTarget);
+  const translationMode = useVideoDetailStore((s) => s.translationMode);
   const { seek } = useVideoSeek();
+
+  const hasTranslation =
+    translationTarget !== null && Object.keys(translations).length > 0;
+  const showOriginal = !hasTranslation || translationMode === "bilingual";
+  const showTranslation = hasTranslation;
   const containerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
   const lastUserScrollTimeRef = useRef(0);
@@ -228,6 +236,8 @@ export function TranscriptPanel({
         const isActive = i === activeIdx;
         const isCurrentMatch = i === currentMatchVisibleIdx;
         const speakerLetter = seg.speaker?.slice(0, 1).toUpperCase() ?? "?";
+        const originalIdx = transcript.indexOf(seg);
+        const translated = translations[originalIdx];
         let containerCls = "group";
         if (isCurrentMatch) {
           containerCls =
@@ -268,11 +278,21 @@ export function TranscriptPanel({
               </button>
             </div>
             <div className="text-sm text-foreground leading-relaxed pl-8 select-text">
-              <HighlightedText
-                text={seg.text}
-                query={searchQuery}
-                isCurrent={isCurrentMatch}
-              />
+              {showOriginal && (
+                <HighlightedText
+                  text={seg.text}
+                  query={searchQuery}
+                  isCurrent={isCurrentMatch}
+                />
+              )}
+              {showTranslation && translated && (
+                <div className={showOriginal ? "mt-1 text-muted-foreground italic" : ""}>
+                  {showOriginal && (
+                    <div className="text-[10px] text-muted-foreground/60 mb-0.5">▸ 译文</div>
+                  )}
+                  {translated}
+                </div>
+              )}
             </div>
           </div>
         );

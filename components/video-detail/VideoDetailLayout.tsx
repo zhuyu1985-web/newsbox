@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, Languages } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { MiniPlayer } from "./MiniPlayer";
 import { RightPanel } from "./RightPanel";
@@ -9,6 +9,7 @@ import { SpeakerPopover } from "./SpeakerPopover";
 import { AnalysisProgress } from "./AnalysisProgress";
 import { LeftToolbar } from "./LeftToolbar";
 import { SearchPopover } from "./SearchPopover";
+import { TranslationPopover } from "./TranslationPopover";
 import { useVideoDetailStore } from "./store";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
@@ -45,12 +46,20 @@ export function VideoDetailLayout({
               >
                 <Search size={15} />
               </button>
+              <button
+                onClick={() => useVideoDetailStore.getState().setTranslationOpen(true)}
+                className="w-8 h-8 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex items-center justify-center"
+                title="翻译"
+              >
+                <Languages size={15} />
+              </button>
               {videoJob && <SpeakerPopover speakers={videoJob.audio_result?.speakers ?? []} />}
               {videoJob && <AnalysisProgress jobId={videoJob.id} />}
               <SearchPopover
                 transcript={videoJob?.audio_result?.transcript ?? []}
                 keywords={videoJob?.audio_result?.keywords}
               />
+              <TranslationPopover transcript={videoJob?.audio_result?.transcript ?? []} />
             </div>
           </header>
 
