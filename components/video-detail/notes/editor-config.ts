@@ -11,6 +11,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import { TimeReference } from "./extensions/TimeReference";
+import { KeyframeReference } from "./extensions/KeyframeReference";
 
 // Base extension set. Phase 7 will append TimeReference / KeyframeReference
 // custom nodes to this list — keep the structure flexible (array of extensions).
@@ -30,4 +31,5 @@ export const baseExtensions = [
   Placeholder.configure({ placeholder: "在这里记录你的想法吧，可以插入图片和表格哦…" }),
   CharacterCount,
   TimeReference,
+  KeyframeReference,
 ];

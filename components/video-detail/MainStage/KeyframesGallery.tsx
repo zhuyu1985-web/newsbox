@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { ImageLightbox } from "@/components/reader/ImageLightbox";
 import { useVideoSeek } from "../hooks/useVideoSeek";
+import { useVideoDetailStore } from "../store";
 import type { VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 function formatTime(s: number): string {
@@ -16,14 +18,37 @@ function formatTime(s: number): string {
  * - 展示视频关键帧画廊（来自 video_jobs.frames）
  * - 叠加 visual_result[i].sceneDescription 描述
  * - 点击：跳转到对应时间戳 + 打开 Lightbox
+ * - hover：显示 "+ 加到笔记" 按钮，插入 keyframeReference 节点
  * - frame_status 未完成时显示骨架占位
  */
 export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const { seek } = useVideoSeek();
+  const editor = useVideoDetailStore((s) => s.notesEditor);
+  const setActiveTab = useVideoDetailStore((s) => s.setActiveTab);
 
   const frames = videoJob?.frames ?? [];
   const visual = videoJob?.visual_result ?? [];
+
+  const addToNotes = (
+    frame: { timestamp: number; url: string },
+    desc: string,
+  ) => {
+    if (!editor) return;
+    setActiveTab("notes");
+    setTimeout(() => {
+      editor.commands.focus("end");
+      editor.commands.insertContent({
+        type: "keyframeReference",
+        attrs: {
+          timestamp: frame.timestamp,
+          imageUrl: frame.url,
+          sceneDescription: desc,
+        },
+      });
+      editor.commands.createParagraphNear();
+    }, 50);
+  };
 
   // 关键帧抽取尚未完成 → 显示骨架
   // 兼容：visual_status 是 video_jobs 中的统一状态字段，frames 数据本身依赖于 visual / frame pipeline
@@ -56,14 +81,23 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
         <div className="grid grid-cols-4 gap-3">
           {frames.map((f, i) => {
             const desc = visual[i]?.sceneDescription ?? "";
+            const activate = () => {
+              seek(f.timestamp);
+              setLightboxIdx(i);
+            };
             return (
-              <button
+              <div
                 key={`${f.timestamp}-${i}`}
-                onClick={() => {
-                  seek(f.timestamp);
-                  setLightboxIdx(i);
+                role="button"
+                tabIndex={0}
+                onClick={activate}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    activate();
+                  }
                 }}
-                className="group relative aspect-video rounded-lg overflow-hidden bg-slate-100 hover:ring-2 hover:ring-violet-400 transition"
+                className="group relative aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 hover:ring-2 hover:ring-violet-400 dark:hover:ring-violet-500 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                 aria-label={`跳转到 ${formatTime(f.timestamp)}`}
               >
                 <img
@@ -80,7 +114,19 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
                     {desc}
                   </div>
                 )}
-              </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToNotes(f, desc);
+                  }}
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-violet-600 dark:bg-violet-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-violet-700 dark:hover:bg-violet-600 transition shadow-md"
+                  title="加到笔记"
+                  aria-label="加到笔记"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
             );
           })}
         </div>
