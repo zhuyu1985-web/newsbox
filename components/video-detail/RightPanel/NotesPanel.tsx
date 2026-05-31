@@ -1,10 +1,12 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { Sparkles } from "lucide-react";
 import { baseExtensions } from "../notes/editor-config";
 import { NotesToolbar } from "../notes/NotesToolbar";
 import { SaveIndicator } from "../notes/SaveIndicator";
 import { ConflictDialog } from "../notes/ConflictDialog";
+import { AIRewriteDialog } from "../AIRewriteDialog";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useVideoSeek } from "../hooks/useVideoSeek";
 import { useVideoDetailStore } from "../store";
@@ -20,6 +22,7 @@ export function NotesPanel({
 }) {
   const setNotesEditor = useVideoDetailStore((s) => s.setNotesEditor);
   const { seek } = useVideoSeek();
+  const [rewriteOpen, setRewriteOpen] = useState(false);
 
   const handleClickInsideEditor = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -71,11 +74,20 @@ export function NotesPanel({
   return (
     <>
       <NotesToolbar editor={editor} />
-      <div
-        onClick={handleClickInsideEditor}
-        className="flex-1 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
-      >
-        <EditorContent editor={editor} />
+      <div className="flex-1 relative overflow-hidden">
+        <div
+          onClick={handleClickInsideEditor}
+          className="absolute inset-0 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
+        >
+          <EditorContent editor={editor} />
+        </div>
+        <button
+          onClick={() => setRewriteOpen(true)}
+          className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-500 text-white shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 flex items-center justify-center z-10"
+          title="AI 改写"
+        >
+          <Sparkles size={14} />
+        </button>
       </div>
       <SaveIndicator
         state={state === "conflict" ? "failed" : state}
@@ -88,6 +100,11 @@ export function NotesPanel({
         onOverwrite={resolveOverwrite}
         onReload={resolveReload}
         onCancel={resolveCancel}
+      />
+      <AIRewriteDialog
+        open={rewriteOpen}
+        onOpenChange={setRewriteOpen}
+        editor={editor}
       />
     </>
   );
