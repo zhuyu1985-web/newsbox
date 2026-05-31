@@ -12,6 +12,9 @@ const STEP_COLS = [
   'visual_status',
 ] as const;
 
+const ALLOWED_STEPS = ['download', 'probe', 'cover', 'frame', 'audio', 'visual'] as const;
+type AllowedStep = (typeof ALLOWED_STEPS)[number];
+
 export async function POST(req: NextRequest, ctx: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await ctx.params;
   const supabase = await createClient();
@@ -27,7 +30,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ jobId: str
     .single();
   if (!job) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
-  // 重置规则：
+  // 单步重试：?step=download|probe|cover|frame|audio|visual
+  const stepParam = new URL(req.url).searchParams.get('step');
+  if (stepParam && (ALLOWED_STEPS as readonly string[]).includes(stepParam)) {
+    const col = `${stepParam as AllowedStep}_status`;
+    await service
+      .from('video_jobs')
+      .update({ [col]: 'pending', retry_count: 0, next_retry_at: null })
+      .eq('id', jobId)
+      .eq('user_id', user.id);
+    return NextResponse.json({ ok: true, retriedSteps: [stepParam] });
+  }
+
+  // 重置规则（默认行为）：
   //   - 任何 failed 的 step → pending（标准重试）
   //   - transcode 特殊处理：null / 空 / skipped 都重置为 pending
   //     · null / 空：旧数据 / 列刚加未被流水线扫描
