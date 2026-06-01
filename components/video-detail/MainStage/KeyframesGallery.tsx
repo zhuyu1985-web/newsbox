@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, AlertCircle, RotateCw } from "lucide-react";
+import { Plus, AlertCircle, RotateCw, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/reader/ImageLightbox";
 import { useVideoSeek } from "../hooks/useVideoSeek";
@@ -24,7 +24,7 @@ function formatTime(s: number): string {
  */
 export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
-  const { seek } = useVideoSeek();
+  const { seekAndPlay } = useVideoSeek();
   const editor = useVideoDetailStore((s) => s.notesEditor);
   const setActiveTab = useVideoDetailStore((s) => s.setActiveTab);
 
@@ -106,7 +106,10 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
           {frames.map((f, i) => {
             const desc = visual[i]?.sceneDescription ?? "";
             const activate = () => {
-              seek(f.timestamp);
+              seekAndPlay(f.timestamp);
+            };
+            const openLightbox = (e: React.MouseEvent | React.KeyboardEvent) => {
+              e.stopPropagation();
               setLightboxIdx(i);
             };
             return (
@@ -122,7 +125,7 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
                   }
                 }}
                 className="group relative aspect-video rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-blue-400 dark:hover:ring-blue-500 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                aria-label={`跳转到 ${formatTime(f.timestamp)}`}
+                aria-label={`跳转并播放 ${formatTime(f.timestamp)}`}
               >
                 <img
                   src={f.url}
@@ -138,18 +141,29 @@ export function KeyframesGallery({ videoJob }: { videoJob: VideoJobRow | null })
                     {desc}
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToNotes(f, desc);
-                  }}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-blue-700 dark:hover:bg-blue-600 transition shadow-md"
-                  title="加到笔记"
-                  aria-label="加到笔记"
-                >
-                  <Plus size={12} />
-                </button>
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <button
+                    type="button"
+                    onClick={openLightbox}
+                    className="w-6 h-6 rounded-full bg-black/70 hover:bg-black/85 text-white flex items-center justify-center shadow-md"
+                    title="放大查看"
+                    aria-label="放大查看"
+                  >
+                    <Maximize2 size={11} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToNotes(f, desc);
+                    }}
+                    className="w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center hover:bg-blue-700 dark:hover:bg-blue-600 shadow-md"
+                    title="加到笔记"
+                    aria-label="加到笔记"
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
               </div>
             );
           })}

@@ -1,7 +1,7 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Download, Star, MoreHorizontal, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { ExportDialog } from "./ExportDialog";
@@ -15,17 +15,6 @@ export function LeftToolbar({ noteId, isStarred }: Props) {
   const router = useRouter();
   const [exportOpen, setExportOpen] = useState(false);
   const [starred, setStarred] = useState(isStarred);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [menuOpen]);
 
   const toggleStar = async () => {
     const next = !starred;
@@ -41,22 +30,6 @@ export function LeftToolbar({ noteId, isStarred }: Props) {
     } catch {
       setStarred(!next);
       toast.error("收藏失败，请重试");
-    }
-  };
-
-  const deleteNote = async () => {
-    if (!confirm("确认将此视频笔记移到回收站？")) return;
-    try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("notes")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", noteId);
-      if (error) throw error;
-      toast.success("已移到回收站");
-      router.push("/dashboard");
-    } catch {
-      toast.error("删除失败，请重试");
     }
   };
 
@@ -97,23 +70,6 @@ export function LeftToolbar({ noteId, isStarred }: Props) {
       <div className="w-8 h-px bg-border my-2" />
       <ToolbarButton Icon={Star} label="收藏" onClick={toggleStar} active={starred} />
       <ToolbarButton Icon={Download} label="导出" onClick={() => setExportOpen(true)} />
-      <div ref={menuRef} className="relative">
-        <ToolbarButton Icon={MoreHorizontal} label="更多" onClick={() => setMenuOpen((v) => !v)} />
-        {menuOpen && (
-          <div className="absolute left-12 top-0 w-36 bg-popover/95 backdrop-blur-xl border border-border/60 rounded-lg shadow-xl py-1 z-50">
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                deleteNote();
-              }}
-              className="w-full px-3 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50/60 dark:hover:bg-rose-950/40 flex items-center gap-2"
-            >
-              <Trash2 size={14} />
-              移到回收站
-            </button>
-          </div>
-        )}
-      </div>
       <ExportDialog noteId={noteId} open={exportOpen} onOpenChange={setExportOpen} />
     </aside>
   );

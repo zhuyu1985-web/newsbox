@@ -87,7 +87,7 @@ export function TranscriptPanel({
   const translations = useVideoDetailStore((s) => s.translations);
   const translationTarget = useVideoDetailStore((s) => s.translationTarget);
   const translationMode = useVideoDetailStore((s) => s.translationMode);
-  const { seek } = useVideoSeek();
+  const { seekAndPlay } = useVideoSeek();
 
   const hasTranslation =
     translationTarget !== null && Object.keys(translations).length > 0;
@@ -238,14 +238,23 @@ export function TranscriptPanel({
         const speakerLetter = seg.speaker?.slice(0, 1).toUpperCase() ?? "?";
         const originalIdx = transcript.indexOf(seg);
         const translated = translations[originalIdx];
-        let containerCls = "group";
+        let containerCls =
+          "group -mx-2 px-2 py-2 rounded-lg cursor-pointer hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors";
         if (isCurrentMatch) {
           containerCls =
-            "group bg-amber-50/70 dark:bg-amber-950/30 -mx-2 px-2 py-2 rounded-lg ring-2 ring-amber-400 dark:ring-amber-600";
+            "group -mx-2 px-2 py-2 rounded-lg cursor-pointer bg-amber-50/70 dark:bg-amber-950/30 ring-2 ring-amber-400 dark:ring-amber-600";
         } else if (isActive) {
           containerCls =
-            "group bg-blue-50/80 dark:bg-blue-950/40 -mx-2 px-2 py-2 rounded-lg ring-1 ring-blue-200 dark:ring-blue-800/40";
+            "group -mx-2 px-2 py-2 rounded-lg cursor-pointer bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-200 dark:ring-blue-800/40";
         }
+        const handleRowClick = (e: React.MouseEvent) => {
+          // 不拦截文字选择：用户开始拖选时不应跳转
+          const sel = window.getSelection?.();
+          if (sel && sel.toString().length > 0) return;
+          // 不拦截子按钮（时间戳）
+          if ((e.target as HTMLElement).closest("button")) return;
+          seekAndPlay(seg.start);
+        };
         return (
           <div
             key={i}
@@ -253,6 +262,16 @@ export function TranscriptPanel({
             data-time={seg.start}
             data-speaker={seg.speaker ?? ""}
             className={containerCls}
+            onClick={handleRowClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                seekAndPlay(seg.start);
+              }
+            }}
+            aria-label={`跳转并播放 ${formatTime(seg.start)}`}
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div
@@ -271,7 +290,10 @@ export function TranscriptPanel({
                 {isActive && <span className="ml-1.5">· 正在播放</span>}
               </span>
               <button
-                onClick={() => seek(seg.start)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  seekAndPlay(seg.start);
+                }}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-mono"
               >
                 {formatTime(seg.start)}

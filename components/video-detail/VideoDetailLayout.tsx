@@ -2,6 +2,7 @@
 
 import { Search, Languages } from "lucide-react";
 import { MainStage } from "./MainStage";
+import { TitleEditor } from "./TitleEditor";
 import { MiniPlayer } from "./MiniPlayer";
 import { RightPanel } from "./RightPanel";
 import { SelectionMenu } from "./shared/SelectionMenu";
@@ -39,13 +40,10 @@ export function VideoDetailLayout({
 
         {/* 主区域：顶栏 + 内容 — 任何屏幕都显示，移动端底部留出 56px 给 MobileTabBar */}
         <div className="flex flex-col overflow-hidden pb-14 lg:pb-0">
-          {/* TopBar (Phase 8 占位) */}
-          <header className="shrink-0 border-b border-border/50 bg-background/70 backdrop-blur-xl px-4 lg:px-6 h-14 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <h1 className="text-sm font-semibold truncate text-foreground max-w-[150px] md:max-w-[240px] lg:max-w-none">
-                {note.title ?? "未命名视频"}
-              </h1>
-              <div className="text-[11px] text-muted-foreground mt-0.5">已保存 · 刚刚</div>
+          {/* TopBar */}
+          <header className="shrink-0 border-b border-border/50 bg-background/70 backdrop-blur-xl px-4 lg:px-6 h-14 flex items-center justify-between gap-2 relative z-30">
+            <div className="min-w-0 flex-1">
+              <TitleEditor noteId={note.id} initialTitle={note.title ?? ""} />
             </div>
             <div className="relative flex items-center gap-1 text-muted-foreground shrink-0">
               <button

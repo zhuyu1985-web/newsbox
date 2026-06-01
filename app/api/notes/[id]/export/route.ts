@@ -15,18 +15,34 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  // notes ↔ video_jobs 之间有两条 FK；必须显式指定 notes.video_job_id → video_jobs.id 这条
   const { data: note, error } = await supabase
     .from("notes")
-    .select("*, video_job:video_jobs(*)")
+    .select("*, video_job:video_jobs!notes_video_job_id_fkey(*)")
     .eq("id", id)
     .eq("user_id", user.id)
     .single();
 
   if (error || !note) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
+    console.error("[export] load note failed", {
+      id,
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+    });
+    return NextResponse.json(
+      { error: error?.message || "not found" },
+      { status: error?.code === "PGRST116" ? 404 : 500 },
+    );
   }
 
-  const audio = (note.video_job as { audio_result?: AudioResult } | null)?.audio_result ?? null;
+  // Supabase 嵌套关系返回有时是单对象、有时是数组（取决于关系基数推断），都兜底
+  const videoJobRaw = (note as { video_job?: unknown }).video_job;
+  const videoJob = Array.isArray(videoJobRaw)
+    ? (videoJobRaw[0] as { audio_result?: AudioResult } | undefined)
+    : (videoJobRaw as { audio_result?: AudioResult } | null | undefined);
+  const audio = videoJob?.audio_result ?? null;
   const safeTitle = (note.title || "video").replace(/[^\w\u4e00-\u9fff -]/g, "_");
 
   if (format === "srt") {

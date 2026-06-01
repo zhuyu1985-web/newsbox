@@ -1,13 +1,15 @@
-// TODO: 以下提取逻辑基于 B 站 PC 网页的已知结构，需在真实页面验证：
-// 1. __playinfo__ 是否稳定注入（不同地区/登录状态可能差异）
-// 2. dash.video[0].baseUrl 可能有时效性（expires），需确认 TTL
-// 3. durl 格式多见于番剧/课程，通常需要大会员 cookie
-// 4. 短链 b23.tv 会 302 跳转到 bilibili.com/video/BV...，matches() 以跳转后 URL 为准
-// 5. 移动端 m.bilibili.com 结构不同，暂不支持
+// B 站视频提取器
+//
+// 提取链路（按优先级）：
+//   1. window.__playinfo__ —— 老路径，部分老页面/未登录会有
+//   2. window.__INITIAL_STATE__ —— SPA 注入，能拿到 bvid + cid
+//   3. URL 路径解析 BVxxx + 调 API playurl —— 兜底
+//
+// __playinfo__ / __INITIAL_STATE__ 都是异步注入：进入页面后 SPA 才填充。
+// 因此先做一个短时轮询（最多 ~3s），等到至少其中一个就绪再提取。
 
 import { IVideoExtractor, VideoCapture, VideoExtractionError } from './base';
 
-// 内部类型：B 站注入的 __playinfo__ 全局对象
 interface BiliPlayInfo {
   data?: {
     dash?: {
@@ -17,65 +19,174 @@ interface BiliPlayInfo {
   };
 }
 
+interface BiliInitialState {
+  bvid?: string;
+  aid?: number;
+  videoData?: {
+    bvid?: string;
+    aid?: number;
+    cid?: number;
+    title?: string;
+    pic?: string;
+    duration?: number;
+    owner?: { name?: string };
+    pages?: Array<{ cid?: number }>;
+  };
+}
+
+interface PlayUrlResponse {
+  code: number;
+  message?: string;
+  data?: {
+    dash?: { video?: Array<{ baseUrl?: string; base_url?: string }> };
+    durl?: Array<{ url?: string }>;
+  };
+}
+
+const POLL_TIMEOUT_MS = 3000;
+const POLL_INTERVAL_MS = 100;
+
+function getPlayInfo(): BiliPlayInfo | undefined {
+  return (window as unknown as { __playinfo__?: BiliPlayInfo }).__playinfo__;
+}
+
+function getInitialState(): BiliInitialState | undefined {
+  return (window as unknown as { __INITIAL_STATE__?: BiliInitialState }).__INITIAL_STATE__;
+}
+
+function parseBvidFromUrl(url: string): string | undefined {
+  return /\/video\/(BV\w+)/.exec(url)?.[1];
+}
+
+function pickVideoUrl(info: BiliPlayInfo | PlayUrlResponse['data'] | undefined): string | undefined {
+  const data = (info as BiliPlayInfo)?.data ?? (info as PlayUrlResponse['data']);
+  if (data?.dash?.video?.length) {
+    const v = data.dash.video[0];
+    return v.baseUrl ?? v.base_url;
+  }
+  if (data?.durl?.length) {
+    return data.durl[0].url;
+  }
+  return undefined;
+}
+
+async function waitForBiliData(): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < POLL_TIMEOUT_MS) {
+    if (getPlayInfo() || getInitialState()?.videoData?.cid) return;
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+  }
+}
+
+async function fetchPlayUrl(bvid: string, cid: number): Promise<string | undefined> {
+  // playurl 接口需要带 cookie；content script 走页面源（bilibili.com），cookie 会自动带上
+  const url =
+    `https://api.bilibili.com/x/player/playurl?` +
+    `bvid=${encodeURIComponent(bvid)}&cid=${cid}` +
+    `&qn=80&fnval=4048&fnver=0&fourk=1&platform=html5&high_quality=1`;
+  try {
+    const res = await fetch(url, { credentials: 'include' });
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as PlayUrlResponse;
+    if (json.code !== 0) return undefined;
+    return pickVideoUrl(json.data);
+  } catch {
+    return undefined;
+  }
+}
+
+function cleanTitle(raw: string): string {
+  return (
+    raw
+      .replace(/_哔哩哔哩.*$/u, '')
+      .replace(/-bilibili\s*$/i, '')
+      .trim() || '哔哩哔哩视频'
+  );
+}
+
 export class BilibiliExtractor implements IVideoExtractor {
   platform = 'bilibili' as const;
 
   matches(url: string): boolean {
-    // 匹配 bilibili.com/video/BVxxx 或 bilibili.com/video/avxxx
     return /bilibili\.com\/video\/(BV|av)\w+/.test(url);
   }
 
   async extract(): Promise<VideoCapture> {
     const url = window.location.href;
+    const bvid = parseBvidFromUrl(url);
 
-    // --- 1. 从 window.__playinfo__ 读取视频地址 ---
-    const playinfo = (window as unknown as { __playinfo__?: BiliPlayInfo }).__playinfo__;
-    let videoUrl: string | undefined;
+    // 等待 SPA 注入
+    await waitForBiliData();
 
-    if (playinfo?.data?.dash?.video?.length) {
-      // DASH 格式（主流）
-      const track = playinfo.data.dash.video[0];
-      videoUrl = track.baseUrl ?? track.base_url;
-    } else if (playinfo?.data?.durl?.length) {
-      // DURL 格式（番剧/旧版接口）
-      videoUrl = playinfo.data.durl[0].url;
+    // --- 1. window.__playinfo__（最理想路径）
+    let videoUrl = pickVideoUrl(getPlayInfo());
+
+    // --- 2. __INITIAL_STATE__ 拿 bvid+cid 后调 API
+    if (!videoUrl) {
+      const state = getInitialState();
+      const stateBvid = state?.videoData?.bvid ?? state?.bvid ?? bvid;
+      const cid =
+        state?.videoData?.cid ?? state?.videoData?.pages?.[0]?.cid;
+      if (stateBvid && cid) {
+        videoUrl = await fetchPlayUrl(stateBvid, cid);
+      }
+    }
+
+    // --- 3. 完全没有 state，但 URL 有 bvid → 先查 view 拿 cid，再 playurl
+    if (!videoUrl && bvid) {
+      try {
+        const viewRes = await fetch(
+          `https://api.bilibili.com/x/web-interface/view?bvid=${encodeURIComponent(bvid)}`,
+          { credentials: 'include' },
+        );
+        if (viewRes.ok) {
+          const viewJson = (await viewRes.json()) as {
+            code: number;
+            data?: { cid?: number; pages?: Array<{ cid?: number }> };
+          };
+          const cid = viewJson?.data?.cid ?? viewJson?.data?.pages?.[0]?.cid;
+          if (cid) videoUrl = await fetchPlayUrl(bvid, cid);
+        }
+      } catch {
+        // 落空就继续抛错
+      }
     }
 
     if (!videoUrl) {
       throw new VideoExtractionError(
         this.platform,
-        'window.__playinfo__ not found or video URL missing; ' +
-        'ensure page is fully loaded or user is logged in',
+        '未能从页面或 API 解析到视频地址。可能页面尚未加载完成，或需要登录哔哩哔哩账号后重试。',
       );
     }
 
-    // --- 2. 元数据提取 ---
-    const rawTitle =
-      document.querySelector('h1')?.textContent?.trim()
-      ?? document.title;
+    // --- 元数据：优先用 __INITIAL_STATE__（最准），其次 DOM 兜底
+    const state = getInitialState();
+    const vd = state?.videoData;
 
-    // 去除 B 站标题后缀，如 "_哔哩哔哩 (゜-゜)つロ 干杯~-bilibili"
-    const title = rawTitle
-      .replace(/_哔哩哔哩.*$/u, '')
-      .replace(/-bilibili\s*$/i, '')
-      .trim()
-      || '哔哩哔哩视频';
+    const rawTitle =
+      vd?.title || document.querySelector('h1')?.textContent?.trim() || document.title;
+    const title = cleanTitle(rawTitle);
 
     const coverUrl =
-      document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content?.trim()
-      || undefined;
+      vd?.pic ||
+      document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content?.trim() ||
+      undefined;
 
-    const authorEl = document.querySelector<HTMLAnchorElement>('a[href*="/space.bilibili.com/"]');
-    const authorName = authorEl?.textContent?.trim() || undefined;
+    const authorName =
+      vd?.owner?.name ||
+      document.querySelector<HTMLAnchorElement>('a[href*="/space.bilibili.com/"]')?.textContent?.trim() ||
+      undefined;
+
+    const durationSec = typeof vd?.duration === 'number' ? vd.duration : undefined;
 
     return {
       platform: this.platform,
       sourceUrl: url,
       videoUrl,
       videoHeaders: { Referer: 'https://www.bilibili.com/' },
-      // B 路径：视频带防盗链，需浏览器环境下载
+      // 走 B 路径：B 站资源有 referer 防盗链，浏览器上传可携带 cookie + referer
       recommendedStrategy: 'browser',
-      meta: { title, authorName, coverUrl },
+      meta: { title, authorName, coverUrl, durationSec },
     };
   }
 }

@@ -19,6 +19,9 @@ export function BriefPanel({ videoJob }: { videoJob: VideoJobRow | null }) {
   const subTab = useVideoDetailStore((s) => s.activeBriefSubTab);
   const setSubTab = useVideoDetailStore((s) => s.setActiveBriefSubTab);
   const audio = videoJob?.audio_result;
+  // 只有 audio 分析完成才允许 AI 兜底提取（依赖 transcript）
+  const canEnrich = videoJob?.audio_status === "done" && (audio?.transcript?.length ?? 0) > 0;
+  const jobId = videoJob?.id ?? null;
 
   if (videoJob?.audio_status === "failed") {
     return (
@@ -44,7 +47,7 @@ export function BriefPanel({ videoJob }: { videoJob: VideoJobRow | null }) {
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent">
-      <KeywordsRow keywords={audio?.keywords} />
+      <KeywordsRow keywords={audio?.keywords} jobId={jobId} canEnrich={canEnrich} />
       <SummaryBlock summary={audio?.summary} />
 
       <section>
@@ -68,7 +71,9 @@ export function BriefPanel({ videoJob }: { videoJob: VideoJobRow | null }) {
         </div>
         {subTab === "chapters" && <ChaptersTab chapters={audio?.chapters} />}
         {subTab === "speakers" && <SpeakerSummaryTab audio={audio} />}
-        {subTab === "qa" && <QATab qaPairs={audio?.qaPairs} />}
+        {subTab === "qa" && (
+          <QATab qaPairs={audio?.qaPairs} jobId={jobId} canEnrich={canEnrich} />
+        )}
       </section>
 
       <p className="text-center text-[11px] text-muted-foreground pt-2 border-t border-border/50">
