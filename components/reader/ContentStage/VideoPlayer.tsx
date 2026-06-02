@@ -7,19 +7,7 @@ import "video.js/dist/video-js.css";
 type VideoJsPlayer = ReturnType<typeof videojs>;
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Camera, 
-  Maximize, 
-  Settings, 
-  RotateCcw, 
-  FastForward,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  SkipForward
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { AnnotationDialog } from "../AnnotationDialog";
 
@@ -41,15 +29,10 @@ interface Note {
   } | null;
 }
 
-export function VideoPlayer({ note }: { note: Note }) {
+export function VideoPlayer({ note, embedded = false }: { note: Note; embedded?: boolean }) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<VideoJsPlayer | null>(null);
-  const [isVideoJs, setIsVideoJs] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [isAnnotationOpen, setIsAnnotationOpen] = useState(false);
   const [currentCapture, setCurrentCapture] = useState<{ time: number; dataUrl: string } | null>(null);
   const [playbackError, setPlaybackError] = useState<{ code?: number; message?: string } | null>(null);
@@ -66,7 +49,6 @@ export function VideoPlayer({ note }: { note: Note }) {
 
     // 抓取下来的视频一律走 Video.js 播放
     // 即便扩展名不在白名单里也尝试播放：Video.js 自带格式错误 UI，比 iframe / "去原始链接" 体验好
-    setIsVideoJs(true);
     const videoElement = document.createElement("video-js");
     videoElement.classList.add("vjs-big-play-centered", "vjs-theme-city");
     videoRef.current.appendChild(videoElement);
@@ -88,9 +70,11 @@ export function VideoPlayer({ note }: { note: Note }) {
         responsive: true,
         fluid: true,
         preload: "metadata",
-        // 注：不设 crossOrigin。设了会让浏览器 send CORS preflight，
-        // COS 若没配 CORS 头会直接 fail。截图功能在跨域时会 taint canvas，
-        // 这是已知 trade-off：要截图请在 COS 配 Access-Control-Allow-Origin。
+        // crossOrigin=anonymous 让 <video> 携带 CORS 头请求；只要 COS 配置了
+        // Access-Control-Allow-Origin 就能让 canvas.toDataURL 不 taint，截图才能工作。
+        // 没配 CORS 的话播放本身也不会失败（图像仍能渲染），只是截图会失败 → 我们
+        // 在 handleCapture 里捕获 SecurityError 给出友好提示。
+        crossOrigin: "anonymous",
         sources: [
           {
             src: playableUrl,
@@ -116,10 +100,30 @@ export function VideoPlayer({ note }: { note: Note }) {
       }
     ));
 
-    player.on("play", () => setIsPlaying(true));
-    player.on("pause", () => setIsPlaying(false));
-    player.on("timeupdate", () => setCurrentTime(player.currentTime() ?? 0));
-    player.on("loadedmetadata", () => setDuration(player.duration() ?? 0));
+    player.on("play", () => {
+      window.dispatchEvent(
+        new CustomEvent("video:state", { detail: { paused: false } })
+      );
+    });
+    player.on("pause", () => {
+      window.dispatchEvent(
+        new CustomEvent("video:state", { detail: { paused: true } })
+      );
+    });
+
+    // timeupdate：本地 state 立即同步；window 事件做 250ms 节流，避免每帧广播
+    let lastTimeupdateDispatch = 0;
+    player.on("timeupdate", () => {
+      const time = player.currentTime() ?? 0;
+      setCurrentTime(time);
+      const now = Date.now();
+      if (now - lastTimeupdateDispatch < 250) return;
+      lastTimeupdateDispatch = now;
+      window.dispatchEvent(
+        new CustomEvent("video:timeupdate", { detail: { time } })
+      );
+    });
+
     player.on("error", () => {
       const err = player.error();
       console.error("[VideoPlayer] playback error", {
@@ -131,11 +135,24 @@ export function VideoPlayer({ note }: { note: Note }) {
     });
     player.on("loadstart", () => setPlaybackError(null));
 
+    // 统一事件契约：video:seek 支持 autoplay 模式
+    //   - preserve（默认）：跳转后保持原播放状态（在播继续播，暂停仍暂停）
+    //   - force：跳转后强制开始播放
+    //   - none：跳转后强制暂停
     const handleGlobalSeek = (e: Event) => {
-      const time = (e as CustomEvent).detail?.time;
-      if (typeof time === "number") {
-        player.currentTime(time);
+      const ce = e as CustomEvent<{
+        time: number;
+        autoplay?: "preserve" | "force" | "none";
+      }>;
+      const time = ce.detail?.time;
+      if (typeof time !== "number") return;
+      const wasPaused = player.paused();
+      player.currentTime(time);
+      const mode = ce.detail?.autoplay ?? "preserve";
+      if (mode === "force" || (mode === "preserve" && !wasPaused)) {
         player.play();
+      } else if (mode === "none" && !wasPaused) {
+        player.pause();
       }
     };
 
@@ -150,49 +167,87 @@ export function VideoPlayer({ note }: { note: Note }) {
     };
   }, [playableUrl]);
 
+  // video:toggle-play：来自外部 mini player 等的播放/暂停切换请求
+  useEffect(() => {
+    const handler = () => {
+      const p = playerRef.current;
+      if (!p) return;
+      if (p.paused()) {
+        p.play();
+      } else {
+        p.pause();
+      }
+    };
+    window.addEventListener("video:toggle-play", handler);
+    return () => window.removeEventListener("video:toggle-play", handler);
+  }, []);
+
+  // video:set-rate：来自 mini player 的倍速切换
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ rate: number }>;
+      const p = playerRef.current;
+      if (!p || typeof ce.detail?.rate !== "number") return;
+      p.playbackRate(ce.detail.rate);
+    };
+    window.addEventListener("video:set-rate", handler);
+    return () => window.removeEventListener("video:set-rate", handler);
+  }, []);
+
   const handleCapture = async () => {
     if (!playerRef.current) {
       toast.error("播放器尚未就绪");
       return;
     }
 
-    try {
-      const video = videoRef.current?.querySelector("video");
-      if (!video) return;
+    const video = videoRef.current?.querySelector("video") as HTMLVideoElement | null;
+    if (!video) {
+      toast.error("找不到视频元素");
+      return;
+    }
+    if (!video.videoWidth || !video.videoHeight) {
+      toast.error("视频尚未加载完成，请稍后再试");
+      return;
+    }
 
+    try {
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      const dataUrl = canvas.toDataURL("image/jpeg");
-      
+      if (!ctx) {
+        toast.error("浏览器不支持截图");
+        return;
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // canvas.toDataURL 在跨域且未配 CORS 时会抛 SecurityError（tainted canvas）
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+
       setCurrentCapture({
         time: Math.floor(currentTime),
-        dataUrl
+        dataUrl,
       });
       setIsAnnotationOpen(true);
-      
-      // 触发事件，方便批注系统获取截图
-      window.dispatchEvent(new CustomEvent("video:capture", {
-        detail: {
-          noteId: note.id,
-          timecode: Math.floor(currentTime),
-          dataUrl
-        }
-      }));
-    } catch (error) {
-      console.error("Capture failed:", error);
-      toast.error("截图失败");
-    }
-  };
 
-  const handleSeek = (seconds: number) => {
-    if (playerRef.current) {
-      const current = playerRef.current.currentTime() ?? 0;
-      const newTime = current + seconds;
-      playerRef.current.currentTime(Math.max(0, Math.min(newTime, duration)));
+      window.dispatchEvent(
+        new CustomEvent("video:capture", {
+          detail: {
+            noteId: note.id,
+            timecode: Math.floor(currentTime),
+            dataUrl,
+          },
+        }),
+      );
+    } catch (error) {
+      console.error("[VideoPlayer] capture failed", error);
+      const isCors =
+        error instanceof DOMException &&
+        (error.name === "SecurityError" || /tainted/i.test(error.message ?? ""));
+      toast.error(
+        isCors
+          ? "截图失败：视频源未开启跨域访问，请联系管理员在 COS 配置 CORS"
+          : "截图失败",
+      );
     }
   };
 
@@ -213,7 +268,7 @@ export function VideoPlayer({ note }: { note: Note }) {
     !note.video_job?.transcoded_url;
 
   return (
-    <div className="w-full max-w-[1000px] mx-auto py-8 px-4">
+    <div className={embedded ? "w-full" : "w-full max-w-[1000px] mx-auto py-8 px-4"}>
       <Card className="overflow-hidden bg-black border-none shadow-2xl rounded-2xl relative group">
         {/* 始终用 Video.js 播放（错误由 Video.js 自身的 UI 展示） */}
         <div ref={videoRef} className="aspect-video" />
@@ -325,21 +380,14 @@ export function VideoPlayer({ note }: { note: Note }) {
           <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-gradient-to-b from-black/60 to-transparent">
             <h2 className="text-white font-medium truncate max-w-[70%]">{note.title}</h2>
             <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="text-white hover:bg-card/20 rounded-full h-9 w-9"
                 onClick={handleCapture}
                 title="截取当前帧"
               >
                 <Camera className="h-5 w-5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white hover:bg-card/20 rounded-full h-9 w-9"
-              >
-                <Settings className="h-5 w-5" />
               </Button>
             </div>
           </div>

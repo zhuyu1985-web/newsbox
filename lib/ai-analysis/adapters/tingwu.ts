@@ -137,11 +137,29 @@ async function mapResult(rawIn: any): Promise<AudioAnalysisResult> {
 
   // 真实 API 返回的 JSON 多一层同名包裹：{ TaskId, Transcription: { AudioInfo, Paragraphs } }
   // test mock 直接传内层对象。两种都兼容：优先看包裹内层。
-  const transcription = transcriptionDoc?.Transcription ?? transcriptionDoc;
-  const autoChapters = autoChaptersDoc?.AutoChapters ?? autoChaptersDoc;
-  const summarization = summarizationDoc?.Summarization ?? summarizationDoc;
-  const keyPoints = keyPointsDoc?.KeyPoints ?? keyPointsDoc;
-  const meetingAssistance = meetingDoc?.MeetingAssistance ?? meetingDoc;
+  return mapTingwuToResult({
+    transcription: transcriptionDoc?.Transcription ?? transcriptionDoc,
+    autoChapters: autoChaptersDoc?.AutoChapters ?? autoChaptersDoc,
+    summarization: summarizationDoc?.Summarization ?? summarizationDoc,
+    keyPoints: keyPointsDoc?.KeyPoints ?? keyPointsDoc,
+    meeting: meetingDoc?.MeetingAssistance ?? meetingDoc,
+  });
+}
+
+export interface TingwuMappingInput {
+  transcription: any;
+  autoChapters: any;
+  summarization: any;
+  keyPoints: any;
+  meeting: any;
+}
+
+/**
+ * 把已经解析好的 Tingwu 各段文档映射成 AudioAnalysisResult。
+ * 与 mapResult 的区别：本函数是同步的，不再处理 URL 解 fetch，只负责字段映射。
+ */
+export function mapTingwuToResult(input: TingwuMappingInput): AudioAnalysisResult {
+  const { transcription, autoChapters, summarization, keyPoints, meeting: meetingAssistance } = input;
 
   // 真实 API：Paragraphs[].Words[]，每个 Word 含 SentenceId + Start + End + Text
   // 同 SentenceId 的 Words 聚合成一个 segment（"句子"），text 用空格连接。
@@ -200,12 +218,14 @@ async function mapResult(rawIn: any): Promise<AudioAnalysisResult> {
   const keyPointsList = Array.isArray(keyPoints)
     ? keyPoints
     : keyPoints?.KeyWords ?? keyPoints?.Keywords ?? [];
+  const keywordsArr = keyPointsList.map((kp: any) => String(kp));
 
   return {
     transcript,
     chapters,
     summary: String(summarization?.ParagraphSummary ?? ''),
-    keyPoints: keyPointsList.map((kp: any) => String(kp)),
+    keyPoints: keywordsArr,
+    keywords: keywordsArr,
     qaPairs: (meetingAssistance?.QAs ?? []).map((q: any) => ({
       q: String(q.Q ?? ''),
       a: String(q.A ?? ''),

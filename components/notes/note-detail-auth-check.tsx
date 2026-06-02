@@ -14,6 +14,11 @@ interface VideoJobRow {
   audio_status: string;
   visual_status: string;
   transcode_status: string;
+  frame_status?: string | null;
+  size_bytes?: number | null;
+  download_error?: string | null;
+  audio_error?: string | null;
+  visual_error?: string | null;
 }
 
 interface Note {
@@ -41,6 +46,8 @@ interface Note {
   is_starred?: boolean;
   user_id: string;
   video_job?: VideoJobRow | null;
+  user_notes?: any;
+  user_notes_updated_at?: string | null;
 }
 
 interface Folder {
@@ -75,7 +82,8 @@ export async function NoteDetailAuthCheck({
       folder:folders(id, name, parent_id),
       video_job:video_jobs!notes_video_job_id_fkey(
         id, audio_result, visual_result, frames, cover_url, cos_url, transcoded_url,
-        download_status, probe_status, audio_status, visual_status, transcode_status
+        download_status, probe_status, audio_status, visual_status, transcode_status,
+        frame_status, size_bytes, download_error, audio_error, visual_error
       )
     `)
     .eq("id", id)

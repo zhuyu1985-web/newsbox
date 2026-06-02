@@ -5,4 +5,5 @@
 verify_jwt = false
 # NOTE: schedule is interpreted as UTC by Supabase.
 # If you want 02:00 China Standard Time (UTC+8), use "0 18 * * *".
-schedule = "0 2 * * *"
+# CLI 2.98+ 不再支持函数配置内的 schedule 键；如需调度请使用 supabase cron 或 pg_cron。
+# schedule = "0 2 * * *"

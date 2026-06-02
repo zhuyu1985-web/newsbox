@@ -43,6 +43,8 @@ export interface AudioAnalysisResult {
   keyPoints: string[];
   qaPairs: QAPair[];
   speakers?: Array<{ id: string; label: string }>;
+  keywords?: string[];   // 新增：用于速览 Tab 展示
+  speakerSummaries?: Array<{ speakerId: string; points: string[] }>; // P1 用，P0 不读取但类型预留
 }
 
 export interface AudioSubmitInput {
