@@ -54,7 +54,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ jobId: str
   );
   const wantKeywords = requested.has("keywords");
   const wantQa = requested.has("qa");
-  if (!wantKeywords && !wantQa) {
+  const wantSpeakers = requested.has("speakers");
+  if (!wantKeywords && !wantQa && !wantSpeakers) {
     return NextResponse.json({ error: "no fields requested" }, { status: 400 });
   }
 
@@ -71,21 +72,38 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ jobId: str
     );
   }
 
-  // 控制 token：前 200 段，每段保留时间戳 + 文本
+  // 控制 token：前 200 段，每段保留时间戳 + 发言人 + 文本
   const segments = transcript.slice(0, 200);
   const numbered = segments
-    .map((s) => `[${formatMmSs(s.start)}] ${s.text}`)
+    .map(
+      (s) =>
+        `[${formatMmSs(s.start)}]${s.speaker ? `<S${s.speaker}>` : ""} ${s.text}`,
+    )
     .join("\n");
 
+  // 找出所有出现过的发言人 id（用于 speakers 任务）
+  const speakerIds = Array.from(
+    new Set(transcript.map((s) => s.speaker).filter((x): x is string => !!x)),
+  );
+
   const tasks: string[] = [];
+  let n = 0;
   if (wantKeywords) {
+    n += 1;
     tasks.push(
-      `1. 关键词（keywords）：从内容中提取 8-15 个最重要的关键词或专有名词，长度 2-12 字，不要带标点。`,
+      `${n}. 关键词（keywords）：从内容中提取 8-15 个最重要的关键词或专有名词，长度 2-12 字，不要带标点。`,
     );
   }
   if (wantQa) {
+    n += 1;
     tasks.push(
-      `${wantKeywords ? "2" : "1"}. 问答对（qaPairs）：抽取 5-10 组高质量问答。每个 q 是一个清晰的问题（30 字内），a 是基于原文的精炼回答（80 字内），anchorTime 是回答中关键信息在视频中出现的秒数（整数，来自上面的时间戳，必填）。`,
+      `${n}. 问答对（qaPairs）：抽取 5-10 组高质量问答。每个 q 是一个清晰的问题（30 字内），a 是基于原文的精炼回答（80 字内），anchorTime 是回答中关键信息在视频中出现的秒数（整数，来自上面的时间戳，必填）。`,
+    );
+  }
+  if (wantSpeakers) {
+    n += 1;
+    tasks.push(
+      `${n}. 发言人摘要（speakerSummaries）：基于 <Sxx> 标签识别每位发言人。为每位发言人输出 speakerId（与标签里的 xx 一致，字符串）+ points（3-6 条核心观点，每条 20-60 字，要具体、避免空话）。如果只有一位发言人，仍要按此结构输出一条。${speakerIds.length > 0 ? `已知发言人 id：${speakerIds.join(", ")}` : ""}`,
     );
   }
 
@@ -93,6 +111,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ jobId: str
     wantKeywords ? `"keywords": [string, ...]` : null,
     wantQa
       ? `"qaPairs": [{ "q": string, "a": string, "anchorTime": number }, ...]`
+      : null,
+    wantSpeakers
+      ? `"speakerSummaries": [{ "speakerId": string, "points": [string, ...] }, ...]`
       : null,
   ]
     .filter(Boolean)
@@ -145,7 +166,11 @@ ${numbered}`;
 
   const json = await res.json();
   const content: string = json?.choices?.[0]?.message?.content ?? "{}";
-  let parsed: { keywords?: unknown; qaPairs?: unknown } = {};
+  let parsed: {
+    keywords?: unknown;
+    qaPairs?: unknown;
+    speakerSummaries?: unknown;
+  } = {};
   try {
     parsed = JSON.parse(content);
   } catch {
@@ -182,6 +207,25 @@ ${numbered}`;
       .slice(0, 15);
   }
 
+  if (wantSpeakers && Array.isArray(parsed.speakerSummaries)) {
+    nextAudio.speakerSummaries = parsed.speakerSummaries
+      .map((row) => {
+        const obj = row as { speakerId?: unknown; points?: unknown };
+        const speakerId = String(obj.speakerId ?? "").trim();
+        if (!speakerId) return null;
+        const points = Array.isArray(obj.points)
+          ? obj.points
+              .map((p) => String(p).trim())
+              .filter((p) => p.length > 0 && p.length <= 200)
+              .slice(0, 8)
+          : [];
+        if (points.length === 0) return null;
+        return { speakerId, points };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      .slice(0, 10);
+  }
+
   // audio_result 在数据库里是 jsonb；类型生成器把它表达成 Json，
   // 但 AudioAnalysisResult 是更窄的具名结构 → 直接绕过类型签名
   const { error: updateError } = await service
@@ -200,6 +244,7 @@ ${numbered}`;
     ok: true,
     keywords: nextAudio.keywords,
     qaPairs: nextAudio.qaPairs,
+    speakerSummaries: nextAudio.speakerSummaries,
   });
 }
 

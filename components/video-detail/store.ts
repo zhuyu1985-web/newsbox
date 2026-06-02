@@ -1,8 +1,20 @@
 import { create } from 'zustand';
 import type { Editor } from '@tiptap/react';
+import type { QAPair } from '@/lib/ai-analysis/types';
 
 export type TranslationLang = 'en' | 'ja' | 'ko' | 'auto-zh';
 export type TranslationMode = 'bilingual' | 'target-only';
+
+/**
+ * AI 兜底生成（enrich）后会回传新数据，落库需要刷新页面才能看到。
+ * 用 overrides 让前端立刻拿到新值，避免 reload 跳屏。
+ * 下次进入页面（重新拉 prop）这些 override 自动作废 — 不持久化。
+ */
+export interface AudioOverrides {
+  keywords?: string[];
+  qaPairs?: QAPair[];
+  speakerSummaries?: Array<{ speakerId: string; points: string[] }>;
+}
 
 interface VideoDetailState {
   currentTime: number;
@@ -10,6 +22,8 @@ interface VideoDetailState {
   activeTab: 'brief' | 'transcript' | 'notes';
   activeBriefSubTab: 'chapters' | 'speakers' | 'qa';
   miniPlayerVisible: boolean;
+  audioMode: boolean;
+  audioOverrides: AudioOverrides;
   selectedSpeakers: Set<string>;
   notesEditor: Editor | null;
   // 原文搜索
@@ -31,6 +45,8 @@ interface VideoDetailState {
   setActiveTab: (t: 'brief' | 'transcript' | 'notes') => void;
   setActiveBriefSubTab: (t: 'chapters' | 'speakers' | 'qa') => void;
   setMiniPlayerVisible: (v: boolean) => void;
+  setAudioMode: (v: boolean) => void;
+  mergeAudioOverrides: (patch: AudioOverrides) => void;
   toggleSpeaker: (id: string) => void;
   setNotesEditor: (e: Editor | null) => void;
   // 原文搜索 setters
@@ -59,6 +75,8 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
     : 'brief'),
   activeBriefSubTab: 'chapters',
   miniPlayerVisible: false,
+  audioMode: false,
+  audioOverrides: {},
   selectedSpeakers: new Set(),
   notesEditor: null,
 
@@ -83,6 +101,9 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
   },
   setActiveBriefSubTab: (t) => set({ activeBriefSubTab: t }),
   setMiniPlayerVisible: (v) => set({ miniPlayerVisible: v }),
+  setAudioMode: (v) => set({ audioMode: v }),
+  mergeAudioOverrides: (patch) =>
+    set((s) => ({ audioOverrides: { ...s.audioOverrides, ...patch } })),
   toggleSpeaker: (id) => set((s) => {
     const next = new Set(s.selectedSpeakers);
     if (next.has(id)) next.delete(id); else next.add(id);

@@ -5,6 +5,7 @@ import { Download, AlertTriangle, ExternalLink, Chrome } from "lucide-react";
 import { toast } from "sonner";
 import { VideoPlayer } from "@/components/reader/ContentStage/VideoPlayer";
 import { useVideoDetailStore } from "../store";
+import { AudioStrip } from "./AudioStrip";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 /**
@@ -24,6 +25,7 @@ export function VideoPlayerCard({
   const setCurrentTime = useVideoDetailStore((s) => s.setCurrentTime);
   const setIsPlaying = useVideoDetailStore((s) => s.setIsPlaying);
   const setMiniPlayerVisible = useVideoDetailStore((s) => s.setMiniPlayerVisible);
+  const audioMode = useVideoDetailStore((s) => s.audioMode);
   const ref = useRef<HTMLDivElement>(null);
 
   // IntersectionObserver — 视频离开视口时显示 MiniPlayer
@@ -120,9 +122,26 @@ export function VideoPlayerCard({
     );
   }
 
+  // audioMode：折叠视频，用 AudioStrip 替代，但 VideoPlayer 节点保持挂载（保留播放）
   return (
     <div ref={ref}>
-      <VideoPlayer note={note as any} embedded />
+      {audioMode && (
+        <AudioStrip
+          title={note.title ?? ""}
+          duration={note.media_duration ?? 0}
+          seed={note.id}
+        />
+      )}
+      <div
+        className={
+          audioMode
+            ? "h-0 overflow-hidden invisible pointer-events-none"
+            : ""
+        }
+        aria-hidden={audioMode}
+      >
+        <VideoPlayer note={note as any} embedded />
+      </div>
     </div>
   );
 }

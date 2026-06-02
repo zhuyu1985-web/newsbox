@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useVideoDetailStore } from "../store";
 
 const VISIBLE_LIMIT = 10;
 
@@ -11,9 +12,13 @@ interface Props {
   canEnrich: boolean;
 }
 
-export function KeywordsRow({ keywords, jobId, canEnrich }: Props) {
+export function KeywordsRow({ keywords: keywordsFromAudio, jobId, canEnrich }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const override = useVideoDetailStore((s) => s.audioOverrides.keywords);
+  const mergeOverrides = useVideoDetailStore((s) => s.mergeAudioOverrides);
+  // override 优先（enrich 刚返回的新值），其次走 prop（DB 里的旧值）
+  const keywords = override ?? keywordsFromAudio;
 
   const enrich = async () => {
     if (!jobId) return;
@@ -22,12 +27,12 @@ export function KeywordsRow({ keywords, jobId, canEnrich }: Props) {
       const res = await fetch(`/api/ai/video/${jobId}/enrich?fields=keywords`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error || "提取失败");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "提取失败");
+      if (Array.isArray(json.keywords)) {
+        mergeOverrides({ keywords: json.keywords });
       }
       toast.success("关键词提取完成");
-      window.location.reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "提取失败");
     } finally {

@@ -11,10 +11,18 @@ import {
   Undo,
   Redo,
   Code,
+  Clock,
 } from "lucide-react";
+import { useVideoDetailStore } from "../store";
 
 export function NotesToolbar({ editor }: { editor: Editor | null }) {
+  const currentTime = useVideoDetailStore((s) => s.currentTime);
   if (!editor) return null;
+
+  const insertTimestamp = () => {
+    const t = Math.floor(currentTime);
+    editor.chain().focus().insertTimestamp(t).run();
+  };
 
   const Btn = ({
     active,
@@ -48,6 +56,20 @@ export function NotesToolbar({ editor }: { editor: Editor | null }) {
 
   return (
     <div className="border-b border-border/50 px-3 py-2 flex items-center gap-0.5 shrink-0">
+      <button
+        type="button"
+        onClick={insertTimestamp}
+        title={`插入当前播放时间点 (${Math.floor(currentTime / 60)
+          .toString()
+          .padStart(2, "0")}:${(Math.floor(currentTime) % 60)
+          .toString()
+          .padStart(2, "0")})`}
+        className="h-7 px-1.5 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center gap-1 text-xs"
+      >
+        <Clock size={13} />
+        <span>时间点</span>
+      </button>
+      <Divider />
       <Btn
         title="撤销"
         onClick={() => editor.chain().focus().undo().run()}

@@ -219,6 +219,10 @@ function serialize(node: TiptapNode | null | undefined): string {
       const imageUrl = (node.attrs?.imageUrl as string) ?? "";
       return `![关键帧 ${formatMmSs(ts)}](${imageUrl})`;
     }
+    case "timestamp": {
+      const t = (node.attrs?.time as number) ?? 0;
+      return `[${formatMmSs(t)}]`;
+    }
     case "horizontalRule":
       return "---";
     case "codeBlock": {

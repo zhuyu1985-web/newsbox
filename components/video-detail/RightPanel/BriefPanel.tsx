@@ -70,7 +70,9 @@ export function BriefPanel({ videoJob }: { videoJob: VideoJobRow | null }) {
           })}
         </div>
         {subTab === "chapters" && <ChaptersTab chapters={audio?.chapters} />}
-        {subTab === "speakers" && <SpeakerSummaryTab audio={audio} />}
+        {subTab === "speakers" && (
+          <SpeakerSummaryTab audio={audio} jobId={jobId} canEnrich={canEnrich} />
+        )}
         {subTab === "qa" && (
           <QATab qaPairs={audio?.qaPairs} jobId={jobId} canEnrich={canEnrich} />
         )}

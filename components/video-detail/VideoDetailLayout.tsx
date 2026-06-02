@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Languages } from "lucide-react";
+import { Search, Languages, AudioLines, Video as VideoIcon } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { TitleEditor } from "./TitleEditor";
 import { MiniPlayer } from "./MiniPlayer";
@@ -29,6 +29,8 @@ export function VideoDetailLayout({
 }) {
   const mobileSheetOpen = useVideoDetailStore((s) => s.mobileSheetOpen);
   const setMobileSheetOpen = useVideoDetailStore((s) => s.setMobileSheetOpen);
+  const audioMode = useVideoDetailStore((s) => s.audioMode);
+  const setAudioMode = useVideoDetailStore((s) => s.setAudioMode);
 
   return (
     <>
@@ -59,6 +61,17 @@ export function VideoDetailLayout({
                 title="翻译"
               >
                 <Languages size={15} />
+              </button>
+              <button
+                onClick={() => setAudioMode(!audioMode)}
+                className={
+                  audioMode
+                    ? "w-8 h-8 rounded bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center"
+                    : "w-8 h-8 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex items-center justify-center"
+                }
+                title={audioMode ? "展开视频" : "折叠为音频"}
+              >
+                {audioMode ? <VideoIcon size={15} /> : <AudioLines size={15} />}
               </button>
               {videoJob && <SpeakerPopover speakers={videoJob.audio_result?.speakers ?? []} />}
               {videoJob && <AnalysisProgress jobId={videoJob.id} />}

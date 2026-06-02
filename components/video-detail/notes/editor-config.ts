@@ -13,6 +13,7 @@ import CharacterCount from "@tiptap/extension-character-count";
 import { TimeReference } from "./extensions/TimeReference";
 import { KeyframeReference } from "./extensions/KeyframeReference";
 import { AnnotationReference } from "./extensions/AnnotationReference";
+import { Timestamp } from "./extensions/Timestamp";
 
 // Base extension set. Phase 7 will append TimeReference / KeyframeReference
 // custom nodes to this list — keep the structure flexible (array of extensions).
@@ -34,4 +35,5 @@ export const baseExtensions = [
   TimeReference,
   KeyframeReference,
   AnnotationReference,
+  Timestamp,
 ];

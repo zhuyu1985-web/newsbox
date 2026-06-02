@@ -21,7 +21,7 @@ export function NotesPanel({
   initialUpdatedAt?: string | null;
 }) {
   const setNotesEditor = useVideoDetailStore((s) => s.setNotesEditor);
-  const { seek } = useVideoSeek();
+  const { seekAndPlay } = useVideoSeek();
   const [rewriteOpen, setRewriteOpen] = useState(false);
 
   const handleClickInsideEditor = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -31,7 +31,7 @@ export function NotesPanel({
       e.preventDefault();
       e.stopPropagation();
       const t = Number(jumpEl.getAttribute("data-time-jump"));
-      if (Number.isFinite(t)) seek(t);
+      if (Number.isFinite(t)) seekAndPlay(t);
     }
   };
 

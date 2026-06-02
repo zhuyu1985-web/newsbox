@@ -1,6 +1,9 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useVideoSeek } from "../hooks/useVideoSeek";
+import { useVideoDetailStore } from "../store";
 import type { TranscriptSegment, AudioAnalysisResult } from "@/lib/ai-analysis/types";
 
 const PALETTE = [
@@ -60,23 +63,66 @@ function deriveSummaries(
 
 export function SpeakerSummaryTab({
   audio,
+  jobId,
+  canEnrich,
 }: {
   audio: AudioAnalysisResult | null | undefined;
+  jobId: string | null;
+  canEnrich: boolean;
 }) {
   const { seek } = useVideoSeek();
+  const [enriching, setEnriching] = useState(false);
+  const override = useVideoDetailStore((s) => s.audioOverrides.speakerSummaries);
+  const mergeOverrides = useVideoDetailStore((s) => s.mergeAudioOverrides);
+  // override > audio_result.speakerSummaries（含听悟 adapter 或上次 enrich 落库的）
+  const summaries = override ?? audio?.speakerSummaries;
 
-  // 优先使用 Tingwu 提供的 speakerSummaries（adapter 若未来支持可直接生效）
-  const fromTingwu = audio?.speakerSummaries;
+  const enrich = async () => {
+    if (!jobId) return;
+    setEnriching(true);
+    try {
+      const res = await fetch(`/api/ai/video/${jobId}/enrich?fields=speakers`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "提取失败");
+      if (Array.isArray(json.speakerSummaries)) {
+        mergeOverrides({ speakerSummaries: json.speakerSummaries });
+      }
+      toast.success("发言总结生成完成");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "提取失败");
+    } finally {
+      setEnriching(false);
+    }
+  };
 
   const derived = useMemo(
-    () => (fromTingwu ? null : deriveSummaries(audio?.transcript ?? [], audio?.speakers)),
-    [fromTingwu, audio?.transcript, audio?.speakers],
+    () => (summaries ? null : deriveSummaries(audio?.transcript ?? [], audio?.speakers)),
+    [summaries, audio?.transcript, audio?.speakers],
   );
 
-  if (fromTingwu?.length) {
+  if (summaries?.length) {
     return (
       <div className="space-y-3">
-        {fromTingwu.map((s, i) => {
+        {canEnrich && jobId && (
+          <div className="flex justify-end">
+            <button
+              onClick={enrich}
+              disabled={enriching}
+              className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 disabled:opacity-60"
+              title="重新用 AI 生成发言总结"
+            >
+              {enriching ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Sparkles size={11} />
+              )}
+              {enriching ? "重新生成中…" : "重新生成"}
+            </button>
+          </div>
+        )}
+        {summaries.map((s, i) => {
           const speaker = audio?.speakers?.find((sp) => sp.id === s.speakerId);
           const gradient = PALETTE[i % PALETTE.length];
           return (
@@ -108,16 +154,48 @@ export function SpeakerSummaryTab({
 
   if (!derived?.length) {
     return (
-      <div className="text-sm text-muted-foreground text-center py-8">
-        暂无发言人信息
+      <div className="space-y-3">
+        <div className="text-sm text-muted-foreground text-center py-4">
+          暂无发言人信息
+        </div>
+        {canEnrich && jobId && (
+          <div className="flex justify-center">
+            <button
+              onClick={enrich}
+              disabled={enriching}
+              className="px-3 py-1.5 rounded-md bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white text-xs flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {enriching ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Sparkles size={12} />
+              )}
+              {enriching ? "生成中…" : "用 AI 生成"}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="text-[11px] text-muted-foreground text-center pb-1">
-        AI 总结暂未生成，以下为按发言人聚合的简要信息
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground pb-1">
+        <span>AI 总结暂未生成，以下为按发言人聚合的简要信息</span>
+        {canEnrich && jobId && (
+          <button
+            onClick={enrich}
+            disabled={enriching}
+            className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 disabled:opacity-60"
+          >
+            {enriching ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Sparkles size={11} />
+            )}
+            {enriching ? "生成中…" : "用 AI 生成总结"}
+          </button>
+        )}
       </div>
       {derived.map((s, i) => {
         const gradient = PALETTE[i % PALETTE.length];
