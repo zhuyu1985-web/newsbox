@@ -50,10 +50,10 @@ export function RightPanel({
 
       {/* Tab Panels — all mounted, controlled by hidden (preserves state) */}
       <div className={activeTab === "brief" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
-        <BriefPanel videoJob={videoJob} />
+        <BriefPanel noteId={note.id} videoJob={videoJob} />
       </div>
       <div className={activeTab === "transcript" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
-        <TranscriptPanel videoJob={videoJob} />
+        <TranscriptPanel noteId={note.id} videoJob={videoJob} />
       </div>
       <div className={activeTab === "notes" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
         <NotesPanel

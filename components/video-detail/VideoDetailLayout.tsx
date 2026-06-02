@@ -3,6 +3,7 @@
 import { Search, Languages, AudioLines, Video as VideoIcon } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { TitleEditor } from "./TitleEditor";
+import { ExcerptButton } from "./ExcerptButton";
 import { MiniPlayer } from "./MiniPlayer";
 import { RightPanel } from "./RightPanel";
 import { SelectionMenu } from "./shared/SelectionMenu";
@@ -73,6 +74,7 @@ export function VideoDetailLayout({
               >
                 {audioMode ? <VideoIcon size={15} /> : <AudioLines size={15} />}
               </button>
+              <ExcerptButton noteId={note.id} audio={videoJob?.audio_result ?? null} />
               {videoJob && <SpeakerPopover speakers={videoJob.audio_result?.speakers ?? []} />}
               {videoJob && <AnalysisProgress jobId={videoJob.id} />}
               <SearchPopover
@@ -107,14 +109,14 @@ export function VideoDetailLayout({
         onClose={() => setMobileSheetOpen(null)}
         title="速览"
       >
-        <BriefPanel videoJob={videoJob} />
+        <BriefPanel noteId={note.id} videoJob={videoJob} />
       </MobileSheet>
       <MobileSheet
         open={mobileSheetOpen === "transcript"}
         onClose={() => setMobileSheetOpen(null)}
         title="原文"
       >
-        <TranscriptPanel videoJob={videoJob} />
+        <TranscriptPanel noteId={note.id} videoJob={videoJob} />
       </MobileSheet>
       <MobileSheet
         open={mobileSheetOpen === "notes"}

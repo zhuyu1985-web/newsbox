@@ -15,7 +15,13 @@ const SUBTABS = [
   { key: "qa", label: "问答回顾" },
 ] as const;
 
-export function BriefPanel({ videoJob }: { videoJob: VideoJobRow | null }) {
+export function BriefPanel({
+  noteId,
+  videoJob,
+}: {
+  noteId: string;
+  videoJob: VideoJobRow | null;
+}) {
   const subTab = useVideoDetailStore((s) => s.activeBriefSubTab);
   const setSubTab = useVideoDetailStore((s) => s.setActiveBriefSubTab);
   const audio = videoJob?.audio_result;
@@ -71,10 +77,20 @@ export function BriefPanel({ videoJob }: { videoJob: VideoJobRow | null }) {
         </div>
         {subTab === "chapters" && <ChaptersTab chapters={audio?.chapters} />}
         {subTab === "speakers" && (
-          <SpeakerSummaryTab audio={audio} jobId={jobId} canEnrich={canEnrich} />
+          <SpeakerSummaryTab
+            audio={audio}
+            jobId={jobId}
+            canEnrich={canEnrich}
+            noteId={noteId}
+          />
         )}
         {subTab === "qa" && (
-          <QATab qaPairs={audio?.qaPairs} jobId={jobId} canEnrich={canEnrich} />
+          <QATab
+            qaPairs={audio?.qaPairs}
+            jobId={jobId}
+            canEnrich={canEnrich}
+            noteId={noteId}
+          />
         )}
       </section>
 

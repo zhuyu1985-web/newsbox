@@ -4,6 +4,9 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useVideoSeek } from "../hooks/useVideoSeek";
 import { useVideoDetailStore } from "../store";
+import { useMarkers, type MarkerKind } from "../hooks/useMarkers";
+import { MarkerActionBar, getActiveKinds } from "../shared/MarkerActionBar";
+import { MARKER_ROW_BG, MARKER_ROW_RING } from "../shared/marker-styles";
 import type { QAPair } from "@/lib/ai-analysis/types";
 
 function formatTime(s: number): string {
@@ -16,14 +19,16 @@ interface Props {
   qaPairs: QAPair[] | undefined;
   jobId: string | null;
   canEnrich: boolean;
+  noteId: string;
 }
 
-export function QATab({ qaPairs: qaFromAudio, jobId, canEnrich }: Props) {
+export function QATab({ qaPairs: qaFromAudio, jobId, canEnrich, noteId }: Props) {
   const { seekAndPlay } = useVideoSeek();
   const [enriching, setEnriching] = useState(false);
   const override = useVideoDetailStore((s) => s.audioOverrides.qaPairs);
   const mergeOverrides = useVideoDetailStore((s) => s.mergeAudioOverrides);
   const qaPairs = override ?? qaFromAudio;
+  const { markers, createMarker, deleteMarker, clearMarkers } = useMarkers(noteId);
 
   const enrich = async () => {
     if (!jobId) return;
@@ -75,17 +80,49 @@ export function QATab({ qaPairs: qaFromAudio, jobId, canEnrich }: Props) {
     <div className="space-y-3">
       {qaPairs.map((qa, i) => {
         const hasAnchor = typeof qa.anchorTime === "number";
+        const wholeKinds = getActiveKinds(markers, "qa", i);
+        const firstKind = wholeKinds.values().next().value as MarkerKind | undefined;
+
         const handleCardClick = (e: React.MouseEvent) => {
           if (!hasAnchor) return;
-          // 选中文字时不触发跳转
           const sel = window.getSelection?.();
           if (sel && sel.toString().length > 0) return;
           if ((e.target as HTMLElement).closest("button")) return;
           seekAndPlay(qa.anchorTime!);
         };
+
+        const handleToggleMarker = (kind: MarkerKind) => {
+          if (wholeKinds.has(kind)) {
+            const target = markers.find(
+              (m) =>
+                m.target_type === "qa" &&
+                m.segment_idx === i &&
+                m.marker_kind === kind &&
+                m.selection_start == null,
+            );
+            if (target) deleteMarker(target.id);
+            return;
+          }
+          createMarker({
+            marker_kind: kind,
+            target_type: "qa",
+            segment_idx: i,
+            anchor_time: typeof qa.anchorTime === "number" ? qa.anchorTime : undefined,
+          });
+        };
+
+        const baseCls = firstKind
+          ? `${MARKER_ROW_BG[firstKind]} ${MARKER_ROW_RING[firstKind]} border-border/40`
+          : "border-border/50 bg-card/40";
+        const interactiveCls = hasAnchor
+          ? "cursor-pointer hover:border-blue-200/60 dark:hover:border-blue-800/40 transition-colors"
+          : "";
+
         return (
           <div
             key={i}
+            data-segment-idx={i}
+            data-marker-target="qa"
             onClick={handleCardClick}
             role={hasAnchor ? "button" : undefined}
             tabIndex={hasAnchor ? 0 : undefined}
@@ -97,17 +134,20 @@ export function QATab({ qaPairs: qaFromAudio, jobId, canEnrich }: Props) {
               }
             }}
             aria-label={hasAnchor ? `跳转并播放 ${formatTime(qa.anchorTime!)}` : undefined}
-            className={
-              hasAnchor
-                ? "rounded-lg border border-border/50 bg-card/40 backdrop-blur-md p-3 space-y-2 cursor-pointer hover:bg-blue-50/40 dark:hover:bg-blue-950/20 hover:border-blue-200/60 dark:hover:border-blue-800/40 transition-colors"
-                : "rounded-lg border border-border/50 bg-card/40 backdrop-blur-md p-3 space-y-2"
-            }
+            className={`group relative rounded-lg border backdrop-blur-md p-3 space-y-2 ${baseCls} ${interactiveCls}`}
           >
+            <MarkerActionBar
+              activeKinds={wholeKinds}
+              onToggle={handleToggleMarker}
+              onClear={() => clearMarkers({ target_type: "qa", segment_idx: i })}
+            />
             <div className="flex items-start gap-2">
               <span className="w-5 h-5 shrink-0 rounded-full bg-blue-100/80 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold mt-0.5">
                 Q
               </span>
-              <div className="text-sm text-foreground leading-relaxed flex-1">{qa.q}</div>
+              <div className="text-sm text-foreground leading-relaxed flex-1 select-text">
+                {qa.q}
+              </div>
               {hasAnchor && (
                 <button
                   onClick={(e) => {
@@ -124,7 +164,9 @@ export function QATab({ qaPairs: qaFromAudio, jobId, canEnrich }: Props) {
               <span className="w-5 h-5 shrink-0 rounded-full bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold mt-0.5">
                 A
               </span>
-              <div className="text-sm text-muted-foreground leading-relaxed flex-1">{qa.a}</div>
+              <div className="text-sm text-muted-foreground leading-relaxed flex-1 select-text">
+                {qa.a}
+              </div>
             </div>
           </div>
         );
