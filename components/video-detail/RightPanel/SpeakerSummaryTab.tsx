@@ -4,6 +4,9 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useVideoSeek } from "../hooks/useVideoSeek";
 import { useVideoDetailStore } from "../store";
+import { useMarkers, type MarkerKind } from "../hooks/useMarkers";
+import { MarkerActionBar, getActiveKinds } from "../shared/MarkerActionBar";
+import { MARKER_ROW_BG, MARKER_ROW_RING } from "../shared/marker-styles";
 import type { TranscriptSegment, AudioAnalysisResult } from "@/lib/ai-analysis/types";
 
 const PALETTE = [
@@ -65,17 +68,19 @@ export function SpeakerSummaryTab({
   audio,
   jobId,
   canEnrich,
+  noteId,
 }: {
   audio: AudioAnalysisResult | null | undefined;
   jobId: string | null;
   canEnrich: boolean;
+  noteId: string;
 }) {
   const { seek } = useVideoSeek();
   const [enriching, setEnriching] = useState(false);
   const override = useVideoDetailStore((s) => s.audioOverrides.speakerSummaries);
   const mergeOverrides = useVideoDetailStore((s) => s.mergeAudioOverrides);
-  // override > audio_result.speakerSummaries（含听悟 adapter 或上次 enrich 落库的）
   const summaries = override ?? audio?.speakerSummaries;
+  const { markers, createMarker, deleteMarker, clearMarkers } = useMarkers(noteId);
 
   const enrich = async () => {
     if (!jobId) return;
@@ -141,9 +146,55 @@ export function SpeakerSummaryTab({
                 </span>
               </div>
               <ul className="text-sm text-foreground space-y-1.5 pl-8 list-disc list-outside">
-                {s.points.map((p, k) => (
-                  <li key={k}>{p}</li>
-                ))}
+                {s.points.map((p, k) => {
+                  const wholeKinds = getActiveKinds(markers, "speaker", k, s.speakerId);
+                  const firstKind = wholeKinds.values().next().value as MarkerKind | undefined;
+                  const handleToggle = (kind: MarkerKind) => {
+                    if (wholeKinds.has(kind)) {
+                      const target = markers.find(
+                        (m) =>
+                          m.target_type === "speaker" &&
+                          m.segment_idx === k &&
+                          m.speaker_id === s.speakerId &&
+                          m.marker_kind === kind &&
+                          m.selection_start == null,
+                      );
+                      if (target) deleteMarker(target.id);
+                      return;
+                    }
+                    createMarker({
+                      marker_kind: kind,
+                      target_type: "speaker",
+                      segment_idx: k,
+                      speaker_id: s.speakerId,
+                    });
+                  };
+                  const liCls = firstKind
+                    ? `group relative -ml-2 pl-2 pr-1 py-1 rounded ${MARKER_ROW_BG[firstKind]} ${MARKER_ROW_RING[firstKind]} list-inside`
+                    : "group relative -ml-2 pl-2 pr-1 py-1 rounded list-inside hover:bg-muted/40";
+                  return (
+                    <li
+                      key={k}
+                      data-segment-idx={k}
+                      data-speaker-id={s.speakerId}
+                      data-marker-target="speaker"
+                      className={liCls}
+                    >
+                      <MarkerActionBar
+                        activeKinds={wholeKinds}
+                        onToggle={handleToggle}
+                        onClear={() =>
+                          clearMarkers({
+                            target_type: "speaker",
+                            segment_idx: k,
+                            speaker_id: s.speakerId,
+                          })
+                        }
+                      />
+                      <span className="select-text">{p}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           );

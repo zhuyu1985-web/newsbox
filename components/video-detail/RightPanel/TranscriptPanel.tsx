@@ -4,6 +4,16 @@ import { AlertCircle, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { useVideoDetailStore } from "../store";
 import { useVideoSeek } from "../hooks/useVideoSeek";
+import { useMarkers, type MarkerKind } from "../hooks/useMarkers";
+import {
+  MarkerActionBar,
+  getActiveKinds,
+} from "../shared/MarkerActionBar";
+import {
+  MARKER_ROW_BG,
+  MARKER_ROW_RING,
+  MARKER_INLINE_BG,
+} from "../shared/marker-styles";
 import type { TranscriptSegment } from "@/lib/ai-analysis/types";
 import type { VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
@@ -60,6 +70,46 @@ function HighlightedText({
   );
 }
 
+/**
+ * 将文本按「选段标记」切片，每片可同时叠加「搜索关键词」高亮
+ */
+function MarkedText({
+  text,
+  selectionRanges,
+  query,
+  isCurrentMatch,
+}: {
+  text: string;
+  selectionRanges: Array<{ start: number; end: number; kind: MarkerKind }>;
+  query: string;
+  isCurrentMatch: boolean;
+}) {
+  if (selectionRanges.length === 0) {
+    return <HighlightedText text={text} query={query} isCurrent={isCurrentMatch} />;
+  }
+  const points = new Set<number>([0, text.length]);
+  for (const r of selectionRanges) {
+    points.add(Math.max(0, Math.min(text.length, r.start)));
+    points.add(Math.max(0, Math.min(text.length, r.end)));
+  }
+  const sorted = [...points].sort((a, b) => a - b);
+  const out: React.ReactNode[] = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    if (a === b) continue;
+    const sub = text.slice(a, b);
+    const matched = selectionRanges.find((r) => r.start < b && r.end > a);
+    const cls = matched ? MARKER_INLINE_BG[matched.kind] : "";
+    out.push(
+      <span key={i} className={cls}>
+        <HighlightedText text={sub} query={query} isCurrent={isCurrentMatch} />
+      </span>,
+    );
+  }
+  return <>{out}</>;
+}
+
 function speakerColor(id: string | undefined): string {
   if (!id) return "from-slate-400 to-slate-600 dark:from-slate-500 dark:to-slate-700";
   const palette = [
@@ -74,8 +124,10 @@ function speakerColor(id: string | undefined): string {
 }
 
 export function TranscriptPanel({
+  noteId,
   videoJob,
 }: {
+  noteId: string;
   videoJob: VideoJobRow | null;
 }) {
   const transcript: TranscriptSegment[] = videoJob?.audio_result?.transcript ?? [];
@@ -88,6 +140,7 @@ export function TranscriptPanel({
   const translationTarget = useVideoDetailStore((s) => s.translationTarget);
   const translationMode = useVideoDetailStore((s) => s.translationMode);
   const { seekAndPlay } = useVideoSeek();
+  const { markers, createMarker, deleteMarker, clearMarkers } = useMarkers(noteId);
 
   const hasTranslation =
     translationTarget !== null && Object.keys(translations).length > 0;
@@ -97,19 +150,16 @@ export function TranscriptPanel({
   const userScrolledRef = useRef(false);
   const lastUserScrollTimeRef = useRef(0);
 
-  // 发言人筛选：空集合 = 显示全部；否则只显示选中的发言人；未标注 speaker 的句子始终保留
   const visibleSegments = transcript.filter((seg) => {
     if (selected.size === 0) return true;
     return seg.speaker ? selected.has(seg.speaker) : true;
   });
 
-  // 找到当前句索引（基于可见片段）
   const activeIdx = visibleSegments.findIndex((s, i) => {
     const next = visibleSegments[i + 1];
     return currentTime >= s.start && (next ? currentTime < next.start : currentTime <= s.end);
   });
 
-  // 当前搜索命中的 transcript 全量索引 → 映射到 visibleSegments 的下标
   const currentMatchTranscriptIdx =
     searchCurrentMatch >= 0 && searchCurrentMatch < searchMatches.length
       ? searchMatches[searchCurrentMatch]
@@ -119,47 +169,36 @@ export function TranscriptPanel({
       ? visibleSegments.indexOf(transcript[currentMatchTranscriptIdx])
       : -1;
 
-  // 自动滚动到当前句（除非用户在最近 5 秒内手动滚动过）
   useEffect(() => {
     if (activeIdx < 0) return;
     const since = Date.now() - lastUserScrollTimeRef.current;
     if (userScrolledRef.current && since < 5000) return;
     userScrolledRef.current = false;
-
     const node = containerRef.current?.querySelector(
       `[data-idx="${activeIdx}"]`,
     ) as HTMLElement | null;
-    if (node) {
-      node.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    if (node) node.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [activeIdx]);
 
-  // 搜索命中切换：滚动到命中片段 + 同步视频时间（让用户搜索导航优先于自动滚动）
   useEffect(() => {
     if (currentMatchTranscriptIdx < 0) return;
     const seg = transcript[currentMatchTranscriptIdx];
     if (!seg) return;
-
-    // 阻止 currentTime 触发的自动滚动覆盖搜索跳转
     userScrolledRef.current = true;
     lastUserScrollTimeRef.current = Date.now();
-
     if (currentMatchVisibleIdx >= 0) {
       const node = containerRef.current?.querySelector(
         `[data-idx="${currentMatchVisibleIdx}"]`,
       ) as HTMLElement | null;
       if (node) node.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-
     window.dispatchEvent(
       new CustomEvent("video:seek", {
         detail: { time: seg.start, autoplay: "preserve" },
       }),
     );
-    // 依赖只在搜索命中实际变更时触发；transcript 引用稳定（来自父级）
   }, [currentMatchTranscriptIdx, currentMatchVisibleIdx, transcript]);
 
-  // 检测用户手动滚动
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -175,7 +214,6 @@ export function TranscriptPanel({
     };
   }, []);
 
-  // Loading 状态
   if (!videoJob) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground px-4 py-8 text-center">
@@ -235,32 +273,74 @@ export function TranscriptPanel({
       {visibleSegments.map((seg, i) => {
         const isActive = i === activeIdx;
         const isCurrentMatch = i === currentMatchVisibleIdx;
-        const speakerLetter = seg.speaker?.slice(0, 1).toUpperCase() ?? "?";
         const originalIdx = transcript.indexOf(seg);
         const translated = translations[originalIdx];
+
+        // 该句的整段标记 + 选段标记
+        const wholeKinds = getActiveKinds(markers, "transcript", originalIdx);
+        const selectionRanges = markers
+          .filter(
+            (m) =>
+              m.target_type === "transcript" &&
+              m.segment_idx === originalIdx &&
+              m.selection_start != null &&
+              m.selection_end != null,
+          )
+          .map((m) => ({
+            start: m.selection_start!,
+            end: m.selection_end!,
+            kind: m.marker_kind,
+          }));
+
+        // 决定行背景：搜索命中 > 当前播放 > 整段 marker > 普通
+        const firstMarkerKind = wholeKinds.values().next().value as MarkerKind | undefined;
         let containerCls =
-          "group -mx-2 px-2 py-2 rounded-lg cursor-pointer hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors";
+          "group relative -mx-2 px-2 py-2 rounded-lg cursor-pointer hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors";
         if (isCurrentMatch) {
           containerCls =
-            "group -mx-2 px-2 py-2 rounded-lg cursor-pointer bg-amber-50/70 dark:bg-amber-950/30 ring-2 ring-amber-400 dark:ring-amber-600";
+            "group relative -mx-2 px-2 py-2 rounded-lg cursor-pointer bg-amber-50/70 dark:bg-amber-950/30 ring-2 ring-amber-400 dark:ring-amber-600";
         } else if (isActive) {
           containerCls =
-            "group -mx-2 px-2 py-2 rounded-lg cursor-pointer bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-200 dark:ring-blue-800/40";
+            "group relative -mx-2 px-2 py-2 rounded-lg cursor-pointer bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-200 dark:ring-blue-800/40";
+        } else if (firstMarkerKind) {
+          containerCls = `group relative -mx-2 px-2 py-2 rounded-lg cursor-pointer ${MARKER_ROW_BG[firstMarkerKind]} ${MARKER_ROW_RING[firstMarkerKind]}`;
         }
+
         const handleRowClick = (e: React.MouseEvent) => {
-          // 不拦截文字选择：用户开始拖选时不应跳转
           const sel = window.getSelection?.();
           if (sel && sel.toString().length > 0) return;
-          // 不拦截子按钮（时间戳）
           if ((e.target as HTMLElement).closest("button")) return;
           seekAndPlay(seg.start);
         };
+
+        const handleToggleMarker = (kind: MarkerKind) => {
+          if (wholeKinds.has(kind)) {
+            const target = markers.find(
+              (m) =>
+                m.target_type === "transcript" &&
+                m.segment_idx === originalIdx &&
+                m.marker_kind === kind &&
+                m.selection_start == null,
+            );
+            if (target) deleteMarker(target.id);
+            return;
+          }
+          createMarker({
+            marker_kind: kind,
+            target_type: "transcript",
+            segment_idx: originalIdx,
+            anchor_time: seg.start,
+          });
+        };
+
         return (
           <div
             key={i}
             data-idx={i}
             data-time={seg.start}
             data-speaker={seg.speaker ?? ""}
+            data-segment-idx={originalIdx}
+            data-marker-target="transcript"
             className={containerCls}
             onClick={handleRowClick}
             role="button"
@@ -273,11 +353,16 @@ export function TranscriptPanel({
             }}
             aria-label={`跳转并播放 ${formatTime(seg.start)}`}
           >
+            <MarkerActionBar
+              activeKinds={wholeKinds}
+              onToggle={handleToggleMarker}
+              onClear={() => clearMarkers({ target_type: "transcript", segment_idx: originalIdx })}
+            />
             <div className="flex items-center gap-2 mb-1.5">
               <div
                 className={`w-6 h-6 rounded-full bg-gradient-to-br ${speakerColor(seg.speaker)} text-white text-[10px] flex items-center justify-center font-bold shrink-0`}
               >
-                {speakerLetter}
+                {seg.speaker?.slice(0, 1).toUpperCase() ?? "?"}
               </div>
               <span
                 className={
@@ -299,12 +384,16 @@ export function TranscriptPanel({
                 {formatTime(seg.start)}
               </button>
             </div>
-            <div className="text-sm text-foreground leading-relaxed pl-8 select-text">
+            <div
+              className="text-sm text-foreground leading-relaxed pl-8 select-text"
+              data-segment-text
+            >
               {showOriginal && (
-                <HighlightedText
+                <MarkedText
                   text={seg.text}
+                  selectionRanges={selectionRanges}
                   query={searchQuery}
-                  isCurrent={isCurrentMatch}
+                  isCurrentMatch={isCurrentMatch}
                 />
               )}
               {showTranslation && translated && (
@@ -322,3 +411,4 @@ export function TranscriptPanel({
     </div>
   );
 }
+

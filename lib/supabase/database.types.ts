@@ -1226,6 +1226,59 @@ export type Database = {
           },
         ]
       }
+      transcript_markers: {
+        Row: {
+          id: string
+          user_id: string
+          note_id: string
+          marker_kind: "important" | "question" | "todo"
+          target_type: "transcript" | "qa" | "speaker"
+          segment_idx: number | null
+          speaker_id: string | null
+          anchor_time: number | null
+          selection_start: number | null
+          selection_end: number | null
+          selection_text: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          note_id: string
+          marker_kind: "important" | "question" | "todo"
+          target_type: "transcript" | "qa" | "speaker"
+          segment_idx?: number | null
+          speaker_id?: string | null
+          anchor_time?: number | null
+          selection_start?: number | null
+          selection_end?: number | null
+          selection_text?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          note_id?: string
+          marker_kind?: "important" | "question" | "todo"
+          target_type?: "transcript" | "qa" | "speaker"
+          segment_idx?: number | null
+          speaker_id?: string | null
+          anchor_time?: number | null
+          selection_start?: number | null
+          selection_end?: number | null
+          selection_text?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_markers_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcripts: {
         Row: {
           audio_duration: number | null

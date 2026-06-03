@@ -145,6 +145,8 @@ type ViewModeType = "compact-card" | "detail-list" | "compact-list" | "title-lis
 
 type ContentTypeFilter = "all" | "article" | "video" | "audio";
 
+type MarkerKind = "important" | "question" | "todo";
+
 type SortByType = "created_at" | "updated_at" | "title" | "site_name";
 
 type SortOrderType = "asc" | "desc";
@@ -912,6 +914,8 @@ export function DashboardContent() {
   });
   const [showArchived, setShowArchived] = useState(false);
   const [contentTypeFilter, setContentTypeFilter] = useState<ContentTypeFilter>("all");
+  const [markerFilter, setMarkerFilter] = useState<MarkerKind | null>(null);
+  const [userMarkers, setUserMarkers] = useState<Map<string, Set<MarkerKind>>>(new Map());
   const [sortBy, setSortBy] = useState<SortByType>("created_at");
   const [sortOrder, setSortOrder] = useState<SortOrderType>("desc");
   const [notes, setNotes] = useState<NoteItem[]>([]);
@@ -1442,6 +1446,32 @@ export function DashboardContent() {
     }
   }, [user]);
 
+  // 加载当前用户所有 marker，构造 noteId -> Set<MarkerKind> 的索引
+  // 用于：(1) 卡片右上角 marker 小点；(2) 顶部 chip 过滤
+  const loadUserMarkers = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("transcript_markers")
+      .select("note_id, marker_kind")
+      .eq("user_id", user.id);
+    if (error) {
+      console.error("load markers error", error);
+      return;
+    }
+    const map = new Map<string, Set<MarkerKind>>();
+    for (const row of data ?? []) {
+      const noteId = row.note_id as string;
+      const kind = row.marker_kind as MarkerKind;
+      if (!map.has(noteId)) map.set(noteId, new Set());
+      map.get(noteId)!.add(kind);
+    }
+    setUserMarkers(map);
+  }, [user, supabase]);
+
+  useEffect(() => {
+    if (user) loadUserMarkers();
+  }, [user, loadUserMarkers, refreshTrigger]);
+
   const loadAnnotationsView = useCallback(async (pageToLoad = 0, append = false) => {
     if (!user) return;
 
@@ -1593,6 +1623,26 @@ export function DashboardContent() {
         query = query.eq("content_type", contentTypeFilter);
       }
 
+      // Apply marker filter — 找出所有命中该 kind 的 note_ids，再 in() 过滤
+      if (markerFilter) {
+        const { data: markedRows } = await supabase
+          .from("transcript_markers")
+          .select("note_id")
+          .eq("user_id", user.id)
+          .eq("marker_kind", markerFilter);
+        const noteIds = Array.from(
+          new Set((markedRows ?? []).map((r) => r.note_id as string)),
+        );
+        if (noteIds.length === 0) {
+          setNotes([]);
+          setHasMore(false);
+          setInitialLoading(false);
+          setLoadingMore(false);
+          return;
+        }
+        query = query.in("id", noteIds);
+      }
+
       if (category === "uncategorized") {
         query = query.is("folder_id", null);
       } else if (category === "starred") {
@@ -1719,7 +1769,7 @@ export function DashboardContent() {
       setInitialLoading(false);
       setLoadingMore(false);
     },
-    [category, selectedFolder, selectedSmartList, activePrimary, selectedTag, includeChildTags, searchQuery, showArchived, contentTypeFilter, sortBy, sortOrder, supabase, user],
+    [category, selectedFolder, selectedSmartList, activePrimary, selectedTag, includeChildTags, searchQuery, showArchived, contentTypeFilter, markerFilter, sortBy, sortOrder, supabase, user],
   );
 
   useEffect(() => {
@@ -1740,7 +1790,7 @@ export function DashboardContent() {
     setPage(0);
     setHasMore(true);
     fetchNotes(0, false);
-  }, [user, category, selectedFolder, selectedSmartList, selectedTag, searchQuery, showArchived, contentTypeFilter, sortBy, sortOrder, fetchNotes, refreshTrigger]);
+  }, [user, category, selectedFolder, selectedSmartList, selectedTag, searchQuery, showArchived, contentTypeFilter, markerFilter, sortBy, sortOrder, fetchNotes, refreshTrigger]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -3431,6 +3481,7 @@ ${
 
   const renderNoteCard = (note: NoteItem) => {
     const annotationCount = note.annotation_count || 0;
+    const noteMarkers = userMarkers.get(note.id);
     
     // 获取域名/来源
     const getSourceInfo = () => {
@@ -3466,6 +3517,21 @@ ${
             selectedNotes.has(note.id) ? "opacity-100" : "opacity-0"
           )}
         />
+
+        {/* marker 小圆点（左上角，多种 kind 并存时叠加） */}
+        {noteMarkers && noteMarkers.size > 0 && (
+          <div className="absolute top-2 left-2 z-20 flex items-center gap-1">
+            {noteMarkers.has("important") && (
+              <span className="w-2 h-2 rounded-full bg-sky-500" title="包含重点标记" />
+            )}
+            {noteMarkers.has("question") && (
+              <span className="w-2 h-2 rounded-full bg-rose-500" title="包含问题标记" />
+            )}
+            {noteMarkers.has("todo") && (
+              <span className="w-2 h-2 rounded-full bg-amber-500" title="包含待办标记" />
+            )}
+          </div>
+        )}
         
         {/* 顶部操作栏 (悬浮显示) */}
         <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -5679,6 +5745,52 @@ ${
           {notesLoadingError && (
             <div className="text-red-500 text-sm mb-4">
               {notesLoadingError}
+            </div>
+          )}
+
+          {(
+            <div className="flex items-center gap-2 mb-3 text-xs">
+              <span className="text-muted-foreground">标记筛选：</span>
+              <button
+                onClick={() => setMarkerFilter(null)}
+                className={
+                  markerFilter === null
+                    ? "px-2.5 py-1 rounded-full bg-blue-600 text-white"
+                    : "px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:bg-muted/60"
+                }
+              >
+                全部
+              </button>
+              <button
+                onClick={() => setMarkerFilter(markerFilter === "important" ? null : "important")}
+                className={
+                  markerFilter === "important"
+                    ? "px-2.5 py-1 rounded-full bg-sky-500 text-white"
+                    : "px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-sky-950/40 dark:hover:text-sky-300"
+                }
+              >
+                重点
+              </button>
+              <button
+                onClick={() => setMarkerFilter(markerFilter === "question" ? null : "question")}
+                className={
+                  markerFilter === "question"
+                    ? "px-2.5 py-1 rounded-full bg-rose-500 text-white"
+                    : "px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                }
+              >
+                问题
+              </button>
+              <button
+                onClick={() => setMarkerFilter(markerFilter === "todo" ? null : "todo")}
+                className={
+                  markerFilter === "todo"
+                    ? "px-2.5 py-1 rounded-full bg-amber-500 text-white"
+                    : "px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/40 dark:hover:text-amber-300"
+                }
+              >
+                待办
+              </button>
             </div>
           )}
 
