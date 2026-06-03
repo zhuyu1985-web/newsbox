@@ -14,6 +14,7 @@ interface BiliPlayInfo {
   data?: {
     dash?: {
       video?: Array<{ baseUrl?: string; base_url?: string }>;
+      audio?: Array<{ baseUrl?: string; base_url?: string; id?: number }>;
     };
     durl?: Array<{ url?: string }>;
   };
@@ -38,7 +39,10 @@ interface PlayUrlResponse {
   code: number;
   message?: string;
   data?: {
-    dash?: { video?: Array<{ baseUrl?: string; base_url?: string }> };
+    dash?: {
+      video?: Array<{ baseUrl?: string; base_url?: string }>;
+      audio?: Array<{ baseUrl?: string; base_url?: string; id?: number }>;
+    };
     durl?: Array<{ url?: string }>;
   };
 }
@@ -70,6 +74,19 @@ function pickVideoUrl(info: BiliPlayInfo | PlayUrlResponse['data'] | undefined):
   return undefined;
 }
 
+/**
+ * 取 DASH 音频轨。B 站把音视频分轨发，dash.audio[0] 是默认音质。
+ * durl 是 FLV 合流，自带音频，所以 durl 不需要单独取音轨。
+ */
+function pickAudioUrl(info: BiliPlayInfo | PlayUrlResponse['data'] | undefined): string | undefined {
+  const data = (info as BiliPlayInfo)?.data ?? (info as PlayUrlResponse['data']);
+  if (data?.dash?.audio?.length) {
+    const a = data.dash.audio[0];
+    return a.baseUrl ?? a.base_url;
+  }
+  return undefined;
+}
+
 async function waitForBiliData(): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < POLL_TIMEOUT_MS) {
@@ -78,7 +95,7 @@ async function waitForBiliData(): Promise<void> {
   }
 }
 
-async function fetchPlayUrl(bvid: string, cid: number): Promise<string | undefined> {
+async function fetchPlayUrl(bvid: string, cid: number): Promise<{ videoUrl?: string; audioUrl?: string }> {
   // playurl 接口需要带 cookie；content script 走页面源（bilibili.com），cookie 会自动带上
   const url =
     `https://api.bilibili.com/x/player/playurl?` +
@@ -86,12 +103,12 @@ async function fetchPlayUrl(bvid: string, cid: number): Promise<string | undefin
     `&qn=80&fnval=4048&fnver=0&fourk=1&platform=html5&high_quality=1`;
   try {
     const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) return undefined;
+    if (!res.ok) return {};
     const json = (await res.json()) as PlayUrlResponse;
-    if (json.code !== 0) return undefined;
-    return pickVideoUrl(json.data);
+    if (json.code !== 0) return {};
+    return { videoUrl: pickVideoUrl(json.data), audioUrl: pickAudioUrl(json.data) };
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -119,7 +136,9 @@ export class BilibiliExtractor implements IVideoExtractor {
     await waitForBiliData();
 
     // --- 1. window.__playinfo__（最理想路径）
-    let videoUrl = pickVideoUrl(getPlayInfo());
+    const playInfo = getPlayInfo();
+    let videoUrl = pickVideoUrl(playInfo);
+    let audioUrl = pickAudioUrl(playInfo);
 
     // --- 2. __INITIAL_STATE__ 拿 bvid+cid 后调 API
     if (!videoUrl) {
@@ -128,7 +147,9 @@ export class BilibiliExtractor implements IVideoExtractor {
       const cid =
         state?.videoData?.cid ?? state?.videoData?.pages?.[0]?.cid;
       if (stateBvid && cid) {
-        videoUrl = await fetchPlayUrl(stateBvid, cid);
+        const r = await fetchPlayUrl(stateBvid, cid);
+        videoUrl = r.videoUrl;
+        audioUrl = r.audioUrl;
       }
     }
 
@@ -145,7 +166,11 @@ export class BilibiliExtractor implements IVideoExtractor {
             data?: { cid?: number; pages?: Array<{ cid?: number }> };
           };
           const cid = viewJson?.data?.cid ?? viewJson?.data?.pages?.[0]?.cid;
-          if (cid) videoUrl = await fetchPlayUrl(bvid, cid);
+          if (cid) {
+            const r = await fetchPlayUrl(bvid, cid);
+            videoUrl = r.videoUrl;
+            audioUrl = r.audioUrl;
+          }
         }
       } catch {
         // 落空就继续抛错
@@ -179,11 +204,16 @@ export class BilibiliExtractor implements IVideoExtractor {
 
     const durationSec = typeof vd?.duration === 'number' ? vd.duration : undefined;
 
+    const headers = { Referer: 'https://www.bilibili.com/' };
+
     return {
       platform: this.platform,
       sourceUrl: url,
       videoUrl,
-      videoHeaders: { Referer: 'https://www.bilibili.com/' },
+      videoHeaders: headers,
+      // DASH 分轨：videoUrl 是纯视频流，必须连音频一起上传 + CI AudioMix 合流
+      audioUrl,
+      audioHeaders: audioUrl ? headers : undefined,
       // 走 B 路径：B 站资源有 referer 防盗链，浏览器上传可携带 cookie + referer
       recommendedStrategy: 'browser',
       meta: { title, authorName, coverUrl, durationSec },

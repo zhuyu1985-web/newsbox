@@ -29,6 +29,14 @@ function hasCompleteAnalysis(cached: any): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  // TEMP: 排查线上 `fetch failed` —— 确认 OPENAI 相关 env 已注入到 Next.js 运行时进程
+  console.log("[ai/read] env probe", {
+    baseUrl: process.env.OPENAI_API_BASE_URL,
+    model: process.env.OPENAI_MODEL,
+    hasKey: !!process.env.OPENAI_API_KEY,
+    keyLen: process.env.OPENAI_API_KEY?.length ?? 0,
+  });
+
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();

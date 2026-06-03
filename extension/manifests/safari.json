@@ -3,8 +3,8 @@
   "name": "NewsBox - 网页收藏助手",
   "version": "1.0.0",
   "description": "一键保存网页内容到 NewsBox 笔记库，支持图文抓取、AI 智能总结",
-  "permissions": ["activeTab", "storage", "contextMenus", "notifications"],
-  "host_permissions": ["https://*.supabase.co/*", "http://localhost/*", "https://huasheng.cloud/*", "https://*.huasheng.cloud/*"],
+  "permissions": ["activeTab", "storage", "contextMenus", "notifications", "alarms", "declarativeNetRequestWithHostAccess"],
+  "host_permissions": ["https://*.supabase.co/*", "http://localhost/*", "https://huasheng.cloud/*", "https://*.huasheng.cloud/*", "https://*.bilivideo.com/*", "https://*.hdslb.com/*"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "background": {
     "service_worker": "background/service-worker.js",

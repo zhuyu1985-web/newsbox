@@ -93,6 +93,11 @@ export interface MediaProcessingCapability {
     sourceKey: string;
     outputKey: string;
     targetCodec: 'h264';
+    /**
+     * DASH 分轨场景：把外部音频 key 通过 COS CI <AudioMix> 合流到输出。
+     * sourceKey 一般是纯视频（无音轨），audioMixSourceKey 提供音频。
+     */
+    audioMixSourceKey?: string;
   }): Promise<{ jobId: string }>;
 
   getTranscodeStatus(jobId: string): Promise<{

@@ -48,6 +48,12 @@ export interface VideoJob {
   transcoded_key: string | null;
   transcoded_url: string | null;
 
+  /** B 站等 DASH 分轨视频：扩展独立上传的音频对象 key/url；非 null 表示需要 AudioMix 合流
+   *  optional 是为了让 db.ts 里 Supabase 生成类型 cast 仍能编译——migration 应用前后都不破坏 */
+  source_audio_url?: string | null;
+  audio_cos_key?: string | null;
+  audio_cos_url?: string | null;
+
   retry_count: number;
   next_retry_at: string | null;
   updated_at: string;

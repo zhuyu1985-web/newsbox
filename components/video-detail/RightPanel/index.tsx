@@ -1,10 +1,10 @@
 "use client";
-import { useVideoDetailStore } from "../store";
-import { Sparkles, FileText, NotebookPen } from "lucide-react";
-import { BriefPanel } from "./BriefPanel";
-import { TranscriptPanel } from "./TranscriptPanel";
-import { NotesPanel } from "./NotesPanel";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
+import { FileText, NotebookPen, Sparkles } from "lucide-react";
+import { useVideoDetailStore } from "../store";
+import { BriefPanel } from "./BriefPanel";
+import { NotesPanel } from "./NotesPanel";
+import { TranscriptPanel } from "./TranscriptPanel";
 
 const TABS = [
   { key: "brief", label: "速览", Icon: Sparkles },
@@ -43,19 +43,34 @@ export function RightPanel({
             </button>
           );
         })}
-        <div className="ml-auto text-[11px] text-muted-foreground pr-1">
-          由 通义听悟 生成
-        </div>
       </div>
 
       {/* Tab Panels — all mounted, controlled by hidden (preserves state) */}
-      <div className={activeTab === "brief" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
+      <div
+        className={
+          activeTab === "brief"
+            ? "flex-1 overflow-hidden flex flex-col"
+            : "hidden"
+        }
+      >
         <BriefPanel noteId={note.id} videoJob={videoJob} />
       </div>
-      <div className={activeTab === "transcript" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
+      <div
+        className={
+          activeTab === "transcript"
+            ? "flex-1 overflow-hidden flex flex-col"
+            : "hidden"
+        }
+      >
         <TranscriptPanel noteId={note.id} videoJob={videoJob} />
       </div>
-      <div className={activeTab === "notes" ? "flex-1 overflow-hidden flex flex-col" : "hidden"}>
+      <div
+        className={
+          activeTab === "notes"
+            ? "flex-1 overflow-hidden flex flex-col"
+            : "hidden"
+        }
+      >
         <NotesPanel
           noteId={note.id}
           initialContent={note.user_notes}

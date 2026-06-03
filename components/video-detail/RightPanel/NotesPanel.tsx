@@ -77,7 +77,7 @@ export function NotesPanel({
       <div className="flex-1 relative overflow-hidden">
         <div
           onClick={handleClickInsideEditor}
-          className="absolute inset-0 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
+          className="absolute inset-0 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-blue-400/30 dark:[&::-webkit-scrollbar-thumb]:bg-blue-300/20 hover:[&::-webkit-scrollbar-thumb]:bg-blue-500/45 dark:hover:[&::-webkit-scrollbar-thumb]:bg-blue-300/40 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors"
         >
           <EditorContent editor={editor} />
         </div>

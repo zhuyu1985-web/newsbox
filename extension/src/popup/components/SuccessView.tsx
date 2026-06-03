@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { NEWSBOX_API_URL } from "@shared/constants";
+import { getApiUrl } from "@shared/storage";
 
 interface Props {
   noteId: string;
@@ -13,8 +13,10 @@ export function SuccessView({ noteId, onSaveAnother }: Props) {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleViewNote = () => {
-    chrome.tabs.create({ url: `${NEWSBOX_API_URL}/notes/${noteId}` });
+  const handleViewNote = async () => {
+    // 走 storage 里的动态配置，否则用户改了 API URL 后跳转还是会指向 build-time 默认域名
+    const baseUrl = await getApiUrl();
+    chrome.tabs.create({ url: `${baseUrl}/notes/${noteId}` });
     window.close();
   };
 

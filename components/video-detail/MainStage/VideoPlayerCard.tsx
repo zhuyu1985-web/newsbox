@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Download, AlertTriangle, ExternalLink, Chrome } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Download, AlertTriangle, ExternalLink, Chrome, RotateCw, Cog, AudioLines } from "lucide-react";
 import { toast } from "sonner";
 import { VideoPlayer } from "@/components/reader/ContentStage/VideoPlayer";
 import { useVideoDetailStore } from "../store";
-import { AudioStrip } from "./AudioStrip";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 /**
@@ -58,8 +57,37 @@ export function VideoPlayerCard({
     };
   }, [setCurrentTime, setIsPlaying]);
 
+  // optimistic：用户点重试后立即把视图切到 "进行中"，等下一次刷新覆盖
+  const [optimisticStep, setOptimisticStep] = useState<null | "download" | "transcode">(null);
   const status = videoJob?.download_status;
+  const transcodeStatus = videoJob?.transcode_status;
   const sourceUrl = note.source_url;
+
+  // 服务端已推进出 failed → 撤销 optimistic
+  useEffect(() => {
+    if (!optimisticStep) return;
+    if (optimisticStep === "download" && status !== "failed") setOptimisticStep(null);
+    if (optimisticStep === "transcode" && transcodeStatus !== "failed") setOptimisticStep(null);
+  }, [optimisticStep, status, transcodeStatus]);
+
+  // optimistic 下载重试 → 渲染下载中状态
+  if (optimisticStep === "download") {
+    return (
+      <div ref={ref} className="aspect-video rounded-xl bg-card/40 backdrop-blur-xl border border-border/50 flex flex-col items-center justify-center gap-3 text-muted-foreground p-6 animate-[pulse_2.4s_ease-in-out_infinite]">
+        <Download className="animate-pulse text-blue-500 dark:text-blue-400" size={28} />
+        <div className="text-sm">已重新提交下载…</div>
+      </div>
+    );
+  }
+  // optimistic 转码重试
+  if (optimisticStep === "transcode") {
+    return (
+      <div ref={ref} className="aspect-video rounded-xl bg-card/40 backdrop-blur-xl border border-border/50 flex flex-col items-center justify-center gap-3 text-muted-foreground p-6 animate-[pulse_2.4s_ease-in-out_infinite]">
+        <Cog className="animate-spin text-blue-500 dark:text-blue-400" size={28} />
+        <div className="text-sm">转码任务已提交，处理中…</div>
+      </div>
+    );
+  }
 
   // 下载中
   if (videoJob && (status === "pending" || status === "in_progress")) {
@@ -88,11 +116,19 @@ export function VideoPlayerCard({
         <div className="flex items-center gap-2 mt-1">
           <button
             onClick={async () => {
-              await fetch(`/api/ai/video/${videoJob.id}/retry?step=download`, { method: "POST" });
-              toast.success("已重试");
+              setOptimisticStep("download");
+              try {
+                const res = await fetch(`/api/ai/video/${videoJob.id}/retry?step=download`, { method: "POST" });
+                if (!res.ok) throw new Error("retry failed");
+                toast.success("已重试下载");
+              } catch (err) {
+                setOptimisticStep(null);
+                toast.error(err instanceof Error ? err.message : "重试失败");
+              }
             }}
-            className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-xs"
+            className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-xs flex items-center gap-1"
           >
+            <RotateCw size={12} />
             重试下载
           </button>
           {sourceUrl && (
@@ -111,6 +147,36 @@ export function VideoPlayerCard({
     );
   }
 
+  // 转码失败
+  if (videoJob && transcodeStatus === "failed") {
+    return (
+      <div ref={ref} className="aspect-video rounded-xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/60 flex flex-col items-center justify-center gap-3 text-rose-700 dark:text-rose-300 p-6">
+        <AlertTriangle size={28} />
+        <div className="text-sm">视频转码失败</div>
+        <div className="text-[11px] max-w-md text-center">
+          可能由源文件编解码异常导致。可尝试重新转码；若仍失败请重新抓取。
+        </div>
+        <button
+          onClick={async () => {
+            setOptimisticStep("transcode");
+            try {
+              const res = await fetch(`/api/ai/video/${videoJob.id}/retry?step=transcode`, { method: "POST" });
+              if (!res.ok) throw new Error("retry failed");
+              toast.success("已重新提交转码");
+            } catch (err) {
+              setOptimisticStep(null);
+              toast.error(err instanceof Error ? err.message : "重试失败");
+            }
+          }}
+          className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-xs flex items-center gap-1"
+        >
+          <RotateCw size={12} />
+          重新转码
+        </button>
+      </div>
+    );
+  }
+
   // 需要浏览器扩展辅助
   if (videoJob && status === "need_browser_fallback") {
     return (
@@ -122,25 +188,25 @@ export function VideoPlayerCard({
     );
   }
 
-  // audioMode：折叠视频，用 AudioStrip 替代，但 VideoPlayer 节点保持挂载（保留播放）
+  // audioMode：折叠视频，让顶部 MiniPlayer 接管音频条形态，但 VideoPlayer 节点保持挂载（保留播放）
   return (
     <div ref={ref}>
       {audioMode && (
-        <AudioStrip
-          title={note.title ?? ""}
-          duration={note.media_duration ?? 0}
-          seed={note.id}
-        />
+        <div className="aspect-video rounded-xl overflow-hidden bg-card/40 backdrop-blur-xl border border-border/50 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+          <AudioLines className="text-blue-500 dark:text-blue-400" size={28} />
+          <div className="text-sm">音频模式</div>
+          <div className="text-[11px]">播放控制已上移至顶部</div>
+        </div>
       )}
       <div
         className={
           audioMode
             ? "h-0 overflow-hidden invisible pointer-events-none"
-            : ""
+            : "aspect-video rounded-xl overflow-hidden bg-black border border-border/50 shadow-sm"
         }
         aria-hidden={audioMode}
       >
-        <VideoPlayer note={note as any} embedded />
+        <VideoPlayer note={note as any} embedded aspectRatio="16:9" />
       </div>
     </div>
   );

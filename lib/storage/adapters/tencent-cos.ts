@@ -165,12 +165,29 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
     timestamps: number[];
     outputKeyPrefix: string;
   }): Promise<Array<{ timestamp: number; key: string; url: string }>> {
+    // P1 #5：逐帧容错 —— 单帧网络抖动不再拖垮整批；全失败才抛出让上层标 failed
     const results: Array<{ timestamp: number; key: string; url: string }> = [];
+    const failures: Array<{ timestamp: number; error: string }> = [];
     for (const t of input.timestamps) {
-      const buf = await this.fetchSnapshot(input.sourceKey, t);
-      const outKey = `${input.outputKeyPrefix}-${String(t).padStart(6, '0')}.jpg`;
-      await this.upload({ key: outKey, body: buf, contentType: 'image/jpeg' });
-      results.push({ timestamp: t, key: outKey, url: this.getPublicUrl(outKey) });
+      try {
+        const buf = await this.fetchSnapshot(input.sourceKey, t);
+        const outKey = `${input.outputKeyPrefix}-${String(t).padStart(6, '0')}.jpg`;
+        await this.upload({ key: outKey, body: buf, contentType: 'image/jpeg' });
+        results.push({ timestamp: t, key: outKey, url: this.getPublicUrl(outKey) });
+      } catch (err) {
+        failures.push({ timestamp: t, error: err instanceof Error ? err.message : String(err) });
+      }
+    }
+    if (failures.length > 0) {
+      console.warn(
+        `[cos.extractFrames] partial failure ${failures.length}/${input.timestamps.length}:`,
+        failures.slice(0, 3),
+      );
+    }
+    if (results.length === 0) {
+      throw new Error(
+        `cos.extractFrames: all ${input.timestamps.length} frames failed; first error: ${failures[0]?.error ?? 'unknown'}`,
+      );
     }
     return results;
   }
@@ -205,8 +222,22 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
     sourceKey: string;
     outputKey: string;
     targetCodec: 'h264';
+    audioMixSourceKey?: string;
   }): Promise<{ jobId: string }> {
     const { bucket, region } = this.env;
+    // DASH 分轨场景：AudioMix 把外部音频对象与视频对象合流，Replace=true
+    // 表示直接替换源视频的音轨（源是纯视频 → 等价于注入音频）。
+    // 注意 AudioSource 格式：同 bucket 直接用 https URL，COS CI 会内部识别同 bucket 拉取。
+    const audioMixXml = input.audioMixSourceKey
+      ? [
+          '      <AudioMix>',
+          `        <AudioSource>https://${bucket}.cos.${region}.myqcloud.com/${input.audioMixSourceKey}</AudioSource>`,
+          '        <MixMode>Once</MixMode>',
+          '        <Replace>true</Replace>',
+          '      </AudioMix>',
+        ].join('\n')
+      : '';
+
     const xmlBody = [
       '<Request>',
       '  <Tag>Transcode</Tag>',
@@ -221,10 +252,11 @@ export class TencentCosAdapter implements StorageProvider, MediaProcessingCapabi
       '      <Container><Format>mp4</Format></Container>',
       '      <Video><Codec>H.264</Codec><Profile>main</Profile><Bitrate>1500</Bitrate></Video>',
       '      <Audio><Codec>AAC</Codec></Audio>',
+      audioMixXml,
       '    </Transcode>',
       '  </Operation>',
       '</Request>',
-    ].join('\n');
+    ].filter(Boolean).join('\n');
 
     const xml = await this.ciRequest('POST', '/jobs', xmlBody);
     const jobId = pickField(xml, 'JobId');

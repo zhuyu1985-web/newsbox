@@ -110,14 +110,19 @@ function MarkedText({
   return <>{out}</>;
 }
 
-function speakerColor(id: string | undefined): string {
-  if (!id) return "from-slate-400 to-slate-600 dark:from-slate-500 dark:to-slate-700";
+function speakerColor(id: string | undefined): { bg: string; text: string } {
+  if (!id) {
+    return {
+      bg: "bg-slate-200/40 dark:bg-slate-700/30 ring-1 ring-slate-300/40 dark:ring-slate-600/30",
+      text: "text-slate-700 dark:text-slate-200",
+    };
+  }
   const palette = [
-    "from-blue-400 to-blue-600",
-    "from-cyan-400 to-cyan-600",
-    "from-rose-400 to-rose-600",
-    "from-amber-400 to-amber-600",
-    "from-emerald-400 to-emerald-600",
+    { bg: "bg-blue-200/35 dark:bg-blue-500/15 ring-1 ring-blue-300/40 dark:ring-blue-400/20", text: "text-blue-700 dark:text-blue-200" },
+    { bg: "bg-cyan-200/35 dark:bg-cyan-500/15 ring-1 ring-cyan-300/40 dark:ring-cyan-400/20", text: "text-cyan-700 dark:text-cyan-200" },
+    { bg: "bg-rose-200/35 dark:bg-rose-500/15 ring-1 ring-rose-300/40 dark:ring-rose-400/20", text: "text-rose-700 dark:text-rose-200" },
+    { bg: "bg-amber-200/40 dark:bg-amber-500/15 ring-1 ring-amber-300/40 dark:ring-amber-400/20", text: "text-amber-700 dark:text-amber-200" },
+    { bg: "bg-emerald-200/35 dark:bg-emerald-500/15 ring-1 ring-emerald-300/40 dark:ring-emerald-400/20", text: "text-emerald-700 dark:text-emerald-200" },
   ];
   const idx = id.charCodeAt(0) % palette.length;
   return palette[idx];
@@ -268,7 +273,7 @@ export function TranscriptPanel({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
+      className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-blue-400/30 dark:[&::-webkit-scrollbar-thumb]:bg-blue-300/20 hover:[&::-webkit-scrollbar-thumb]:bg-blue-500/45 dark:hover:[&::-webkit-scrollbar-thumb]:bg-blue-300/40 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors"
     >
       {visibleSegments.map((seg, i) => {
         const isActive = i === activeIdx;
@@ -359,11 +364,16 @@ export function TranscriptPanel({
               onClear={() => clearMarkers({ target_type: "transcript", segment_idx: originalIdx })}
             />
             <div className="flex items-center gap-2 mb-1.5">
-              <div
-                className={`w-6 h-6 rounded-full bg-gradient-to-br ${speakerColor(seg.speaker)} text-white text-[10px] flex items-center justify-center font-bold shrink-0`}
-              >
-                {seg.speaker?.slice(0, 1).toUpperCase() ?? "?"}
-              </div>
+              {(() => {
+                const c = speakerColor(seg.speaker);
+                return (
+                  <div
+                    className={`w-6 h-6 rounded-full ${c.bg} ${c.text} text-[10px] flex items-center justify-center font-bold shrink-0 backdrop-blur-sm`}
+                  >
+                    {seg.speaker?.slice(0, 1).toUpperCase() ?? "?"}
+                  </div>
+                );
+              })()}
               <span
                 className={
                   isActive

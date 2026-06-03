@@ -2,6 +2,7 @@ import { api } from "../shared/api";
 import { isLoggedIn, getToken } from "../shared/auth";
 import type { ExtractedContent, SaveNoteRequest } from "../shared/types";
 import { uploadVideoBytes } from "./video-uploader";
+import { installPersistentRules } from "./dnr-rules";
 
 // ============================================================
 // Context Menu Setup
@@ -26,6 +27,14 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "保存选中文本到 NewsBox",
     contexts: ["selection"],
   });
+
+  // 常驻 DNR：给 *.hdslb.com 注入 Referer，让 B 站封面图（弹窗预览 / dashboard）能加载
+  installPersistentRules();
+});
+
+// MV3 service worker 冷启动也确保规则在位（onInstalled 只在安装/升级时触发）
+chrome.runtime.onStartup?.addListener?.(() => {
+  installPersistentRules();
 });
 
 // ============================================================

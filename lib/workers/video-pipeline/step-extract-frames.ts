@@ -9,6 +9,10 @@ export async function runExtractFramesStep(job: VideoJob): Promise<void> {
   if (job.download_status !== 'done' || !job.cos_key) return;
   if (job.probe_status !== 'done') return; // need duration for equal-interval fallback
 
+  // 同 step-analyze-audio：等转码进入终态。
+  // 原始 cos_key 可能是 .m4s 等容器，COS CI 抽帧不接受；transcoded_key 才稳。
+  if (job.transcode_status !== 'done' && job.transcode_status !== 'skipped') return;
+
   const provider = getStorageProvider();
 
   // Provider has no CI MediaProcessingCapability → skip
@@ -21,14 +25,20 @@ export async function runExtractFramesStep(job: VideoJob): Promise<void> {
   try {
     const timestamps = computeFrameTimestamps(job);
     const prefix = `${job.user_id}/frames/${job.id}/f`;
+    // 优先用转码产物（H.264 + mp4 + 合流后音轨）。原始 cos_key 可能是 .m4s 等
+    // CI 抽帧不支持的容器；缺失时回退到原始 cos_key。
+    const sourceKey = job.transcoded_key ?? job.cos_key;
     const frames = await provider.extractFrames({
-      sourceKey: job.cos_key,
+      sourceKey,
       timestamps,
       outputKeyPrefix: prefix,
     });
     await markStep(job.id, 'frame', 'done', { frames });
-  } catch {
-    await markStep(job.id, 'frame', 'failed');
+  } catch (err) {
+    // P0 #2：捕获并落库错误原因，方便用户排查为什么 "AI 失败"
+    await markStep(job.id, 'frame', 'failed', {
+      frame_error: err instanceof Error ? err.message : String(err),
+    }, { incrementRetry: true });
   }
 }
 

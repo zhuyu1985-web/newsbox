@@ -383,11 +383,10 @@ function detectContentType(): "article" | "video" {
   for (const pattern of VIDEO_PATTERNS) {
     if (pattern.test(url)) return "video";
   }
-  // Check for prominent video elements
-  const hasVideo = document.querySelector(
-    "video, .video-player, .bilibili-player, #player"
-  );
-  if (hasVideo) return "video";
+  // 用 og:type 判定未知视频站点（YouTube/B 站等都会声明 video.*）
+  // 不再扫 DOM 里的 <video>：新闻图文页常带广告/推荐位的 <video>，会把图文误判成视频。
+  const ogType = getMeta("og:type");
+  if (ogType && /^video\b/i.test(ogType)) return "video";
   return "article";
 }
 

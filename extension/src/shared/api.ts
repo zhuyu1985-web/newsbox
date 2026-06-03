@@ -37,15 +37,20 @@ export interface SaveVideoResponse {
   jobId: string;
 }
 
-export interface RequestUploadCredResponse {
-  jobId: string;
-  noteId: string;
-  cosKey: string;
+export interface UploadCredFields {
   uploadUrl: string;
   method: string;
   headers?: Record<string, string>;
   publicUrl: string;
   expiresAt: number;
+}
+
+export interface RequestUploadCredResponse extends UploadCredFields {
+  jobId: string;
+  noteId: string;
+  cosKey: string;
+  /** B 站等 DASH 分轨视频的音频 cred；为 null 表示无需上传音频 */
+  audio: (UploadCredFields & { cosKey: string }) | null;
 }
 
 export interface ReportUploadDoneResponse {
@@ -67,7 +72,11 @@ export const api = {
   },
 
   /** Save a video note via server-side download (A path) */
-  saveVideo(body: { capture: VideoCapture }): Promise<SaveVideoResponse> {
+  saveVideo(body: {
+    capture: VideoCapture;
+    folder_id?: string;
+    tag_ids?: string[];
+  }): Promise<SaveVideoResponse> {
     return request("/api/extension/save-video", {
       method: "POST",
       body: JSON.stringify(body),
@@ -79,6 +88,10 @@ export const api = {
     capture: VideoCapture;
     ext: string;
     contentType: string;
+    audioExt?: string;
+    audioContentType?: string;
+    folder_id?: string;
+    tag_ids?: string[];
   }): Promise<RequestUploadCredResponse> {
     return request("/api/extension/video-upload-cred", {
       method: "POST",
@@ -91,6 +104,7 @@ export const api = {
     jobId: string;
     cosKey: string;
     sizeBytes: number;
+    audioCosKey?: string;
   }): Promise<ReportUploadDoneResponse> {
     return request("/api/extension/video-upload-done", {
       method: "POST",

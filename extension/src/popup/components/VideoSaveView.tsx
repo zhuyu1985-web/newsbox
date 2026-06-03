@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@shared/api";
+import { logout, getCurrentUser } from "@shared/auth";
+import { setTheme } from "@shared/theme";
+import { getTheme } from "@shared/storage";
+import { FolderPicker } from "./FolderPicker";
+import { TagPicker } from "./TagPicker";
+import type { Folder, Tag } from "@shared/types";
 import type { VideoCapture } from "../../content/video-extractors/base";
 
 interface Props {
@@ -14,25 +20,77 @@ export function VideoSaveView({ tabUrl: _tabUrl, capture, onOpenSettings }: Prop
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [noteId, setNoteId] = useState("");
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark" | "system">("system");
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    // 与 SaveView 一致：拉用户的 folders / tags 给选择器用
+    api.getMeta()
+      .then((meta) => {
+        setFolders(meta.folders);
+        setTags(meta.tags);
+      })
+      .catch(() => {});
+    getTheme().then(setCurrentTheme);
+    getCurrentUser().then((u) => setUserEmail(u?.email || ""));
+  }, []);
+
+  const handleThemeToggle = async () => {
+    const next = currentTheme === "light" ? "dark" : currentTheme === "dark" ? "system" : "light";
+    setCurrentTheme(next);
+    await setTheme(next);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.reload();
+  };
 
   const handleSave = async () => {
     setStatus("saving");
     setError("");
 
+    const organize = {
+      folder_id: selectedFolderId || undefined,
+      tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+    };
+
     try {
       if (capture.recommendedStrategy === "server") {
         // A path: server downloads the video
-        const result = await api.saveVideo({ capture });
+        const result = await api.saveVideo({ capture, ...organize });
         setNoteId(result.noteId);
         setStatus("done");
       } else {
         // B path: browser uploads directly, delegate to background service worker
         // Derive file extension from videoUrl
-        const urlPath = new URL(capture.videoUrl).pathname;
-        const ext = urlPath.split(".").pop()?.split("?")[0] || "mp4";
+        const pickExt = (rawUrl: string, fallback: string) => {
+          const p = new URL(rawUrl).pathname;
+          return p.split(".").pop()?.split("?")[0] || fallback;
+        };
+        const ext = pickExt(capture.videoUrl, "mp4");
         const contentType = ext === "m3u8" ? "application/vnd.apple.mpegurl" : "video/mp4";
 
-        const cred = await api.requestUploadCred({ capture, ext, contentType });
+        // DASH 分轨：音频与视频独立流，请求时一并要 audio cred
+        let audioExt: string | undefined;
+        let audioContentType: string | undefined;
+        if (capture.audioUrl) {
+          audioExt = pickExt(capture.audioUrl, "m4s");
+          audioContentType = "audio/mp4";
+        }
+
+        const cred = await api.requestUploadCred({
+          capture,
+          ext,
+          contentType,
+          audioExt,
+          audioContentType,
+          ...organize,
+        });
         setNoteId(cred.noteId);
 
         // Hand off upload to background service worker so popup can close
@@ -92,16 +150,34 @@ export function VideoSaveView({ tabUrl: _tabUrl, capture, onOpenSettings }: Prop
           </div>
           <span className="text-sm font-semibold text-foreground">NewsBox</span>
         </div>
-        <button
-          onClick={onOpenSettings}
-          className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
-          title="设置"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-muted-foreground">
-            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onOpenSettings}
+            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+            title="设置"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-muted-foreground">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            onClick={handleThemeToggle}
+            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center text-sm transition-colors"
+            title={`主题: ${currentTheme}`}
+          >
+            {currentTheme === "dark" ? "\u{1F319}" : currentTheme === "light" ? "\u{2600}\u{FE0F}" : "\u{1F4BB}"}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+            title={`${userEmail}\n点击登出`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-muted-foreground">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Video Preview Card */}
@@ -149,6 +225,24 @@ export function VideoSaveView({ tabUrl: _tabUrl, capture, onOpenSettings }: Prop
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Folder Picker */}
+      <div className="mb-3">
+        <FolderPicker
+          folders={folders}
+          selectedId={selectedFolderId}
+          onChange={setSelectedFolderId}
+        />
+      </div>
+
+      {/* Tag Picker */}
+      <div className="mb-4">
+        <TagPicker
+          tags={tags}
+          selectedIds={selectedTagIds}
+          onChange={setSelectedTagIds}
+        />
       </div>
 
       {/* Error */}

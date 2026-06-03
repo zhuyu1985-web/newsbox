@@ -9,8 +9,8 @@
       "strict_min_version": "121.0"
     }
   },
-  "permissions": ["activeTab", "storage", "contextMenus", "notifications"],
-  "host_permissions": ["https://*.supabase.co/*", "http://localhost/*", "https://huasheng.cloud/*", "https://*.huasheng.cloud/*"],
+  "permissions": ["activeTab", "storage", "contextMenus", "notifications", "alarms", "declarativeNetRequestWithHostAccess"],
+  "host_permissions": ["https://*.supabase.co/*", "http://localhost/*", "https://huasheng.cloud/*", "https://*.huasheng.cloud/*", "https://*.bilivideo.com/*", "https://*.hdslb.com/*"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "background": {
     "scripts": ["background/service-worker.js"],

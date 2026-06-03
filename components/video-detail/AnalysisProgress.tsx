@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, type JSX } from "react";
 import { Check, Loader2, Clock, AlertCircle, RotateCw, Sparkles } from "lucide-react";
-import { useAnalysisProgress } from "./hooks/useAnalysisProgress";
+import { useAnalysisProgress, type JobStatusResponse, type StepKey } from "./hooks/useAnalysisProgress";
 
 const STATUS_ICONS: Record<string, JSX.Element> = {
   done: <Check size={12} className="text-emerald-500" />,
@@ -14,7 +14,7 @@ const STATUS_ICONS: Record<string, JSX.Element> = {
 export function AnalysisProgress({ jobId }: { jobId: string }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { steps, overallPercent, isComplete, refetch } = useAnalysisProgress(jobId);
+  const { steps, overallPercent, isComplete, hasFailures, refetch, data } = useAnalysisProgress(jobId);
 
   useEffect(() => {
     if (!open) return;
@@ -25,20 +25,41 @@ export function AnalysisProgress({ jobId }: { jobId: string }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  const retry = async (step: string) => {
-    await fetch(`/api/ai/video/${jobId}/retry?step=${step}`, { method: "POST" });
-    refetch();
+  const retry = async (step: StepKey) => {
+    // optimistic：立即把目标步骤推进到 in_progress，弹出 pulse 动画，不等服务端响应
+    if (data) {
+      const next: JobStatusResponse = {
+        ...data,
+        steps: { ...data.steps, [step]: 'in_progress' },
+        errors: { ...(data.errors ?? {}), [step]: null },
+      };
+      refetch(next, { revalidate: false });
+    }
+    try {
+      await fetch(`/api/ai/video/${jobId}/retry?step=${step}`, { method: "POST" });
+    } finally {
+      refetch();
+    }
   };
 
-  const chipClass = isComplete
-    ? "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40"
-    : "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100/80 dark:hover:bg-blue-900/40";
+  // 终态有失败 → 玫红；全部 done → 绿；进行中 → 蓝色（带 pulse 强调）
+  const chipClass = !isComplete
+    ? "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100/80 dark:hover:bg-blue-900/40 ring-1 ring-blue-200/60 dark:ring-blue-800/60 animate-[pulse_2.4s_ease-in-out_infinite]"
+    : hasFailures
+    ? "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100/80 dark:hover:bg-rose-900/40"
+    : "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40";
+
+  const chipLabel = !isComplete
+    ? `分析中 ${overallPercent}%`
+    : hasFailures
+    ? "分析未完成"
+    : "AI 分析完成";
 
   return (
     <div ref={wrapperRef} className="relative">
       <button onClick={() => setOpen((v) => !v)} className={chipClass}>
         <Sparkles size={12} />
-        <span>{isComplete ? "分析已完成" : `分析中 ${overallPercent}%`}</span>
+        <span>{chipLabel}</span>
       </button>
 
       {open && (
@@ -70,6 +91,9 @@ export function AnalysisProgress({ jobId }: { jobId: string }) {
                       <RotateCw size={10} />
                       重试
                     </button>
+                  )}
+                  {s.status === "in_progress" && (
+                    <span className="text-blue-500/70 text-[10px] animate-pulse">●</span>
                   )}
                 </div>
               </div>

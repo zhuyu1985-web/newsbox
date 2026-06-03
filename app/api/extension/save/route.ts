@@ -64,10 +64,12 @@ export async function POST(request: Request) {
     }
 
     if (existing) {
-      // Update existing note
+      // Update existing note；
+      // 命中既有行可能是软删除残留（用户删除后又重新抓取同一 URL），重置 deleted_at
+      // 否则页面看似保存成功，dashboard 和详情页都会按 deleted_at 把它过滤掉。
       const { error } = await supabase
         .from("notes")
-        .update(noteData)
+        .update({ ...noteData, deleted_at: null })
         .eq("id", existing.id);
 
       if (error) throw error;

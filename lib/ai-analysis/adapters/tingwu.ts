@@ -31,7 +31,11 @@ export class TingwuAdapter implements AudioAnalysisProvider {
         // 听悟的语言码与 ISO 639-1 不同：中文是 'cn'，英文是 'en'，自动是 'auto'
         SourceLanguage: mapLanguageToTingwu(input.language),
         FileUrl: input.mediaUrl,
-        Format: undefined,  // 自动识别
+        // 必须显式声明 Format，**不能依赖听悟的"自动识别"**：
+        // 实测对 COS CI AudioMix 合流的 mp4 产物（44.1kHz AAC + H.264）会假装
+        // 抛 'TSC.AudioSampleRate: Audio sample rate invalid' —— 真实原因是
+        // auto-detect 解析器对某些容器布局挂了，显式指定后走对应解码器即正常。
+        Format: inferTingwuFormat(input.mediaUrl),
       },
       Parameters: buildCapabilityParameters(input.capabilities),
     };
@@ -60,6 +64,23 @@ export class TingwuAdapter implements AudioAnalysisProvider {
     }
     return { status: 'pending' };
   }
+}
+
+/**
+ * 从 URL 推断 Tingwu 的 Format 字段。
+ * 听悟支持的容器/编码：mp3 / mp4 / m4a / wav / aac / flac / amr / opus / ogg。
+ * 落到列表外（含没有扩展名的）→ 兜底 'mp4'，因为流水线把所有视频统一转码为 mp4 输出。
+ */
+function inferTingwuFormat(url: string): string {
+  const SUPPORTED = new Set(['mp3', 'mp4', 'm4a', 'wav', 'aac', 'flac', 'amr', 'opus', 'ogg']);
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    const ext = pathname.split('.').pop() ?? '';
+    if (SUPPORTED.has(ext)) return ext;
+  } catch {
+    // ignore parse errors
+  }
+  return 'mp4';
 }
 
 function mapLanguageToTingwu(lang: 'zh' | 'en' | 'auto' | undefined): string {

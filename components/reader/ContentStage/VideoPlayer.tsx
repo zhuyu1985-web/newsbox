@@ -29,7 +29,20 @@ interface Note {
   } | null;
 }
 
-export function VideoPlayer({ note, embedded = false }: { note: Note; embedded?: boolean }) {
+export function VideoPlayer({
+  note,
+  embedded = false,
+  aspectRatio,
+}: {
+  note: Note;
+  embedded?: boolean;
+  /**
+   * 强制播放器比例（如 "16:9"）。
+   * 传入时关闭 fluid，video.js 会按 aspectRatio 渲染容器，非该比例的视频自动 letterbox(黑边)。
+   * 不传则保留原 fluid 行为(按视频原始比例自适应)。
+   */
+  aspectRatio?: string;
+}) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<VideoJsPlayer | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -68,7 +81,9 @@ export function VideoPlayer({ note, embedded = false }: { note: Note; embedded?:
         autoplay: false,
         controls: true,
         responsive: true,
-        fluid: true,
+        // aspectRatio 与 fluid 互斥：传入 aspectRatio 时关闭 fluid 让 video.js 按固定比例渲染
+        fluid: !aspectRatio,
+        ...(aspectRatio ? { aspectRatio } : {}),
         preload: "metadata",
         // crossOrigin=anonymous 让 <video> 携带 CORS 头请求；只要 COS 配置了
         // Access-Control-Allow-Origin 就能让 canvas.toDataURL 不 taint，截图才能工作。

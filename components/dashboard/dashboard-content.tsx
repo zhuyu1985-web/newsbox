@@ -9,6 +9,7 @@ import {
   type ComponentType,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import useSWR from "swr";
 import JSZip from "jszip";
 import TurndownService from "turndown";
 import { toast } from "sonner";
@@ -641,39 +642,108 @@ function downloadBlob(content: Blob, filename: string) {
 }
 
 // ── Video status polling hook ──────────────────────────────────────────────
-function useVideoJobStatus(jobId: string | null | undefined, enabled: boolean) {
-  const [data, setData] = useState<{ overall_status?: string; steps?: unknown; errors?: unknown } | null>(null);
-  useEffect(() => {
-    if (!enabled || !jobId) return;
-    let cancelled = false;
-    async function poll() {
-      try {
-        const res = await fetch(`/api/ai/video/${jobId}/status`);
-        if (res.ok && !cancelled) {
-          const json = await res.json();
-          setData(json);
-        }
-      } catch {
-        // silent
-      }
+type VideoJobSteps = Partial<Record<'download' | 'probe' | 'cover' | 'transcode' | 'frame' | 'audio' | 'visual', string>>;
+interface VideoJobStatusData {
+  overallStatus?: string | null;
+  steps?: VideoJobSteps;
+  errors?: Record<string, string | null | undefined>;
+}
+
+// P2 #1：切到 SWR + 同 key /api/ai/video/${jobId}/status,与详情页 useAnalysisProgress 共享缓存。
+// 这样详情页里用户点重试后 mutate(同 key),dashboard 列表的徽章会**立即** revalidate,
+// 不用再等 10 秒下一轮 setInterval 才看到新状态。
+//
+// terminal 状态(全 step 终态)自动停止轮询,避免一直打 API。
+const VIDEO_STATUS_TERMINAL = new Set(["done", "failed", "skipped"]);
+const VIDEO_STATUS_STEP_KEYS = [
+  "download", "probe", "cover", "transcode", "frame", "audio", "visual",
+] as const;
+
+function useVideoJobStatus(jobId: string | null | undefined, enabled: boolean): VideoJobStatusData | null {
+  const { data } = useSWR<VideoJobStatusData>(
+    enabled && jobId ? `/api/ai/video/${jobId}/status` : null,
+    (url: string) => fetch(url).then((r) => (r.ok ? r.json() : null)),
+    {
+      refreshInterval: (latest) => {
+        if (!latest?.steps) return 10_000;
+        const allTerminal = VIDEO_STATUS_STEP_KEYS.every(
+          (k) => VIDEO_STATUS_TERMINAL.has(latest.steps?.[k] ?? "pending")
+        );
+        return allTerminal ? 0 : 10_000;
+      },
+      refreshWhenHidden: false,
+      revalidateOnFocus: false,
+      dedupingInterval: 2000,
     }
-    poll();
-    const id = setInterval(poll, 10_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [jobId, enabled]);
-  return data;
+  );
+  return data ?? null;
 }
 
 // ── Video status badge ─────────────────────────────────────────────────────
-const VIDEO_STATUS_LABELS: Record<string, string> = {
-  processing: "视频处理中",
-  media_ready: "AI 分析中",
-  failed: "处理失败",
-  need_browser_fallback: "请打开插件重试",
-};
+// 视图状态从 step 级数据派生。优先级：失败 > 进行中 > 已完成 > 等待
+type BadgeView =
+  | { kind: "transcoding" }
+  | { kind: "analyzing" }
+  | { kind: "processing" }
+  | { kind: "ai_ready" }
+  | { kind: "transcode_failed" }
+  | { kind: "ai_failed" }
+  | { kind: "download_failed" }
+  | { kind: "need_fallback" }
+  | { kind: "generic"; label: string };
+
+function deriveBadgeView(
+  steps: VideoJobSteps | undefined,
+  overallStatus: string,
+): BadgeView | null {
+  if (overallStatus === "fully_ready" && !steps) return { kind: "ai_ready" };
+  if (overallStatus === "need_browser_fallback") return { kind: "need_fallback" };
+
+  if (!steps) {
+    if (overallStatus === "failed") return { kind: "download_failed" };
+    if (overallStatus === "processing") return { kind: "processing" };
+    if (overallStatus === "media_ready") return { kind: "analyzing" };
+    if (overallStatus === "fully_ready") return { kind: "ai_ready" };
+    return overallStatus ? { kind: "generic", label: overallStatus } : null;
+  }
+
+  // 失败（终态，优先级最高）
+  if (steps.download === "failed") return { kind: "download_failed" };
+  if (steps.transcode === "failed") return { kind: "transcode_failed" };
+
+  // 关键：audio/visual 失败的"伪终态"判定 —— 仅当转码已就绪（done/skipped）才认定为真失败。
+  // 否则视为"等转码完成后会重试"，徽章按 transcode 的真实进度显示。
+  // 这样能修掉旧 bug：转码中跑出来的 audio failed 不会展示成 "AI 分析失败"。
+  const transcodeReady = steps.transcode === "done" || steps.transcode === "skipped";
+  if (transcodeReady) {
+    if (steps.audio === "failed") return { kind: "ai_failed" };
+    if (steps.visual === "failed" && steps.audio !== "done") return { kind: "ai_failed" };
+  }
+
+  // 所有步骤都进入终态（done/failed/skipped）
+  const STEP_KEYS = ["download", "probe", "cover", "transcode", "frame", "audio", "visual"] as const;
+  const TERMINAL_SET = new Set(["done", "failed", "skipped"]);
+  const allTerminal = STEP_KEYS.every((k) => TERMINAL_SET.has(steps[k] ?? "pending"));
+  if (allTerminal) {
+    return steps.audio === "done" ? { kind: "ai_ready" } : null;
+  }
+
+  // 仍在跑：pending 也当作 active，避免"transcode 刚 done / audio 还没 in_progress"瞬间徽章消失
+  const isActive = (s: string | undefined) => s === "in_progress" || s === "pending";
+
+  // 优先识别 AI 阶段：transcode 完成后无论 audio/visual 是 pending 还是 in_progress 都统一显示 "AI 分析中"
+  if (steps.transcode === "done" && (isActive(steps.audio) || isActive(steps.visual))) {
+    return { kind: "analyzing" };
+  }
+
+  // transcode 阶段（含排队等待 pending）→ 转码中
+  if (isActive(steps.transcode)) {
+    return { kind: "transcoding" };
+  }
+
+  // 早期阶段（download/probe/cover/frame）→ 视频处理中
+  return { kind: "processing" };
+}
 
 function VideoStatusBadge({
   noteId,
@@ -684,54 +754,67 @@ function VideoStatusBadge({
   jobId: string | null | undefined;
   initialStatus: string;
 }) {
-  const isPending =
-    initialStatus !== "fully_ready" && initialStatus !== "failed";
+  const isPending = initialStatus !== "fully_ready" && initialStatus !== "failed";
   const polled = useVideoJobStatus(jobId, isPending);
-  const status = polled?.overall_status ?? initialStatus;
+  const status = polled?.overallStatus ?? initialStatus;
+  const steps = polled?.steps;
+  const view = deriveBadgeView(steps, status);
+  if (!view) return null;
 
-  if (!status || status === "fully_ready") return null;
+  // 进行中状态：脉冲圆点 + 文字；失败：玫红；已完成：紫色 "AI" 徽章
+  const isActive = view.kind === "transcoding" || view.kind === "analyzing" || view.kind === "processing";
+  const isFailed = view.kind === "transcode_failed" || view.kind === "ai_failed" || view.kind === "download_failed";
+  const isReady = view.kind === "ai_ready";
+  const isWarn = view.kind === "need_fallback";
 
-  const label = VIDEO_STATUS_LABELS[status] ?? status;
-  const spinning = status === "processing" || status === "media_ready";
+  if (isReady) {
+    return (
+      <div
+        key={noteId}
+        className="inline-flex items-center text-[10px] mt-1 px-1.5 py-0.5 rounded
+                   bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300
+                   ring-1 ring-violet-200/60 dark:ring-violet-800/60 font-medium tracking-wide"
+      >
+        AI
+      </div>
+    );
+  }
+
+  const label =
+    view.kind === "transcoding" ? "转码中"
+    : view.kind === "analyzing" ? "AI 分析中"
+    : view.kind === "processing" ? "视频处理中"
+    : view.kind === "transcode_failed" ? "转码失败"
+    : view.kind === "ai_failed" ? "AI 分析失败"
+    : view.kind === "download_failed" ? "下载失败"
+    : view.kind === "need_fallback" ? "请打开插件重试"
+    : view.label;
+
+  const colorCls = isFailed
+    ? "text-rose-500"
+    : isWarn
+    ? "text-amber-500"
+    : isActive
+    ? "text-blue-600 dark:text-blue-400"
+    : "text-muted-foreground";
 
   return (
     <div
       key={noteId}
-      className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1"
+      className={`flex items-center gap-1 text-[10px] mt-1 ${isActive ? "animate-[pulse_2.4s_ease-in-out_infinite]" : ""}`}
     >
-      {spinning && (
+      {isActive && (
         <svg
-          className="animate-spin h-3 w-3 shrink-0"
+          className="animate-spin h-3 w-3 shrink-0 text-current"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
         >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-          />
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
       )}
-      <span
-        className={
-          status === "failed"
-            ? "text-red-500"
-            : status === "need_browser_fallback"
-            ? "text-amber-500"
-            : undefined
-        }
-      >
-        {label}
-      </span>
+      <span className={colorCls}>{label}</span>
     </div>
   );
 }
@@ -1455,7 +1538,21 @@ export function DashboardContent() {
       .select("note_id, marker_kind")
       .eq("user_id", user.id);
     if (error) {
-      console.error("load markers error", error);
+      // PostgrestError 的属性是非可枚举的，直接打印会变成 {}，手动展开
+      const code = (error as { code?: string }).code;
+      if (code === "42P01" || code === "PGRST205") {
+        console.warn(
+          "⚠️ 标记功能需要数据库迁移。请执行: supabase/migrations/027_add_transcript_markers.sql",
+        );
+      } else {
+        console.error("load markers error", {
+          message: error.message,
+          code,
+          details: (error as { details?: string }).details,
+          hint: (error as { hint?: string }).hint,
+        });
+      }
+      setUserMarkers(new Map());
       return;
     }
     const map = new Map<string, Set<MarkerKind>>();
@@ -3584,16 +3681,14 @@ ${
                   <p className="text-xs text-muted-foreground/70 italic">暂无摘要</p>
                 )}
 
-                {/* 视频处理状态 badge */}
-                {note.content_type === "video" &&
-                  note.video_overall_status &&
-                  note.video_overall_status !== "fully_ready" && (
-                    <VideoStatusBadge
-                      noteId={note.id}
-                      jobId={note.video_job_id}
-                      initialStatus={note.video_overall_status}
-                    />
-                  )}
+                {/* 视频处理状态 badge —— fully_ready 也要渲染，显示紫色 "AI" 徽章 */}
+                {note.content_type === "video" && note.video_overall_status && (
+                  <VideoStatusBadge
+                    noteId={note.id}
+                    jobId={note.video_job_id}
+                    initialStatus={note.video_overall_status}
+                  />
+                )}
               </div>
 
               {/* 右侧图片区 (如果有) */}
@@ -5294,6 +5389,19 @@ ${
             </div>
           ) : (
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-500 dark:text-gray-400 h-8 w-8 p-0"
+                title="刷新笔记列表"
+                onClick={() => {
+                  fetchNotes(0, false);
+                  setRefreshTrigger((t) => t + 1);
+                }}
+                disabled={initialLoading}
+              >
+                <RefreshCw className={cn("h-4 w-4", initialLoading && "animate-spin")} />
+              </Button>
               <Button
                 variant={showArchived || activePrimary === "archive" ? "default" : "ghost"}
                 size="sm"

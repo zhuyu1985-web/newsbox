@@ -1,6 +1,6 @@
 // lib/workers/video-pipeline/step-download.ts
 import { getStorageProvider, buildStorageKey } from '@/lib/storage';
-import { markStep, incrementRetry, isStale } from './db';
+import { markStep, isStale } from './db';
 import type { VideoJob } from './types';
 
 const STALENESS_MS = 30 * 60_000;
@@ -58,8 +58,7 @@ export async function runDownloadStep(job: VideoJob): Promise<void> {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await markStep(job.id, 'download', 'failed', { download_error: msg });
-    await incrementRetry(job.id);
+    await markStep(job.id, 'download', 'failed', { download_error: msg }, { incrementRetry: true });
   }
 }
 

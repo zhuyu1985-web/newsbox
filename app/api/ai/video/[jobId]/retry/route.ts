@@ -12,7 +12,7 @@ const STEP_COLS = [
   'visual_status',
 ] as const;
 
-const ALLOWED_STEPS = ['download', 'probe', 'cover', 'frame', 'audio', 'visual'] as const;
+const ALLOWED_STEPS = ['download', 'probe', 'cover', 'transcode', 'frame', 'audio', 'visual'] as const;
 type AllowedStep = (typeof ALLOWED_STEPS)[number];
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ jobId: string }> }) {
