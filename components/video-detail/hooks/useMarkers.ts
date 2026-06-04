@@ -1,7 +1,12 @@
 "use client";
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
+import {
+  createLocalTranscriptMarker,
+  readLocalTranscriptMarkers,
+  writeLocalTranscriptMarkers,
+} from "@/lib/notes/local-transcript-markers";
 
 export type MarkerKind = "important" | "question" | "todo";
 export type MarkerTarget = "transcript" | "qa" | "speaker";
@@ -32,22 +37,55 @@ export interface CreateMarkerInput {
   selection_text?: string;
 }
 
+interface MarkersResponse {
+  markers: Marker[];
+  available?: boolean;
+  error?: string;
+}
+
 const fetcher = (url: string) =>
   fetch(url).then((r) => {
     if (!r.ok) throw new Error("failed");
-    return r.json() as Promise<{ markers: Marker[] }>;
+    return r.json() as Promise<MarkersResponse>;
   });
 
 export function useMarkers(noteId: string) {
+  const [localMarkers, setLocalMarkers] = useState<Marker[]>([]);
   const key = noteId ? `/api/notes/${noteId}/markers` : null;
   const { data, mutate, error, isLoading } = useSWR(key, fetcher, {
     revalidateOnFocus: false,
   });
-  const markers = data?.markers ?? [];
+  const useLocalMarkers = data?.available === false;
+  const markers = useMemo(
+    () => (useLocalMarkers ? localMarkers : data?.markers ?? []),
+    [useLocalMarkers, localMarkers, data?.markers],
+  );
+  const markersAvailable = data ? data.available !== false && !error : false;
+  const unavailableMessage =
+    data?.error ??
+    (error ? "标记状态暂不可用，请稍后重试" : "标记状态加载中，请稍后");
+
+  useEffect(() => {
+    if (!noteId || !useLocalMarkers) return;
+    setLocalMarkers(readLocalTranscriptMarkers(noteId) as Marker[]);
+  }, [noteId, useLocalMarkers]);
 
   const createMarker = useCallback(
     async (input: CreateMarkerInput) => {
       if (!noteId) return null;
+      if (useLocalMarkers) {
+        const localMarker = createLocalTranscriptMarker(noteId, input) as Marker;
+        setLocalMarkers((prev) => {
+          const next = [...prev, localMarker];
+          writeLocalTranscriptMarkers(noteId, next);
+          return next;
+        });
+        return localMarker;
+      }
+      if (!markersAvailable) {
+        toast(unavailableMessage);
+        return null;
+      }
       // Optimistic：先把临时 marker 加进去再请求
       const tempId = `temp-${Date.now()}`;
       const optimistic: Marker = {
@@ -90,12 +128,24 @@ export function useMarkers(noteId: string) {
         return null;
       }
     },
-    [noteId, markers, mutate],
+    [noteId, useLocalMarkers, markersAvailable, unavailableMessage, markers, mutate],
   );
 
   const deleteMarker = useCallback(
     async (markerId: string) => {
       if (!noteId) return false;
+      if (useLocalMarkers) {
+        setLocalMarkers((prev) => {
+          const next = prev.filter((m) => m.id !== markerId);
+          writeLocalTranscriptMarkers(noteId, next);
+          return next;
+        });
+        return true;
+      }
+      if (!markersAvailable) {
+        toast(unavailableMessage);
+        return false;
+      }
       const prev = markers;
       mutate({ markers: markers.filter((m) => m.id !== markerId) }, { revalidate: false });
       try {
@@ -110,7 +160,7 @@ export function useMarkers(noteId: string) {
         return false;
       }
     },
-    [noteId, markers, mutate],
+    [noteId, useLocalMarkers, markersAvailable, unavailableMessage, markers, mutate],
   );
 
   /** 删除某锚点（targetType + idx [+ speakerId]）上的所有 marker（取消标记） */
@@ -120,6 +170,7 @@ export function useMarkers(noteId: string) {
       segment_idx?: number;
       speaker_id?: string;
     }) => {
+      if (!markersAvailable && !useLocalMarkers) return;
       const matched = markers.filter(
         (m) =>
           m.target_type === params.target_type &&
@@ -132,11 +183,13 @@ export function useMarkers(noteId: string) {
       // 并行删除
       await Promise.all(matched.map((m) => deleteMarker(m.id)));
     },
-    [markers, deleteMarker],
+    [markersAvailable, useLocalMarkers, markers, deleteMarker],
   );
 
   return {
     markers,
+    markersAvailable,
+    usingLocalMarkers: useLocalMarkers,
     isLoading,
     error,
     refetch: mutate,

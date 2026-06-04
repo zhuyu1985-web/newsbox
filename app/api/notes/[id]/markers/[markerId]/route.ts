@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  isTranscriptMarkersTableMissing,
+  TRANSCRIPT_MARKERS_UNAVAILABLE_MESSAGE,
+} from "@/lib/notes/marker-errors";
 
 /**
  * DELETE /api/notes/[id]/markers/[markerId] — 删除一个 marker
@@ -26,6 +30,15 @@ export async function DELETE(
 
   if (error) {
     console.error("[markers] delete failed", error);
+    if (isTranscriptMarkersTableMissing(error)) {
+      return NextResponse.json(
+        {
+          error: TRANSCRIPT_MARKERS_UNAVAILABLE_MESSAGE,
+          available: false,
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ ok: true });

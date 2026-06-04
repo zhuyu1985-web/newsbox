@@ -55,5 +55,11 @@ node_modules/(前端Node工程)
 dist/(编译打包产物)
 logs/(日志文件)
 
-# 实施期临时 dev 脚本（不入库）
-/scripts/
+# 实施期临时 dev 脚本（默认不入库）
+/scripts/*
+!/scripts/db-export-full.sh
+!/scripts/db-export-incremental.sh
+!/scripts/lib/
+/scripts/lib/*
+!/scripts/lib/normalize-database-url.py
+!/scripts/lib/load-export-database-url.py

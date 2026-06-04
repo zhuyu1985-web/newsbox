@@ -97,30 +97,33 @@ function mapLanguageToTingwu(lang: 'zh' | 'en' | 'auto' | undefined): string {
   }
 }
 
-function buildCapabilityParameters(caps: Array<string>): Record<string, any> {
-  const params: Record<string, any> = {
+function buildCapabilityParameters(caps: Array<string>): Record<string, unknown> {
+  const params: Record<string, unknown> = {
     Transcription: { DiarizationEnabled: caps.includes('transcript') },
   };
+  const summarizationTypes: string[] = [];
 
   if (caps.includes('chapters')) {
     params.AutoChaptersEnabled = true;
   }
 
   if (caps.includes('summary')) {
-    // 听悟要求 SummarizationEnabled=true 时同时传 Summarization.Types
-    params.SummarizationEnabled = true;
-    params.Summarization = { Types: ['Paragraph'] };
+    summarizationTypes.push('Paragraph');
   }
 
   if (caps.includes('key_points')) {
     // 听悟没有独立的"关键词"开关；通过 ExtraParams.MaxKeywords 启用
-    params.ExtraParams = { ...(params.ExtraParams ?? {}), MaxKeywords: 10 };
+    params.ExtraParams = { ...asRecord(params.ExtraParams), MaxKeywords: 10 };
   }
 
   if (caps.includes('qa')) {
-    // Q&A 走 MeetingAssistance（需要听悟控制台先开通对应能力）
-    params.MeetingAssistanceEnabled = true;
-    params.MeetingAssistance = { Types: ['Question', 'Conclusion'] };
+    // 官方“问答回顾”属于大模型摘要总结能力：Summarization.Types=QuestionsAnswering
+    summarizationTypes.push('QuestionsAnswering');
+  }
+
+  if (summarizationTypes.length > 0) {
+    params.SummarizationEnabled = true;
+    params.Summarization = { Types: Array.from(new Set(summarizationTypes)) };
   }
 
   return params;
@@ -132,12 +135,12 @@ function buildCapabilityParameters(caps: Array<string>): Record<string, any> {
  * - string 且看起来像 URL → fetch 后 json
  * - 其他（对象/数组/null）→ 原样返回
  */
-async function resolveResultField(value: unknown): Promise<any> {
+async function resolveResultField(value: unknown): Promise<unknown> {
   if (typeof value === 'string' && /^https?:\/\//.test(value)) {
     try {
       const res = await fetch(value);
       if (!res.ok) return null;
-      return await res.json();
+      return (await res.json()) as unknown;
     } catch {
       return null;
     }
@@ -145,9 +148,9 @@ async function resolveResultField(value: unknown): Promise<any> {
   return value;
 }
 
-async function mapResult(rawIn: any): Promise<AudioAnalysisResult> {
+async function mapResult(rawIn: unknown): Promise<AudioAnalysisResult> {
   // 把可能的 URL 字段先 fetch 解开
-  const raw = rawIn ?? {};
+  const raw = asRecord(rawIn);
   const [transcriptionDoc, autoChaptersDoc, summarizationDoc, keyPointsDoc, meetingDoc] = await Promise.all([
     resolveResultField(raw.Transcription),
     resolveResultField(raw.AutoChapters),
@@ -158,21 +161,26 @@ async function mapResult(rawIn: any): Promise<AudioAnalysisResult> {
 
   // 真实 API 返回的 JSON 多一层同名包裹：{ TaskId, Transcription: { AudioInfo, Paragraphs } }
   // test mock 直接传内层对象。两种都兼容：优先看包裹内层。
+  const transcriptionRecord = asRecord(transcriptionDoc);
+  const autoChaptersRecord = asRecord(autoChaptersDoc);
+  const summarizationRecord = asRecord(summarizationDoc);
+  const keyPointsRecord = asRecord(keyPointsDoc);
+  const meetingRecord = asRecord(meetingDoc);
   return mapTingwuToResult({
-    transcription: transcriptionDoc?.Transcription ?? transcriptionDoc,
-    autoChapters: autoChaptersDoc?.AutoChapters ?? autoChaptersDoc,
-    summarization: summarizationDoc?.Summarization ?? summarizationDoc,
-    keyPoints: keyPointsDoc?.KeyPoints ?? keyPointsDoc,
-    meeting: meetingDoc?.MeetingAssistance ?? meetingDoc,
+    transcription: transcriptionRecord.Transcription ?? transcriptionDoc,
+    autoChapters: autoChaptersRecord.AutoChapters ?? autoChaptersDoc,
+    summarization: summarizationRecord.Summarization ?? summarizationDoc,
+    keyPoints: keyPointsRecord.KeyPoints ?? keyPointsDoc,
+    meeting: meetingRecord.MeetingAssistance ?? meetingDoc,
   });
 }
 
 export interface TingwuMappingInput {
-  transcription: any;
-  autoChapters: any;
-  summarization: any;
-  keyPoints: any;
-  meeting: any;
+  transcription: unknown;
+  autoChapters: unknown;
+  summarization: unknown;
+  keyPoints: unknown;
+  meeting: unknown;
 }
 
 /**
@@ -181,16 +189,21 @@ export interface TingwuMappingInput {
  */
 export function mapTingwuToResult(input: TingwuMappingInput): AudioAnalysisResult {
   const { transcription, autoChapters, summarization, keyPoints, meeting: meetingAssistance } = input;
+  const transcriptionRecord = asRecord(transcription);
+  const summarizationRecord = asRecord(summarization);
+  const meetingRecord = asRecord(meetingAssistance);
 
   // 真实 API：Paragraphs[].Words[]，每个 Word 含 SentenceId + Start + End + Text
   // 同 SentenceId 的 Words 聚合成一个 segment（"句子"），text 用空格连接。
   // 测试 mock：Paragraphs[].Sentences[] 直接给 BeginTime/EndTime/Text 也支持。
   const transcript: TranscriptSegment[] = [];
-  for (const p of transcription?.Paragraphs ?? []) {
+  for (const item of getArray(transcriptionRecord.Paragraphs)) {
+    const p = asRecord(item);
     const speaker = p.SpeakerId ? String(p.SpeakerId) : undefined;
     if (Array.isArray(p.Sentences)) {
       // mock / 部分 API 直接给 Sentences 数组
-      for (const s of p.Sentences) {
+      for (const sentenceItem of p.Sentences) {
+        const s = asRecord(sentenceItem);
         transcript.push({
           start: Number(s.BeginTime ?? s.Start ?? 0) / 1000,
           end: Number(s.EndTime ?? s.End ?? 0) / 1000,
@@ -201,7 +214,8 @@ export function mapTingwuToResult(input: TingwuMappingInput): AudioAnalysisResul
     } else if (Array.isArray(p.Words)) {
       // 真实 API：按 SentenceId 聚合 Words
       const bySentence = new Map<string, { start: number; end: number; texts: string[] }>();
-      for (const w of p.Words) {
+      for (const wordItem of p.Words) {
+        const w = asRecord(wordItem);
         const sid = String(w.SentenceId ?? '0');
         const cur = bySentence.get(sid);
         const wStart = Number(w.Start ?? w.BeginTime ?? 0);
@@ -225,37 +239,89 @@ export function mapTingwuToResult(input: TingwuMappingInput): AudioAnalysisResul
   }
 
   // autoChapters 可能是数组（test mock）或带 Chapters 字段的对象（真实 API）
+  const autoChaptersRecord = asRecord(autoChapters);
   const chaptersRaw = Array.isArray(autoChapters)
     ? autoChapters
-    : autoChapters?.Chapters ?? [];
-  const chapters: Chapter[] = chaptersRaw.map((c: any) => ({
-    start: Number(c.Start ?? 0) / 1000,
-    end: Number(c.End ?? 0) / 1000,
-    title: String(c.Headline ?? ''),
-    summary: c.Summary ? String(c.Summary) : undefined,
-  }));
+    : getArray(autoChaptersRecord.Chapters);
+  const chapters: Chapter[] = chaptersRaw.map((item) => {
+    const c = asRecord(item);
+    return {
+      start: Number(c.Start ?? 0) / 1000,
+      end: Number(c.End ?? 0) / 1000,
+      title: String(c.Headline ?? ''),
+      summary: c.Summary ? String(c.Summary) : undefined,
+    };
+  });
 
   // keyPoints 可能是字符串数组（test mock）或 {KeyWords:[...]} 对象（真实 API）
+  const keyPointsRecord = asRecord(keyPoints);
   const keyPointsList = Array.isArray(keyPoints)
     ? keyPoints
-    : keyPoints?.KeyWords ?? keyPoints?.Keywords ?? [];
-  const keywordsArr = keyPointsList.map((kp: any) => String(kp));
+    : getArray(keyPointsRecord.KeyWords ?? keyPointsRecord.Keywords);
+  const keywordsArr = keyPointsList.map((kp) => String(kp));
+  const qaFromSummarization = normalizeQaPairs(
+    summarizationRecord.QuestionsAnsweringSummary,
+    ['Question', 'question', 'Q', 'q'],
+    ['Answer', 'answer', 'A', 'a'],
+  );
+  const qaFromMeeting = normalizeQaPairs(
+    meetingRecord.QAs,
+    ['Q', 'Question', 'q', 'question'],
+    ['A', 'Answer', 'a', 'answer'],
+  );
 
   return {
     transcript,
     chapters,
-    summary: String(summarization?.ParagraphSummary ?? ''),
+    summary: String(summarizationRecord.ParagraphSummary ?? summarizationRecord.Summary ?? ''),
     keyPoints: keywordsArr,
     keywords: keywordsArr,
-    qaPairs: (meetingAssistance?.QAs ?? []).map((q: any) => ({
-      q: String(q.Q ?? ''),
-      a: String(q.A ?? ''),
-    })),
-    speakers: transcription?.Speakers
-      ? transcription.Speakers.map((sp: any) => ({
-          id: String(sp.Id),
-          label: String(sp.Label ?? sp.Id),
-        }))
+    qaPairs: qaFromSummarization.length > 0 ? qaFromSummarization : qaFromMeeting,
+    speakers: getArray(transcriptionRecord.Speakers).length > 0
+      ? getArray(transcriptionRecord.Speakers).map((speakerItem) => {
+          const sp = asRecord(speakerItem);
+          return {
+            id: String(sp.Id),
+            label: String(sp.Label ?? sp.Id),
+          };
+        })
       : undefined,
   };
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeQaPairs(
+  raw: unknown,
+  questionKeys: string[],
+  answerKeys: string[],
+): Array<{ q: string; a: string }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      const q = firstString(record, questionKeys);
+      const a = firstString(record, answerKeys);
+      if (!q || !a) return null;
+      return { q, a };
+    })
+    .filter((qa): qa is { q: string; a: string } => qa !== null);
+}
+
+function firstString(record: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+  return '';
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import type { Content } from "@tiptap/core";
 import { Sparkles } from "lucide-react";
 import { baseExtensions } from "../notes/editor-config";
 import { NotesToolbar } from "../notes/NotesToolbar";
@@ -17,7 +18,7 @@ export function NotesPanel({
   initialUpdatedAt,
 }: {
   noteId: string;
-  initialContent: any;
+  initialContent: Content;
   initialUpdatedAt?: string | null;
 }) {
   const setNotesEditor = useVideoDetailStore((s) => s.setNotesEditor);
@@ -77,7 +78,7 @@ export function NotesPanel({
       <div className="flex-1 relative overflow-hidden">
         <div
           onClick={handleClickInsideEditor}
-          className="absolute inset-0 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-blue-400/30 dark:[&::-webkit-scrollbar-thumb]:bg-blue-300/20 hover:[&::-webkit-scrollbar-thumb]:bg-blue-500/45 dark:hover:[&::-webkit-scrollbar-thumb]:bg-blue-300/40 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors"
+          className="absolute inset-0 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/15 dark:[&::-webkit-scrollbar-thumb]:bg-slate-200/10 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300/25 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-200/18 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors"
         >
           <EditorContent editor={editor} />
         </div>

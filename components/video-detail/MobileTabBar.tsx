@@ -1,11 +1,12 @@
 "use client";
 
-import { Sparkles, FileText, NotebookPen, MoreHorizontal } from "lucide-react";
+import { Sparkles, FileText, MessageCircleQuestion, NotebookPen, MoreHorizontal } from "lucide-react";
 import { useVideoDetailStore } from "./store";
 
 const TABS = [
   { key: "brief", label: "速览", Icon: Sparkles },
   { key: "transcript", label: "原文", Icon: FileText },
+  { key: "qa", label: "问答", Icon: MessageCircleQuestion },
   { key: "notes", label: "笔记", Icon: NotebookPen },
   { key: "more", label: "更多", Icon: MoreHorizontal },
 ] as const;
