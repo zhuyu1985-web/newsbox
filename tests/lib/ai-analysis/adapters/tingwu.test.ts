@@ -7,8 +7,8 @@ const { requestMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@alicloud/openapi-client', () => ({
-  default: { Config: class { constructor(_: any) {} } },
-  Config: class { constructor(_: any) {} },
+  default: { Config: class { constructor(options: unknown) { void options; } } },
+  Config: class { constructor(options: unknown) { void options; } },
 }));
 
 vi.mock('@/lib/ai-analysis/adapters/tingwu-client', () => ({
@@ -36,6 +36,31 @@ describe('TingwuAdapter', () => {
       capabilities: ['transcript', 'chapters', 'summary', 'key_points'],
     });
     expect(result.taskId).toBe('tw-task-123');
+  });
+
+  it('requests Tingwu question-answering summary when qa capability is enabled', async () => {
+    requestMock.mockResolvedValueOnce({
+      body: { Data: { TaskId: 'tw-task-qa' } },
+    });
+    const a = new TingwuAdapter();
+
+    await a.submit({
+      mediaUrl: 'https://cos.example.com/v.mp4',
+      capabilities: ['transcript', 'summary', 'qa'],
+    });
+
+    const requestBody = requestMock.mock.calls[0]?.[1] as {
+      Parameters: {
+        SummarizationEnabled?: boolean;
+        Summarization?: { Types?: string[] };
+        MeetingAssistanceEnabled?: boolean;
+      };
+    };
+    expect(requestBody.Parameters.SummarizationEnabled).toBe(true);
+    expect(requestBody.Parameters.Summarization?.Types ?? []).toEqual(
+      expect.arrayContaining(['Paragraph', 'QuestionsAnswering']),
+    );
+    expect(requestBody.Parameters.MeetingAssistanceEnabled).toBeUndefined();
   });
 
   it('submit throws on API error', async () => {
@@ -118,5 +143,32 @@ describe('Tingwu adapter mapping', () => {
       meeting: null,
     });
     expect(result.keywords).toEqual(['北京电视台', '向前一步', '电视剧']);
+  });
+
+  it('maps Summarization.QuestionsAnsweringSummary to qaPairs', () => {
+    const result = mapTingwuToResult({
+      transcription: { Paragraphs: [] },
+      autoChapters: { Chapters: [] },
+      summarization: {
+        ParagraphSummary: '问答回顾测试',
+        QuestionsAnsweringSummary: [
+          {
+            Question: '电视剧市场的商业化特性及其挑战是什么？',
+            SentenceIdsOfQuestion: [1],
+            Answer: '电视剧市场高度商业化，需要同时承受资本盈利压力并满足观众需求。',
+            SentenceIdsOfAnswer: [2, 3],
+          },
+        ],
+      },
+      keyPoints: null,
+      meeting: null,
+    });
+
+    expect(result.qaPairs).toEqual([
+      {
+        q: '电视剧市场的商业化特性及其挑战是什么？',
+        a: '电视剧市场高度商业化，需要同时承受资本盈利压力并满足观众需求。',
+      },
+    ]);
   });
 });

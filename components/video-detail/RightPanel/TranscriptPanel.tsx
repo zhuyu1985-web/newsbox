@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { AlertCircle, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { useVideoDetailStore } from "../store";
@@ -135,12 +135,17 @@ export function TranscriptPanel({
   noteId: string;
   videoJob: VideoJobRow | null;
 }) {
-  const transcript: TranscriptSegment[] = videoJob?.audio_result?.transcript ?? [];
+  const transcript: TranscriptSegment[] = useMemo(
+    () => videoJob?.audio_result?.transcript ?? [],
+    [videoJob?.audio_result?.transcript],
+  );
   const currentTime = useVideoDetailStore((s) => s.currentTime);
   const selected = useVideoDetailStore((s) => s.selectedSpeakers);
   const searchQuery = useVideoDetailStore((s) => s.searchQuery);
   const searchMatches = useVideoDetailStore((s) => s.searchMatches);
   const searchCurrentMatch = useVideoDetailStore((s) => s.searchCurrentMatch);
+  const showMarkedTranscriptOnly = useVideoDetailStore((s) => s.showMarkedTranscriptOnly);
+  const selectedTranscriptMarkerKinds = useVideoDetailStore((s) => s.selectedTranscriptMarkerKinds);
   const translations = useVideoDetailStore((s) => s.translations);
   const translationTarget = useVideoDetailStore((s) => s.translationTarget);
   const translationMode = useVideoDetailStore((s) => s.translationMode);
@@ -155,13 +160,43 @@ export function TranscriptPanel({
   const userScrolledRef = useRef(false);
   const lastUserScrollTimeRef = useRef(0);
 
-  const visibleSegments = transcript.filter((seg) => {
+  const visibleSegments = useMemo(() => transcript.filter((seg) => {
     if (selected.size === 0) return true;
     return seg.speaker ? selected.has(seg.speaker) : true;
-  });
+  }), [transcript, selected]);
 
-  const activeIdx = visibleSegments.findIndex((s, i) => {
-    const next = visibleSegments[i + 1];
+  const hasTranscriptMarker = useCallback((segment: TranscriptSegment) => {
+    const originalIdx = transcript.indexOf(segment);
+    return markers.some(
+      (m) =>
+        m.target_type === "transcript" &&
+        m.segment_idx === originalIdx,
+    );
+  }, [markers, transcript]);
+
+  const matchesSelectedMarkerKinds = useCallback((segment: TranscriptSegment) => {
+    if (!hasTranscriptMarker(segment)) return false;
+    if (selectedTranscriptMarkerKinds.length === 0) return true;
+
+    const originalIdx = transcript.indexOf(segment);
+    return markers.some(
+      (m) =>
+        m.target_type === "transcript" &&
+        m.segment_idx === originalIdx &&
+        selectedTranscriptMarkerKinds.includes(m.marker_kind),
+    );
+  }, [hasTranscriptMarker, markers, selectedTranscriptMarkerKinds, transcript]);
+
+  const displaySegments = useMemo(
+    () =>
+      showMarkedTranscriptOnly
+        ? visibleSegments.filter((seg) => matchesSelectedMarkerKinds(seg))
+        : visibleSegments,
+    [showMarkedTranscriptOnly, visibleSegments, matchesSelectedMarkerKinds],
+  );
+
+  const activeIdx = displaySegments.findIndex((s, i) => {
+    const next = displaySegments[i + 1];
     return currentTime >= s.start && (next ? currentTime < next.start : currentTime <= s.end);
   });
 
@@ -171,7 +206,7 @@ export function TranscriptPanel({
       : -1;
   const currentMatchVisibleIdx =
     currentMatchTranscriptIdx >= 0
-      ? visibleSegments.indexOf(transcript[currentMatchTranscriptIdx])
+      ? displaySegments.indexOf(transcript[currentMatchTranscriptIdx])
       : -1;
 
   useEffect(() => {
@@ -269,13 +304,20 @@ export function TranscriptPanel({
       </div>
     );
   }
+  if (displaySegments.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground px-4 py-8 text-center">
+        {selectedTranscriptMarkerKinds.length > 0 ? "暂无匹配的标记内容" : "暂无标记内容"}
+      </div>
+    );
+  }
 
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-blue-400/30 dark:[&::-webkit-scrollbar-thumb]:bg-blue-300/20 hover:[&::-webkit-scrollbar-thumb]:bg-blue-500/45 dark:hover:[&::-webkit-scrollbar-thumb]:bg-blue-300/40 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors"
+      className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/15 dark:[&::-webkit-scrollbar-thumb]:bg-slate-200/10 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300/25 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-200/18 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors"
     >
-      {visibleSegments.map((seg, i) => {
+      {displaySegments.map((seg, i) => {
         const isActive = i === activeIdx;
         const isCurrentMatch = i === currentMatchVisibleIdx;
         const originalIdx = transcript.indexOf(seg);
@@ -421,4 +463,3 @@ export function TranscriptPanel({
     </div>
   );
 }
-

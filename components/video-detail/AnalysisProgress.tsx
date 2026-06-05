@@ -14,6 +14,7 @@ const STATUS_ICONS: Record<string, JSX.Element> = {
 export function AnalysisProgress({ jobId }: { jobId: string }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const refreshDispatchedRef = useRef(false);
   const { steps, overallPercent, isComplete, hasFailures, refetch, data } = useAnalysisProgress(jobId);
 
   useEffect(() => {
@@ -24,6 +25,22 @@ export function AnalysisProgress({ jobId }: { jobId: string }) {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    if (!isComplete) {
+      refreshDispatchedRef.current = false;
+      return;
+    }
+
+    if (refreshDispatchedRef.current) return;
+    refreshDispatchedRef.current = true;
+    const refreshTimer = window.setTimeout(() => {
+      window.dispatchEvent(new Event("reader:refresh-content"));
+    }, 0);
+    return () => window.clearTimeout(refreshTimer);
+  }, [data, isComplete]);
 
   const retry = async (step: StepKey) => {
     // optimistic：立即把目标步骤推进到 in_progress，弹出 pulse 动画，不等服务端响应
@@ -44,7 +61,7 @@ export function AnalysisProgress({ jobId }: { jobId: string }) {
 
   // 终态有失败 → 玫红；全部 done → 绿；进行中 → 蓝色（带 pulse 强调）
   const chipClass = !isComplete
-    ? "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100/80 dark:hover:bg-blue-900/40 ring-1 ring-blue-200/60 dark:ring-blue-800/60 animate-[pulse_2.4s_ease-in-out_infinite]"
+    ? "relative isolate overflow-hidden px-2.5 h-8 rounded-lg flex items-center gap-1.5 text-xs bg-blue-50/90 dark:bg-blue-950/50 text-blue-700 dark:text-blue-200 hover:bg-blue-100/90 dark:hover:bg-blue-900/50 ring-1 ring-blue-200/70 dark:ring-blue-700/70 shadow-[0_0_18px_rgba(37,99,235,0.18)] animate-analysis-glow"
     : hasFailures
     ? "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100/80 dark:hover:bg-rose-900/40"
     : "px-2 h-8 rounded-md flex items-center gap-1.5 text-xs bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40";
@@ -58,8 +75,19 @@ export function AnalysisProgress({ jobId }: { jobId: string }) {
   return (
     <div ref={wrapperRef} className="relative">
       <button onClick={() => setOpen((v) => !v)} className={chipClass}>
-        <Sparkles size={12} />
-        <span>{chipLabel}</span>
+        {!isComplete && (
+          <>
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(110deg,transparent_15%,rgba(255,255,255,0.75)_45%,transparent_70%)] dark:bg-[linear-gradient(110deg,transparent_15%,rgba(147,197,253,0.28)_45%,transparent_70%)] animate-analysis-shimmer" />
+            <span className="pointer-events-none absolute inset-x-1 bottom-1 h-0.5 rounded-full bg-blue-200/60 dark:bg-blue-900/70 overflow-hidden">
+              <span
+                className="block h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-violet-500 transition-[width] duration-700 ease-out"
+                style={{ width: `${Math.max(overallPercent, 8)}%` }}
+              />
+            </span>
+          </>
+        )}
+        <Sparkles size={12} className={!isComplete ? "relative z-10 animate-sparkle" : undefined} />
+        <span className="relative z-10">{chipLabel}</span>
       </button>
 
       {open && (

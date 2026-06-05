@@ -6,14 +6,12 @@ import { useVideoDetailStore } from "../store";
 import { KeywordsRow } from "./KeywordsRow";
 import { SummaryBlock } from "./SummaryBlock";
 import { ChaptersTab } from "./ChaptersTab";
-import { QATab } from "./QATab";
 import { SpeakerSummaryTab } from "./SpeakerSummaryTab";
 import type { VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
 const SUBTABS = [
   { key: "chapters", label: "章节速览" },
   { key: "speakers", label: "发言总结" },
-  { key: "qa", label: "问答回顾" },
 ] as const;
 
 export function BriefPanel({
@@ -78,7 +76,7 @@ export function BriefPanel({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-blue-400/30 dark:[&::-webkit-scrollbar-thumb]:bg-blue-300/20 hover:[&::-webkit-scrollbar-thumb]:bg-blue-500/45 dark:hover:[&::-webkit-scrollbar-thumb]:bg-blue-300/40 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors">
+    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/15 dark:[&::-webkit-scrollbar-thumb]:bg-slate-200/10 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300/25 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-200/18 [&::-webkit-scrollbar-thumb]:backdrop-blur-md [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:transition-colors">
       <KeywordsRow keywords={audio?.keywords} jobId={jobId} canEnrich={canEnrich} />
       <SummaryBlock summary={audio?.summary} />
 
@@ -105,14 +103,6 @@ export function BriefPanel({
         {subTab === "speakers" && (
           <SpeakerSummaryTab
             audio={audio}
-            jobId={jobId}
-            canEnrich={canEnrich}
-            noteId={noteId}
-          />
-        )}
-        {subTab === "qa" && (
-          <QATab
-            qaPairs={audio?.qaPairs}
             jobId={jobId}
             canEnrich={canEnrich}
             noteId={noteId}

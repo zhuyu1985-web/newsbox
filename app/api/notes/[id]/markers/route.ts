@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  isTranscriptMarkersTableMissing,
+  TRANSCRIPT_MARKERS_UNAVAILABLE_MESSAGE,
+} from "@/lib/notes/marker-errors";
 
 /**
  * GET /api/notes/[id]/markers — 列出该笔记的所有 marker
@@ -34,9 +38,16 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     .order("created_at", { ascending: true });
 
   if (error) {
+    if (isTranscriptMarkersTableMissing(error)) {
+      return NextResponse.json({
+        markers: [],
+        available: false,
+        error: TRANSCRIPT_MARKERS_UNAVAILABLE_MESSAGE,
+      });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ markers: data ?? [] });
+  return NextResponse.json({ markers: data ?? [], available: true });
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -115,6 +126,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   if (error) {
     console.error("[markers] insert failed", error);
+    if (isTranscriptMarkersTableMissing(error)) {
+      return NextResponse.json(
+        {
+          error: TRANSCRIPT_MARKERS_UNAVAILABLE_MESSAGE,
+          available: false,
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ marker: data });

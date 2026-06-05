@@ -44,11 +44,11 @@ export function MarkerActionBar({
   align = "right",
   hoverOnly = true,
 }: Props) {
-  const visibility = hoverOnly
+  const hasAny = activeKinds.size > 0;
+  const visibility = hoverOnly && !hasAny
     ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
     : "";
   const position = align === "right" ? "right-0" : "left-0";
-  const hasAny = activeKinds.size > 0;
 
   return (
     <div

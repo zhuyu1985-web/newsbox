@@ -4,6 +4,10 @@ import type { QAPair } from '@/lib/ai-analysis/types';
 
 export type TranslationLang = 'en' | 'ja' | 'ko' | 'auto-zh';
 export type TranslationMode = 'bilingual' | 'target-only';
+export type VideoDetailTab = 'brief' | 'transcript' | 'qa' | 'notes';
+export type BriefSubTab = 'chapters' | 'speakers';
+export type MobileSheetKey = VideoDetailTab | 'more';
+export type TranscriptMarkerFilterKind = 'important' | 'question' | 'todo';
 
 /**
  * AI 兜底生成（enrich）后会回传新数据，落库需要刷新页面才能看到。
@@ -19,13 +23,15 @@ export interface AudioOverrides {
 interface VideoDetailState {
   currentTime: number;
   isPlaying: boolean;
-  activeTab: 'brief' | 'transcript' | 'notes';
-  activeBriefSubTab: 'chapters' | 'speakers' | 'qa';
+  activeTab: VideoDetailTab;
+  activeBriefSubTab: BriefSubTab;
   miniPlayerVisible: boolean;
   audioMode: boolean;
   audioOverrides: AudioOverrides;
   selectedSpeakers: Set<string>;
   notesEditor: Editor | null;
+  showMarkedTranscriptOnly: boolean;
+  selectedTranscriptMarkerKinds: TranscriptMarkerFilterKind[];
   // 原文搜索
   searchOpen: boolean;
   searchQuery: string;
@@ -38,17 +44,19 @@ interface VideoDetailState {
   translations: Record<number, string>;              // 索引 -> 译文
   translationLoading: boolean;
   // 移动端底部抽屉
-  mobileSheetOpen: 'brief' | 'transcript' | 'notes' | 'more' | null;
+  mobileSheetOpen: MobileSheetKey | null;
 
   setCurrentTime: (t: number) => void;
   setIsPlaying: (p: boolean) => void;
-  setActiveTab: (t: 'brief' | 'transcript' | 'notes') => void;
-  setActiveBriefSubTab: (t: 'chapters' | 'speakers' | 'qa') => void;
+  setActiveTab: (t: VideoDetailTab) => void;
+  setActiveBriefSubTab: (t: BriefSubTab) => void;
   setMiniPlayerVisible: (v: boolean) => void;
   setAudioMode: (v: boolean) => void;
   mergeAudioOverrides: (patch: AudioOverrides) => void;
   toggleSpeaker: (id: string) => void;
   setNotesEditor: (e: Editor | null) => void;
+  setShowMarkedTranscriptOnly: (v: boolean) => void;
+  toggleTranscriptMarkerKind: (kind: TranscriptMarkerFilterKind) => void;
   // 原文搜索 setters
   setSearchOpen: (v: boolean) => void;
   setSearchQuery: (q: string) => void;
@@ -64,14 +72,22 @@ interface VideoDetailState {
   setTranslationLoading: (v: boolean) => void;
   clearTranslations: () => void;
   // 移动端底部抽屉 setter
-  setMobileSheetOpen: (v: 'brief' | 'transcript' | 'notes' | 'more' | null) => void;
+  setMobileSheetOpen: (v: MobileSheetKey | null) => void;
+}
+
+const VIDEO_DETAIL_TABS: VideoDetailTab[] = ['brief', 'transcript', 'qa', 'notes'];
+
+function parseVideoDetailTab(value: string | null): VideoDetailTab {
+  return VIDEO_DETAIL_TABS.includes(value as VideoDetailTab)
+    ? (value as VideoDetailTab)
+    : 'brief';
 }
 
 export const useVideoDetailStore = create<VideoDetailState>((set) => ({
   currentTime: 0,
   isPlaying: false,
   activeTab: (typeof sessionStorage !== 'undefined'
-    ? (sessionStorage.getItem('video-detail.activeTab') as any) || 'brief'
+    ? parseVideoDetailTab(sessionStorage.getItem('video-detail.activeTab'))
     : 'brief'),
   activeBriefSubTab: 'chapters',
   miniPlayerVisible: false,
@@ -79,6 +95,8 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
   audioOverrides: {},
   selectedSpeakers: new Set(),
   notesEditor: null,
+  showMarkedTranscriptOnly: false,
+  selectedTranscriptMarkerKinds: [],
 
   searchOpen: false,
   searchQuery: '',
@@ -110,6 +128,17 @@ export const useVideoDetailStore = create<VideoDetailState>((set) => ({
     return { selectedSpeakers: next };
   }),
   setNotesEditor: (e) => set({ notesEditor: e }),
+  setShowMarkedTranscriptOnly: (v) => set({ showMarkedTranscriptOnly: v }),
+  toggleTranscriptMarkerKind: (kind) => set((s) => {
+    const selected = s.selectedTranscriptMarkerKinds;
+    const next = selected.includes(kind)
+      ? selected.filter((item) => item !== kind)
+      : [...selected, kind];
+    return {
+      selectedTranscriptMarkerKinds: next,
+      showMarkedTranscriptOnly: true,
+    };
+  }),
 
   setSearchOpen: (v) => set({ searchOpen: v }),
   setSearchQuery: (q) => set({ searchQuery: q }),

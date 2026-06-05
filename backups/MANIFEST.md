@@ -6,3 +6,5 @@
 |------|------|------|------|------|----------|------|
 | 2026-05-18 | v3 | full | backups/2026-05-18-v3/full.sql | 2.6M | 0 | — |
 | 2026-06-03 | v1 | incremental | backups/2026-06-03-v1-incremental/incremental.sql | 4.0K | — | 基于 2026-05-18 v3，含 2 migrations |
+| 2026-06-04 | v4 | incremental | backups/2026-06-04-v4-incremental/incremental-schema.sql | 8.0K | — | 基于 2026-05-18 v3；schema 4 migrations；未导出数据 |
+| 2026-06-04 | v5 | incremental | backups/2026-06-04-v5-incremental/incremental-schema.sql | 8.0K | — | 基于 2026-05-18 v3；schema 4 migrations；未导出数据 |

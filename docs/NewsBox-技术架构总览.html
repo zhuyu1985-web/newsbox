@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="space">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewsBox 技术架构总览 · 深度分析报告</title>
+<style>
+/* ===== 设计系统 themes.css（内联，data-theme="space" 深空智核） ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; }
+:root {
+  --sans: "PingFang SC","HarmonyOS Sans SC","Source Han Sans SC","Noto Sans SC","Microsoft YaHei","微软雅黑",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --serif: "Source Han Serif SC","Noto Serif SC","Songti SC",STSong,"宋体","SimSun",serif;
+  --fs-display: clamp(2.6rem, 1.7rem + 4vw, 4.4rem);
+  --fs-h1: clamp(2rem, 1.5rem + 2vw, 3rem);
+  --fs-h2: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem);
+  --fs-h3: clamp(1.18rem, 1.05rem + .55vw, 1.45rem);
+  --fs-lead: clamp(1.05rem, 1rem + .35vw, 1.28rem);
+  --fs-kpi: clamp(2.2rem, 1.5rem + 2.6vw, 3.4rem);
+  --fs-base: 1.0625rem; --fs-sm: .9375rem; --fs-xs: .8125rem; --fs-kicker: .78rem;
+  --lh-tight: 1.14; --lh-snug: 1.34; --lh-base: 1.75; --lh-relaxed: 1.85;
+  --sp-1: .375rem; --sp-2: .625rem; --sp-3: 1rem; --sp-4: 1.5rem; --sp-5: 2.25rem; --sp-6: 3.25rem; --sp-7: 4.5rem; --sp-8: 6.5rem;
+  --r-sm: 8px; --r-md: 12px; --r-lg: 18px; --r-xl: 26px; --r-pill: 999px;
+  --container: 1180px; --measure: 72ch; --ease: cubic-bezier(.4,0,.2,1); --dur: .55s;
+}
+[data-theme="space"] {
+  --bg:#fafaf7; --bg-elev:#ffffff; --bg-elev-2:#f2f0ea;
+  --ink:#0f172a; --ink-2:#475569; --ink-3:#94a3b8;
+  --brand:#1e3a8a; --brand-strong:#172554; --brand-weak:#dbe4fe;
+  --accent:#b8843c; --accent-weak:#faefd7; --accent2:#b8843c; --accent2-weak:#faefd7;
+  --border:rgba(15,23,42,.10); --border-strong:rgba(15,23,42,.18); --ring:rgba(30,58,138,.35);
+  --font-head: var(--sans); --font-body: var(--sans);
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+  --shadow-md: 0 8px 28px -6px rgba(15,23,42,.10), 0 2px 8px -3px rgba(15,23,42,.06);
+  --shadow-lg: 0 24px 60px -16px rgba(15,23,42,.14), 0 6px 16px -8px rgba(15,23,42,.10);
+}
+body { background: var(--bg); }
+[data-theme="space"] body { background: radial-gradient(900px 480px at 100% -12%, rgba(30,58,138,.06), transparent 60%), var(--bg); }
+body { font-family: var(--font-body); font-size: var(--fs-base); line-height: var(--lh-base); color: var(--ink); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+h1,h2,h3,h4 { font-family: var(--font-head); color: var(--ink); line-height: var(--lh-snug); font-weight: 700; }
+h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); letter-spacing:-.01em; }
+h2 { font-size: var(--fs-h2); letter-spacing:-.005em; }
+h3 { font-size: var(--fs-h3); }
+p  { color: var(--ink-2); max-width: var(--measure); }
+strong { color: var(--ink); font-weight: 700; }
+::selection { background: var(--brand-weak); }
+.muted { color: var(--ink-3); } .accent-text { color: var(--brand); } .center { text-align: center; } .nums { font-variant-numeric: tabular-nums; }
+.container { width: 100%; max-width: var(--container); margin-inline: auto; padding-inline: clamp(1.25rem, 4vw, 2.5rem); }
+.section { padding-block: clamp(3rem, 6vw, 5.5rem); }
+.section + .section { border-top: 1px solid var(--border); }
+.section--dark, .section--dark + .section, .section + .section--dark { border-top: none; }
+.grid { display: grid; gap: var(--sp-4); }
+.cols-2 { grid-template-columns: repeat(2, 1fr); } .cols-3 { grid-template-columns: repeat(3, 1fr); } .cols-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 820px){ .cols-3,.cols-4 { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 560px){ .grid { grid-template-columns: 1fr !important; } }
+.kicker { display: inline-flex; align-items: center; gap: .55rem; font-size: var(--fs-kicker); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
+.kicker::before { content:""; width: 1.7rem; height: 2px; background: var(--brand); border-radius: 2px; }
+.kicker.accent { color: var(--accent); } .kicker.accent::before { background: var(--accent); }
+.cover { position: relative; padding-block: clamp(4rem,9vw,7.5rem) clamp(2.5rem,5vw,4rem); }
+.cover h1 { font-size: var(--fs-display); margin: 1.1rem 0 1.1rem; max-width: 18ch; }
+.cover .subtitle { font-size: var(--fs-lead); color: var(--ink-2); max-width: 52ch; line-height: var(--lh-relaxed); }
+.cover .meta { display: flex; flex-wrap: wrap; gap: 1.25rem 2rem; margin-top: 2.25rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--ink-3); }
+.cover .meta b { color: var(--ink-2); font-weight: 600; }
+.section-head { max-width: 64ch; margin-bottom: var(--sp-5); }
+.section-head h2 { margin: .9rem 0 .85rem; }
+.section-head .lead { font-size: var(--fs-lead); color: var(--ink-2); line-height: var(--lh-relaxed); }
+.lead { font-size: var(--fs-lead); color: var(--ink-2); line-height: var(--lh-relaxed); }
+.card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-4); box-shadow: var(--shadow-sm); transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+.card h3 { margin-bottom: .55rem; } .card p { font-size: var(--fs-sm); }
+.card .card-num { font-family: var(--font-head); font-size: 1.6rem; font-weight: 800; color: var(--brand); line-height: 1; letter-spacing:-.02em; }
+.card--accent { border-top: 3px solid var(--brand); }
+.card--brand { background: var(--brand-weak); border-color: transparent; } .card--brand h3 { color: var(--brand-strong); }
+.section--dark .card { background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); backdrop-filter: blur(8px); border-color: var(--border); }
+.kpi .num { font-family: var(--font-head); font-size: var(--fs-kpi); font-weight: 800; color: var(--brand); line-height: 1; letter-spacing:-.02em; font-variant-numeric: tabular-nums; }
+.kpi .num .unit { font-size: .42em; color: var(--ink-3); margin-left: .25rem; font-weight: 700; }
+.kpi .label { color: var(--ink-2); font-size: var(--fs-sm); margin-top: .55rem; }
+.kpi .delta { color: var(--accent); font-size: var(--fs-xs); font-weight: 700; }
+.tag { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--fs-xs); font-weight: 700; padding: .28rem .68rem; border-radius: var(--r-pill); letter-spacing: .02em; background: var(--brand-weak); color: var(--brand-strong); }
+.tag--accent { background: var(--accent-weak); color: var(--ink); } .tag--muted { background: var(--bg-elev-2); color: var(--ink-2); border: 1px solid var(--border); }
+.table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--fs-sm); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.table thead th { background: var(--brand-weak); color: var(--brand-strong); text-align: left; font-weight: 700; padding: .8rem 1rem; font-size: var(--fs-xs); letter-spacing: .04em; }
+.table th, .table td { padding: .78rem 1rem; border-bottom: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: var(--bg-elev-2); }
+.table td.num, .table th.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.table.zebra tbody tr:nth-child(even) { background: var(--bg-elev-2); }
+.section--dark .table { border-color: var(--border); }
+.timeline { position: relative; }
+.t-item { position: relative; padding-left: 2.5rem; padding-bottom: 2rem; }
+.t-item:last-child { padding-bottom: 0; }
+.t-item::before { content:""; position: absolute; left: 9px; top: .4rem; bottom: -.4rem; width: 2px; background: var(--border-strong); }
+.t-item:last-child::before { display: none; }
+.t-item::after { content:""; position: absolute; left: 3px; top: .3rem; width: 14px; height: 14px; border-radius: 50%; background: var(--bg-elev); border: 3px solid var(--brand); box-shadow: 0 0 0 4px var(--brand-weak); }
+.t-item .t-time { font-size: var(--fs-xs); font-weight: 800; color: var(--brand); letter-spacing: .06em; }
+.t-item h4 { font-size: var(--fs-h3); margin: .25rem 0 .4rem; }
+.t-item p { font-size: var(--fs-sm); }
+.callout { position: relative; background: var(--brand-weak); border-radius: var(--r-md); padding: 1.1rem 1.3rem 1.1rem 1.4rem; border-left: 3px solid var(--brand); color: var(--ink); }
+.callout p { color: var(--ink); max-width: none; }
+.callout .callout-title { font-weight: 800; color: var(--brand-strong); margin-bottom: .3rem; }
+.callout--accent { background: var(--accent-weak); border-left-color: var(--accent); } .callout--accent .callout-title { color: var(--ink); }
+.callout--accent2 { background: var(--accent2-weak); border-left-color: var(--accent2); }
+.quote { position: relative; padding: .5rem 0; font-family: var(--font-head); font-size: clamp(1.25rem,1.05rem+.9vw,1.8rem); line-height: var(--lh-snug); color: var(--ink); }
+.quote::before { content:"\201C"; position:absolute; left:-.15em; top:-.35em; font-size: 3.2em; color: var(--brand); opacity: .16; line-height: 1; font-family: var(--serif); }
+.quote cite { display: block; font-family: var(--font-body); font-size: var(--fs-sm); font-style: normal; color: var(--ink-2); margin-top: .65rem; }
+.divider { height: 1px; background: var(--border); border: none; margin-block: var(--sp-5); }
+.divider--brand { height: 3px; width: 48px; background: var(--brand); border-radius: 2px; margin-block: var(--sp-4); }
+.list { list-style: none; display: grid; gap: .65rem; }
+.list li { position: relative; padding-left: 1.5rem; color: var(--ink-2); line-height: var(--lh-base); }
+.list li::before { content:""; position: absolute; left: .15rem; top: .62em; width: .5rem; height: .5rem; background: var(--brand); transform: rotate(45deg); border-radius: 1px; }
+.site-footer { border-top: 1px solid var(--border); padding-block: var(--sp-5); color: var(--ink-3); font-size: var(--fs-sm); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.section--dark { position: relative; color: var(--ink); }
+[data-theme="space"] .section--dark {
+  --bg:#0b1426; --bg-elev:#16203a; --bg-elev-2:#1a2440;
+  --ink:#eaf0fb; --ink-2:rgba(255,255,255,.72); --ink-3:rgba(255,255,255,.5);
+  --brand:#7fb0ff; --brand-strong:#a9c9ff; --brand-weak:rgba(96,165,250,.16);
+  --accent:#d4a04c; --accent-weak:rgba(212,160,76,.16); --accent2:#d4a04c; --accent2-weak:rgba(212,160,76,.16);
+  --border:rgba(255,255,255,.12); --border-strong:rgba(255,255,255,.22);
+  background: radial-gradient(900px 500px at 82% -10%, rgba(96,165,250,.16), transparent 60%), radial-gradient(800px 520px at 6% 112%, rgba(212,160,76,.10), transparent 55%), linear-gradient(160deg, #0b1426 0%, #0d1830 55%, #050a18 100%);
+}
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+[data-animate] { opacity: 0; animation: rise .7s var(--ease) forwards; animation-delay: calc(var(--i, 0) * .08s); }
+@media (prefers-reduced-motion: reduce) { [data-animate] { animation: none; opacity: 1; } }
+@media print { .no-print { display: none !important; } .section + .section { border-top: none; } .section { padding-block: 1.4rem; break-inside: avoid-page; } .card, .table, .callout, .t-item, .kpi { break-inside: avoid; } [data-animate] { opacity: 1 !important; animation: none !important; } }
+
+/* ===== 报告专属增强（在设计系统之上） ===== */
+.topnav { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); background: rgba(250,250,247,.82); border-bottom: 1px solid var(--border); }
+.topnav .inner { max-width: var(--container); margin-inline: auto; padding: .7rem clamp(1.25rem,4vw,2.5rem); display: flex; align-items: center; gap: 1.2rem; }
+.topnav .brand { font-weight: 800; color: var(--brand-strong); letter-spacing: -.01em; font-size: 1.02rem; white-space: nowrap; }
+.topnav .brand .dot { color: var(--accent); }
+.topnav nav { display: flex; gap: .35rem; overflow-x: auto; scrollbar-width: none; }
+.topnav nav::-webkit-scrollbar { display: none; }
+.topnav nav a { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); text-decoration: none; padding: .35rem .6rem; border-radius: var(--r-pill); white-space: nowrap; transition: background .2s, color .2s; }
+.topnav nav a:hover { background: var(--brand-weak); color: var(--brand-strong); }
+.progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: linear-gradient(90deg, #1e3a8a, #7fb0ff, #d4a04c); z-index: 60; transition: width .1s linear; }
+.diagram { border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.6rem 1.3rem; box-shadow: var(--shadow-sm); overflow-x: auto; background: var(--bg-elev); }
+.section--dark .diagram { background: rgba(255,255,255,.04); backdrop-filter: blur(8px); border-color: var(--border); }
+.diagram-cap { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 1rem; text-align: center; letter-spacing: .02em; }
+/* 纯 CSS 原理图（零依赖，浅/深区块自动适配文字颜色） */
+.dgm { display: flex; flex-direction: column; gap: .55rem; align-items: stretch; min-width: 540px; }
+.dgm-row { display: flex; gap: .7rem; justify-content: center; flex-wrap: wrap; align-items: stretch; }
+.dgm-row > .dgm-arrow { display: flex; align-items: center; flex: 0 0 auto; }
+.dgm-node { flex: 1 1 0; min-width: 116px; max-width: 240px; text-align: center; padding: .72rem .82rem; border-radius: var(--r-md); background: var(--bg-elev); border: 1px solid var(--border); box-shadow: var(--shadow-sm); font-weight: 700; font-size: var(--fs-sm); color: var(--ink); line-height: 1.3; }
+.dgm-node small { display: block; font-weight: 500; font-size: .74rem; color: var(--ink-3); margin-top: .22rem; }
+.dgm-node.is-brand { background: var(--brand-weak); border-color: transparent; color: var(--brand-strong); }
+.dgm-node.is-brand small { color: var(--brand-strong); opacity: .82; }
+.dgm-node.is-accent { background: var(--accent-weak); border-color: transparent; color: var(--ink); }
+.dgm-node.is-hub { background: var(--brand); border-color: transparent; color: #fff; font-size: var(--fs-base); padding: .9rem 1.5rem; flex: 0 0 auto; max-width: none; }
+.dgm-node.is-hub small { color: rgba(255,255,255,.82); }
+.section--dark .dgm-node { background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); backdrop-filter: blur(8px); border-color: var(--border); color: var(--ink); }
+.section--dark .dgm-node small { color: var(--ink-3); }
+.section--dark .dgm-node.is-hub { background: var(--brand); color: #0a1020; }
+.section--dark .dgm-node.is-hub small { color: rgba(10,16,32,.72); }
+.dgm-arrow { text-align: center; color: var(--brand); font-weight: 800; font-size: 1.05rem; line-height: 1; padding: .05rem 0; }
+.dgm-band { border: 1px dashed var(--border-strong); border-radius: var(--r-lg); padding: .9rem; }
+.dgm-band > .bl { display: block; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); margin-bottom: .55rem; text-align: center; }
+.dgm-band.flex1 { flex: 1; }
+/* 状态徽标（数据可视化语义色，用于成熟度/风险等级） */
+.st { display: inline-flex; align-items: center; gap: .3rem; font-size: var(--fs-xs); font-weight: 800; padding: .2rem .6rem; border-radius: var(--r-pill); white-space: nowrap; }
+.st-ok   { background: rgba(16,124,102,.14); color: #0a7c5c; }
+.st-warn { background: rgba(184,132,60,.16); color: #9a6a22; }
+.st-mid  { background: rgba(234,140,30,.15); color: #b5650f; }
+.st-bad  { background: rgba(190,40,40,.13); color: #b42424; }
+.section--dark .st-ok { background: rgba(52,214,160,.18); color:#7ff0cf; }
+.section--dark .st-warn { background: rgba(212,160,76,.2); color:#f3c887; }
+.section--dark .st-mid { background: rgba(255,160,80,.2); color:#ffc28a; }
+.section--dark .st-bad { background: rgba(255,110,110,.2); color:#ffb0b0; }
+.eyebrow-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+.chips { display:flex; flex-wrap:wrap; gap:.45rem; margin-top: .5rem; }
+.mini-legend { display:flex; flex-wrap:wrap; gap:.8rem; font-size:var(--fs-xs); color:var(--ink-3); margin-top:1rem; }
+code.inline { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; background: var(--bg-elev-2); padding: .08rem .38rem; border-radius: 5px; color: var(--brand-strong); }
+.section--dark code.inline { background: rgba(255,255,255,.1); color: var(--brand-strong); }
+.flow { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; font-size:var(--fs-sm); font-weight:700; color:var(--ink-2); }
+.flow .step { background: var(--bg-elev); border:1px solid var(--border); border-radius: var(--r-pill); padding:.35rem .85rem; box-shadow: var(--shadow-sm); }
+.flow .arr { color: var(--brand); font-weight:800; }
+.section--dark .flow .step { background: rgba(255,255,255,.06); }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topnav no-print">
+  <div class="inner">
+    <span class="brand">NewsBox<span class="dot">·</span>架构总览</span>
+    <nav>
+      <a href="#overview">概览</a>
+      <a href="#stack">技术栈</a>
+      <a href="#arch">架构</a>
+      <a href="#modules">核心模块</a>
+      <a href="#pipeline">视频流水线</a>
+      <a href="#data">数据模型</a>
+      <a href="#maturity">成熟度</a>
+      <a href="#risk">风险</a>
+      <a href="#api">接口</a>
+      <a href="#deploy">部署</a>
+      <a href="#quality">质量</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== 封面（深色出血带） ===== -->
+<section class="section section--dark" id="top">
+  <div class="container cover">
+    <span class="kicker" data-animate style="--i:0">技术架构与实现 · 深度分析报告</span>
+    <h1 data-animate style="--i:1">NewsBox<br>AI 稍后阅读与知识工作台</h1>
+    <p class="subtitle" data-animate style="--i:2">一份基于真实代码逐文件核对的架构总览：从采集、阅读、视频流水线到 AI 与知识库，覆盖 11 个核心子系统、31 张数据表、60+ 接口与完整风险图谱。</p>
+    <div class="chips" data-animate style="--i:3">
+      <span class="tag">Next.js 16 · App Router</span>
+      <span class="tag">React 19</span>
+      <span class="tag">Supabase · PostgreSQL · RLS</span>
+      <span class="tag tag--accent">视频流水线 Worker</span>
+      <span class="tag tag--accent">多模型 AI</span>
+    </div>
+    <div class="meta" data-animate style="--i:4">
+      <span><b>文档版本</b> · v1.0 加深版</span>
+      <span><b>分析日期</b> · 2026-06-04</span>
+      <span><b>分析基线</b> · main 分支全量代码</span>
+      <span><b>配套</b> · 技术说明 + 功能说明 Markdown</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== KPI 速览（浅色） ===== -->
+<section class="section" id="overview">
+  <div class="container">
+    <div class="grid cols-4">
+      <div class="card kpi" data-animate style="--i:0"><div class="num nums">11</div><div class="label">核心子系统</div></div>
+      <div class="card kpi" data-animate style="--i:1"><div class="num nums">60<span class="unit">+</span></div><div class="label">API 路由</div></div>
+      <div class="card kpi" data-animate style="--i:2"><div class="num nums">31</div><div class="label">数据库业务表</div></div>
+      <div class="card kpi" data-animate style="--i:3"><div class="num nums">29</div><div class="label">数据库迁移</div></div>
+      <div class="card kpi" data-animate style="--i:4"><div class="num nums">7</div><div class="label">视频处理阶段</div></div>
+      <div class="card kpi" data-animate style="--i:5"><div class="num nums">5<span class="unit">+</span></div><div class="label">外部 AI / 服务</div></div>
+      <div class="card kpi" data-animate style="--i:6"><div class="num nums">41</div><div class="label">测试文件 / 260 用例</div></div>
+      <div class="card kpi" data-animate style="--i:7"><div class="num nums">4</div><div class="label">Supabase Client 类型</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="eyebrow-row">
+      <div class="section-head" style="margin-bottom:0">
+        <span class="kicker">01 · 项目概览</span>
+        <h2>一句话定义 &amp; 价值闭环</h2>
+      </div>
+    </div>
+    <div class="quote" style="margin:1.5rem 0 2rem">
+      NewsBox 让你收藏过的内容真正「读得懂、记得住、找得到、用得上」。
+      <cite>—— 围绕内容全生命周期设计的个人 AI 阅读与知识工作台，而非「保存链接的收藏夹」</cite>
+    </div>
+    <div class="grid cols-3">
+      <div class="card card--accent" data-animate style="--i:0"><div class="card-num">收集 → 阅读</div><h3 style="margin-top:.5rem">采集与消费</h3><p>扩展 / URL / 速记 / 上传四路径入库，三栏阅读器 + 视频详情页深度消费。</p></div>
+      <div class="card card--accent" data-animate style="--i:1"><div class="card-num">理解 → 沉淀</div><h3 style="margin-top:.5rem">AI 与批注</h3><p>AI 快读 / 深度解读 / 视频转写，划词高亮、批注、金句素材沉淀。</p></div>
+      <div class="card card--accent" data-animate style="--i:2"><div class="card-num">检索 → 复用</div><h3 style="margin-top:.5rem">知识再利用</h3><p>全库 RAG 问答、智能专题聚类，让历史收藏重新产生价值。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 技术栈（深色出血带） ===== -->
+<section class="section section--dark" id="stack">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">02 · 技术栈与选型</span>
+      <h2>实测版本与关键决策</h2>
+      <p class="lead">全栈 TypeScript 单体；BaaS 化数据与认证；多模型 AI 接入；存储抽象多后端。下列版本来自 lockfile 与代码特征核对。</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card" data-animate style="--i:0"><h3>前端</h3><div class="chips"><span class="tag">Next.js 16.1.1</span><span class="tag">React 19</span><span class="tag">Tailwind 3.4</span><span class="tag">shadcn/Radix</span><span class="tag">Zustand 5</span><span class="tag">SWR 2.4</span><span class="tag">Tiptap 3</span><span class="tag">Video.js 8</span><span class="tag">@antv/g6</span></div></div>
+      <div class="card" data-animate style="--i:1"><h3>后端 / 数据</h3><div class="chips"><span class="tag">Next API Routes</span><span class="tag">Supabase SSR</span><span class="tag">PostgreSQL + RLS</span><span class="tag">Service Role</span><span class="tag tag--accent">proxy.ts 中间件</span></div></div>
+      <div class="card" data-animate style="--i:2"><h3>AI / 媒体</h3><div class="chips"><span class="tag">OpenAI 兼容</span><span class="tag">DashScope / Qwen-VL</span><span class="tag">阿里听悟</span><span class="tag">Jina Reader</span><span class="tag tag--accent">腾讯 COS / CI</span></div></div>
+      <div class="card" data-animate style="--i:3"><h3>商业化 / 工具</h3><div class="chips"><span class="tag">z-pay 支付</span><span class="tag">@vercel/og</span><span class="tag">cheerio / turndown</span><span class="tag">jszip / nanoid</span></div></div>
+      <div class="card" data-animate style="--i:4"><h3>测试 / 扩展</h3><div class="chips"><span class="tag">Vitest 4.1</span><span class="tag">Vite 6 + MV3</span><span class="tag tag--muted">无 E2E（盲区）</span></div></div>
+      <div class="card card--brand" data-animate style="--i:5"><h3>关键决策</h3><p style="color:inherit">RLS 多租户隔离是数据安全基石；JSONB 存向量（<strong>未用 pgvector</strong>）降低部署依赖；AI 走裸 fetch 兼容层可切任意网关。</p></div>
+    </div>
+    <div class="callout callout--accent2" style="margin-top:1.5rem"><div class="callout-title">⚠️ 与既有文档的偏差（实测）</div><p>Next.js 实测 <code class="inline">16.1.1</code>（用 <code class="inline">proxy.ts</code> 非 middleware）；dev 端口 <code class="inline">3001</code>；<code class="inline">OPENAI_MODEL</code> 代码默认 <code class="inline">gpt-4o</code>（示例写 mini）；Storage 桶 SQL 硬编码 <code class="inline">'zhuyu'</code>。</p></div>
+  </div>
+</section>
+
+<!-- ===== 系统架构（浅色 + 图） ===== -->
+<section class="section" id="arch">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">03 · 系统架构</span>
+      <h2>模块化单体 + BaaS + 同进程 Worker + 扩展</h2>
+      <p class="lead">Controller（API Routes）→ Service（lib/services · lib/ai-analysis · lib/storage）→ Data（Supabase / COS）。前端按业务域分 Dashboard / Reader / VideoDetail / Knowledge / Settings。</p>
+    </div>
+    <div class="diagram" data-animate style="--i:0">
+      <div class="dgm">
+        <div class="dgm-band"><span class="bl">客户端</span>
+          <div class="dgm-row">
+            <div class="dgm-node">Next.js Web UI<small>React 19</small></div>
+            <div class="dgm-node">浏览器扩展<small>Manifest V3</small></div>
+          </div>
+        </div>
+        <div class="dgm-arrow">↓</div>
+        <div class="dgm-band"><span class="bl">Next.js 16 应用（单体）</span>
+          <div class="dgm-row">
+            <div class="dgm-node is-brand">Pages / RSC</div>
+            <div class="dgm-node is-brand">proxy 守卫</div>
+            <div class="dgm-node is-brand">API Routes</div>
+            <div class="dgm-node is-brand">服务层</div>
+            <div class="dgm-node is-accent">视频 Worker<small>同进程 setInterval</small></div>
+          </div>
+        </div>
+        <div class="dgm-arrow">↓</div>
+        <div class="dgm-row">
+          <div class="dgm-band flex1"><span class="bl">Supabase</span>
+            <div class="dgm-row">
+              <div class="dgm-node">Auth</div>
+              <div class="dgm-node">PostgreSQL + RLS</div>
+              <div class="dgm-node">Storage</div>
+            </div>
+          </div>
+          <div class="dgm-band flex1"><span class="bl">外部服务</span>
+            <div class="dgm-row">
+              <div class="dgm-node">腾讯 COS / CI</div>
+              <div class="dgm-node">AI<small>OpenAI · 听悟 · Qwen · Jina</small></div>
+              <div class="dgm-node">z-pay</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="diagram-cap">图 1 · 顶层系统架构</div>
+    </div>
+    <div class="grid cols-3" style="margin-top:1.5rem">
+      <div class="card" data-animate style="--i:0"><h3>三条主链路</h3><p><strong>① 内容入库</strong>：URL/扩展/上传/速记 → notes。<br><strong>② 阅读与知识</strong>：消费 → 批注 → AI → 检索。<br><strong>③ 视频处理</strong>：video_jobs 状态机推进。</p></div>
+      <div class="card" data-animate style="--i:1"><h3>入口点</h3><p>Web 入口 <code class="inline">app/**/page.tsx</code>；Worker 入口 <code class="inline">instrumentation.ts</code>（Node runtime）；中间件 <code class="inline">proxy.ts</code>。</p></div>
+      <div class="card" data-animate style="--i:2"><h3>会话与鉴权</h3><p>Supabase Auth cookie 会话；<code class="inline">getClaims()</code> 刷新 token；RLS 按 <code class="inline">auth.uid()=user_id</code> 隔离；Admin 双层 Basic Auth。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 核心模块（浅色卡片） ===== -->
+<section class="section" id="modules">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">04 · 核心模块</span>
+      <h2>11 个子系统一览</h2>
+      <p class="lead">每个子系统在技术说明文档中均有「关键文件 / 核心逻辑 / 数据流 / 时序图 / 风险」的完整拆解。</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card card--accent" data-animate style="--i:0"><div class="card-num">4.1</div><h3>认证与权限</h3><p>4 类 Supabase Client、proxy 守卫、会员门禁（试用 14 天 / pro / ai）。</p></div>
+      <div class="card card--accent" data-animate style="--i:1"><div class="card-num">4.2</div><h3>内容采集</h3><p>平台爬虫 → Jina → 基础抓取三级降级；视频平台识别。</p></div>
+      <div class="card card--accent" data-animate style="--i:2"><div class="card-num">4.3</div><h3>浏览器扩展</h3><p>MV3 · A/B 双上传路径 · 5 个视频提取器 · DNR 防盗链。</p></div>
+      <div class="card card--accent" data-animate style="--i:3"><div class="card-num">4.4</div><h3>存储抽象</h3><p>getStorageProvider 多后端；COS 独有 CI 媒体处理能力。</p></div>
+      <div class="card card--accent" data-animate style="--i:4"><div class="card-num">4.5</div><h3>阅读器 + 批注</h3><p>三栏布局 · 全局字符偏移高亮 · 批注 · 导出。</p></div>
+      <div class="card card--accent" data-animate style="--i:5"><div class="card-num">4.6</div><h3>视频流水线 ⭐</h3><p>同进程状态机 Worker，最复杂子系统（见下节）。</p></div>
+      <div class="card card--accent" data-animate style="--i:6"><div class="card-num">4.7</div><h3>视频详情页</h3><p>Zustand + Tiptap + 事件总线；摘录 / 标记 / 自动保存。</p></div>
+      <div class="card card--accent" data-animate style="--i:7"><div class="card-num">4.8</div><h3>AI 文本能力</h3><p>SSE 三阶段阅读 · 快照卡 · 笔记对话。</p></div>
+      <div class="card card--accent" data-animate style="--i:8"><div class="card-num">4.9</div><h3>知识库</h3><p>检索 · RAG 问答 · 智能专题 · 图谱 · 金句。</p></div>
+      <div class="card card--accent" data-animate style="--i:9"><div class="card-num">4.10</div><h3>Dashboard 工作台</h3><p>6 导航 · 6 分类 · 5 视图 · 批量操作。</p></div>
+      <div class="card card--accent" data-animate style="--i:10"><div class="card-num">4.11</div><h3>设置 / 支付 / 后台</h3><p>统计 · 回收站 · z-pay · 邀请 · Admin。</p></div>
+      <div class="card card--brand" data-animate style="--i:11"><h3>模块依赖</h3><p style="color:inherit">notes 是绝对中心枢纽，被 ~15 张表引用；视频链路 notes ↔ video_jobs 互引。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 视频流水线（深色出血带 · 重点） ===== -->
+<section class="section section--dark" id="pipeline">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">05 · 旗舰子系统</span>
+      <h2>视频处理流水线状态机</h2>
+      <p class="lead">Next.js 同进程 setInterval Worker 驱动 <code class="inline">video_jobs</code>，调用腾讯 COS CI、阿里听悟、Qwen-VL。错误隔离 · 幂等守卫 · 防腐三重保护 · 原始文件保留。</p>
+    </div>
+    <div class="flow" style="margin-bottom:1.6rem">
+      <span class="step">download</span><span class="arr">→</span>
+      <span class="step">probe + cover</span><span class="arr">→</span>
+      <span class="step">transcode</span><span class="arr">→</span>
+      <span class="step">audio（听悟）</span><span class="arr">→</span>
+      <span class="step">frame</span><span class="arr">→</span>
+      <span class="step">visual（Qwen-VL）</span><span class="arr">→</span>
+      <span class="step">reconcile</span>
+    </div>
+    <div class="diagram" data-animate style="--i:0">
+      <div class="dgm">
+        <div class="dgm-row">
+          <div class="dgm-node is-brand">processing<small>处理中</small></div>
+          <div class="dgm-arrow">→</div>
+          <div class="dgm-node is-brand">media_ready<small>媒体可播放</small></div>
+          <div class="dgm-arrow">→</div>
+          <div class="dgm-node is-accent">fully_ready<small>媒体 + AI 全就绪</small></div>
+        </div>
+        <div class="dgm-arrow">⤷　异常分支</div>
+        <div class="dgm-row">
+          <div class="dgm-node">need_browser_fallback<small>download 需浏览器兜底 · 优先级最高 · 可插件重传</small></div>
+          <div class="dgm-node">failed<small>任一 step 失败且 retry 达上限</small></div>
+        </div>
+      </div>
+      <div class="diagram-cap">图 2 · video_overall_status 聚合状态流转（computeOverall）</div>
+    </div>
+    <div class="grid cols-3" style="margin-top:1.6rem">
+      <div class="card" data-animate style="--i:0"><h3>防腐三重保护</h3><p>转码 done 时：① 守卫 transcoded_key 存在 → ② exists() HEAD 校验产物 → ③ 只写 transcoded_url，<strong>绝不覆盖 cos_key</strong>，防 CI 假成功导致原始文件不可逆丢失。</p></div>
+      <div class="card" data-animate style="--i:1"><h3>关键设计</h3><p>visual 失败 / skipped <strong>永不阻塞</strong> fully_ready；audio 必须等 transcode 终态（DASH 分轨合流后才有音轨）；403 → need_browser_fallback。</p></div>
+      <div class="card" data-animate style="--i:2"><h3>⚠️ 已知风险</h3><p>多实例无强锁（重复消费）；retry_count 为 job 级全局计数；<code class="inline">audio_status</code> CHECK 缺 skipped 但代码会写。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 数据模型（浅色 + ER 图） ===== -->
+<section class="section" id="data">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">06 · 数据模型</span>
+      <h2>31 张表 · notes 为中心枢纽</h2>
+      <p class="lead">PostgreSQL，全表启用 RLS，无传统 ORM。向量以 JSONB 存储（未用 pgvector）；全文检索单处 GIN。</p>
+    </div>
+    <div class="diagram" data-animate style="--i:0">
+      <div class="dgm">
+        <div class="dgm-row"><div class="dgm-node is-hub">notes<small>中心枢纽 · 被 ~15 张表引用</small></div></div>
+        <div class="dgm-arrow">↓</div>
+        <div class="dgm-row">
+          <div class="dgm-node">folders / tags<small>组织 1:N / N:N</small></div>
+          <div class="dgm-node">highlights<small>1:N → annotations</small></div>
+          <div class="dgm-node">ai_outputs<small>1:1 AI 摘要</small></div>
+          <div class="dgm-node is-accent">video_jobs<small>1:1 视频流水线（互引）</small></div>
+        </div>
+        <div class="dgm-row">
+          <div class="dgm-node">transcripts<small>1:1 逐字稿</small></div>
+          <div class="dgm-node">quote_materials<small>1:N 金句</small></div>
+          <div class="dgm-node">ai_snapshots<small>1:N 快照卡</small></div>
+          <div class="dgm-node">knowledge_*<small>专题 / 图谱 / 向量</small></div>
+        </div>
+      </div>
+      <div class="diagram-cap">图 3 · 核心实体关系（简化）</div>
+    </div>
+    <div class="grid cols-4" style="margin-top:1.5rem">
+      <div class="card" data-animate style="--i:0"><h3 style="font-size:1rem">内容 / 组织</h3><p>notes · folders · tags · note_tags</p></div>
+      <div class="card" data-animate style="--i:1"><h3 style="font-size:1rem">阅读互动</h3><p>highlights · annotations · quote_materials · reading_progress · transcript_markers</p></div>
+      <div class="card" data-animate style="--i:2"><h3 style="font-size:1rem">媒体 / AI</h3><p>video_jobs · transcripts · video_chapters · ai_outputs · ai_snapshots</p></div>
+      <div class="card" data-animate style="--i:3"><h3 style="font-size:1rem">知识 / 商业</h3><p>knowledge_topics · entities · embeddings · memberships · orders</p></div>
+    </div>
+    <div class="callout" style="margin-top:1.5rem"><div class="callout-title">数据流</div><p>采集写入 notes → AI 写 ai_outputs / video_jobs.audio_result → 批注写 highlights/annotations → 知识库读取全部来源做检索与聚类。所有写入经 RLS 或 Service Role。</p></div>
+  </div>
+</section>
+
+<!-- ===== 功能成熟度全景（深色出血带 · 高价值表） ===== -->
+<section class="section section--dark" id="maturity">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">07 · 必读</span>
+      <h2>功能成熟度全景</h2>
+      <p class="lead">对外承诺、Roadmap 排期、售前话术请以此为准。结论来自对真实代码的逐模块核对。</p>
+    </div>
+    <table class="table zebra" data-animate style="--i:0">
+      <thead><tr><th>能力</th><th>成熟度</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>收藏工作台 / URL 抓取 / 扩展 / 上传</td><td><span class="st st-ok">已闭环</span></td><td>核心可用，抓取成功率受目标站影响</td></tr>
+        <tr><td>目录 / 标签 / 星标 / 归档 / 回收站</td><td><span class="st st-ok">已闭环</span></td><td>标签排序有一处已知缺陷待修</td></tr>
+        <tr><td>阅读器（图文）/ 高亮 / 批注 / 金句</td><td><span class="st st-ok">已闭环</span></td><td>图文批注暂无导出通道</td></tr>
+        <tr><td>视频转写 / 章节 / 关键帧 / 详情页</td><td><span class="st st-ok">已闭环</span></td><td>依赖 COS / 听悟 / DashScope 配置</td></tr>
+        <tr><td>AI 阅读（文章）/ AI 快照卡</td><td><span class="st st-ok">已闭环</span></td><td>有会员门禁；无超时/重试保护</td></tr>
+        <tr><td>智能专题（聚类）</td><td><span class="st st-warn">需调优</span></td><td>聚类质量依赖模型与参数，需运营观察</td></tr>
+        <tr><td>知识问答（RAG）</td><td><span class="st st-warn">需调优</span></td><td>检索为关键词匹配；未做会员门禁</td></tr>
+        <tr><td>会员 / 支付</td><td><span class="st st-warn">需加固</span></td><td>回调幂等较弱；配置未进 .env.example</td></tr>
+        <tr><td>视频 AI（问答/改写/翻译/补全）</td><td><span class="st st-warn">已实现</span></td><td><strong>未做会员门禁</strong>，计费边界待定</td></tr>
+        <tr><td>全库检索（独立接口）</td><td><span class="st st-mid">无 UI</span></td><td>后端就绪，用户暂无独立入口</td></tr>
+        <tr><td>网页存档 / 阅读进度</td><td><span class="st st-bad">未落地</span></td><td>表/设施已建，视图为空壳、未接线</td></tr>
+        <tr><td>知识图谱</td><td><span class="st st-bad">探索</span></td><td>无 UI 入口、默认 mock 数据</td></tr>
+        <tr><td>团队协作 / 公开分享</td><td><span class="st st-bad">未实现</span></td><td>不建议作为当前卖点</td></tr>
+      </tbody>
+    </table>
+    <div class="mini-legend">
+      <span><span class="st st-ok">已闭环</span> 可用</span>
+      <span><span class="st st-warn">需调优/加固</span></span>
+      <span><span class="st st-mid">部分/边缘</span></span>
+      <span><span class="st st-bad">未落地/探索</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 风险清单（浅色 callouts） ===== -->
+<section class="section" id="risk">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">08 · 风险与改进</span>
+      <h2>优先收口的关键风险</h2>
+      <p class="lead">完整清单见技术说明文档 §7（按安全 / 一致性 / 性能 / 架构分组，含文件位置与修复建议）。</p>
+    </div>
+    <div class="grid cols-2">
+      <div class="callout callout--accent2" data-animate style="--i:0"><div class="callout-title">🔴 视频 AI 全链路无会员门禁</div><p>任何登录用户（含试用过期）可触发下载→转码→听悟→Qwen-VL 最烧钱链路。影响成本与商业模式，建议统一补 <code class="inline">requireAIMembership</code>。</p></div>
+      <div class="callout callout--accent2" data-animate style="--i:1"><div class="callout-title">🔴 支付回调幂等无行锁</div><p>并发重复回调理论上可双发会员。建议改 <code class="inline">UPDATE ... WHERE status='pending'</code> 原子 CAS。</p></div>
+      <div class="callout" data-animate style="--i:2"><div class="callout-title">🟡 阅读页双重大查询</div><p>Server 查完丢弃、Client 再查一遍；initialNote 传递为死代码待接。</p></div>
+      <div class="callout" data-animate style="--i:3"><div class="callout-title">🟡 巨型组件 + Worker 多实例</div><p>dashboard-content.tsx ~6000 行；视频 Worker 多副本无锁会重复消费，建议单实例或独立 worker。</p></div>
+      <div class="callout" data-animate style="--i:4"><div class="callout-title">🟡 确认缺陷</div><p>tags/reorder 漏 select parent_id；audio_status CHECK 缺 skipped；npm test 当前 23/260 失败（多为陈旧测试）。</p></div>
+      <div class="callout" data-animate style="--i:5"><div class="callout-title">⚪ 调试残留</div><p>ai/read、knowledge/chat、DashboardAuthCheck 处残留 console.log（含 key 元信息/会员 JSON），上线前清理。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 接口概览（浅色） ===== -->
+<section class="section" id="api">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">09 · 接口</span>
+      <h2>API 分组概览（60+ 路由）</h2>
+      <p class="lead">鉴权口径：cookie · Bearer/cookie · AI 会员 · service · Basic · cron。完整契约见技术说明文档 §8。</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card" data-animate style="--i:0"><h3>采集与上传</h3><p><code class="inline">/api/capture</code> · <code class="inline">/api/upload(-cred)</code> · <code class="inline">/api/extension/*</code>（save / save-video / meta / video-upload-*）</p></div>
+      <div class="card" data-animate style="--i:1"><h3>AI 文本 + 视频</h3><p><code class="inline">/api/ai/read</code>(SSE) · <code class="inline">/api/ai/chat</code> · <code class="inline">/api/ai/snapshot/*</code> · <code class="inline">/api/ai/video/*</code></p></div>
+      <div class="card" data-animate style="--i:2"><h3>阅读 / 批注 / 导出</h3><p><code class="inline">/api/highlights</code> · <code class="inline">/api/notes/[id]/markers</code> · <code class="inline">/export</code> · <code class="inline">/api/quote-materials</code></p></div>
+      <div class="card" data-animate style="--i:3"><h3>知识库</h3><p><code class="inline">/api/knowledge/{search,chat,topics/*,graph}</code>（nightly-refresh 走 cron secret）</p></div>
+      <div class="card" data-animate style="--i:4"><h3>标签 / 设置</h3><p><code class="inline">/api/tags/*</code> · <code class="inline">/api/settings/{stats,trash,referral}</code></p></div>
+      <div class="card" data-animate style="--i:5"><h3>支付 / 会员 / 后台</h3><p><code class="inline">/api/payment/*</code> · <code class="inline">/api/membership/status</code> · <code class="inline">/api/admin/users</code></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 部署（深色出血带 + 图） ===== -->
+<section class="section section--dark" id="deploy">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">10 · 部署与运维</span>
+      <h2>部署形态 &amp; 自托管 Supabase</h2>
+      <p class="lead">应用本身无 Dockerfile（以标准 Next.js Node 服务部署）；后端可用裁剪版自托管 Supabase 栈。</p>
+    </div>
+    <div class="diagram" data-animate style="--i:0">
+      <div class="dgm">
+        <div class="dgm-row">
+          <div class="dgm-node">用户浏览器</div>
+          <div class="dgm-node">浏览器扩展</div>
+          <div class="dgm-node">外部 Cron<small>x-cron-secret</small></div>
+        </div>
+        <div class="dgm-arrow">↓</div>
+        <div class="dgm-row"><div class="dgm-node is-hub">Next.js 应用<small>Node / PaaS · 同进程视频 Worker</small></div></div>
+        <div class="dgm-arrow">↓</div>
+        <div class="dgm-row">
+          <div class="dgm-node">Supabase<small>Auth · PG · Storage</small></div>
+          <div class="dgm-node">腾讯云 COS / CI</div>
+          <div class="dgm-node">AI 服务<small>OpenAI · DashScope · 听悟 · Jina</small></div>
+          <div class="dgm-node">z-pay</div>
+        </div>
+      </div>
+      <div class="diagram-cap">图 4 · 推荐部署拓扑</div>
+    </div>
+    <div class="grid cols-2" style="margin-top:1.5rem">
+      <div class="card" data-animate style="--i:0"><h3>自托管 Supabase 栈</h3><p>Kong 网关 · GoTrue 认证 · PostgREST · Storage（500MB）· imgproxy · Edge-Deno · <strong>Postgres 15.6</strong> · Studio · Logflare。<br><span class="muted">故意关闭：realtime / vector / supavisor。</span></p></div>
+      <div class="card" data-animate style="--i:1"><h3>环境与迁移</h3><p>⚠️ 无 <code class="inline">engines</code> 字段（Next 16 需 Node ≥18.18）；Cloud→自托管迁移由 <code class="inline">scripts/migrate-supabase/01-08</code> 整套脚本完成。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 质量 / 交付总结（浅色） ===== -->
+<section class="section" id="quality">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">11 · 质量与交付</span>
+      <h2>测试现状与维护重点</h2>
+    </div>
+    <div class="grid cols-4">
+      <div class="card kpi" data-animate style="--i:0"><div class="num nums">41</div><div class="label">Vitest 测试文件</div></div>
+      <div class="card kpi" data-animate style="--i:1"><div class="num nums">260</div><div class="label">测试用例</div></div>
+      <div class="card kpi" data-animate style="--i:2"><div class="num nums">12</div><div class="label">reconcile 场景覆盖</div></div>
+      <div class="card kpi" data-animate style="--i:3"><div class="num nums">23</div><div class="label">当前失败（待对齐）</div></div>
+    </div>
+    <div class="timeline" style="margin-top:2.5rem">
+      <div class="t-item" data-animate style="--i:0"><div class="t-time">优先级 1 · 🔴</div><h4>统一 AI / 视频会员门禁</h4><p>视频 AI 全链路当前无门禁，影响成本与商业模式。</p></div>
+      <div class="t-item" data-animate style="--i:1"><div class="t-time">优先级 2 · 🔴</div><h4>加固支付回调幂等</h4><p>资损向，上线前必修：原子 CAS 置 paid。</p></div>
+      <div class="t-item" data-animate style="--i:2"><div class="t-time">优先级 3 · 🟡</div><h4>测试对齐 + 巨型组件拆分</h4><p>让 npm test 全绿；按域拆 dashboard-content.tsx。</p></div>
+      <div class="t-item" data-animate style="--i:3"><div class="t-time">优先级 4 · 🟡</div><h4>Worker 部署稳定性 + 确认缺陷修复</h4><p>多实例锁；修 tags/reorder、audio_status CHECK、双查询。</p></div>
+      <div class="t-item" data-animate style="--i:4"><div class="t-time">优先级 5 · ⚪</div><h4>收口探索功能边界</h4><p>网页存档 / 阅读进度 / 知识图谱 / 公开分享，同步对外措辞。</p></div>
+    </div>
+    <div class="callout callout--accent" style="margin-top:2rem"><div class="callout-title">交付评价</div><p>功能密度高、数据模型完整、工程实现扎实。亮点：RLS+Service Role 边界清晰、存储抽象迁移彻底、视频流水线状态机成熟、智能专题/金句已闭环、注释质量高（解释 why）。所有结论可追溯到具体文件路径，可作研发交接与甲方验收依据。</p></div>
+  </div>
+</section>
+
+<footer class="section" style="padding-block:2.5rem">
+  <div class="container">
+    <div class="site-footer">
+      <span>NewsBox 技术架构总览 · v1.0 加深版 · 2026-06-04</span>
+      <span>配套：TECHNICAL_REFERENCE.md（技术说明）· PRODUCT_FUNCTIONAL_REFERENCE.md（功能说明）</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // 滚动进度条（纯前端，零外部依赖）
+  (function () {
+    var bar = document.getElementById('progress');
+    function onScroll() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    }
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+</body>
+</html>

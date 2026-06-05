@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, Languages, AudioLines, Video as VideoIcon } from "lucide-react";
+import { useState } from "react";
+import { Search, Languages, AudioLines, Video as VideoIcon, Filter } from "lucide-react";
 import { MainStage } from "./MainStage";
 import { TitleEditor } from "./TitleEditor";
 import { ExcerptButton } from "./ExcerptButton";
@@ -15,9 +16,11 @@ import { TranslationPopover } from "./TranslationPopover";
 import { MobileSheet } from "./MobileSheet";
 import { MobileTabBar } from "./MobileTabBar";
 import { MobileMoreMenu } from "./MobileMoreMenu";
+import { TranscriptMarkerFilterPopover } from "./TranscriptMarkerFilterPopover";
 import { BriefPanel } from "./RightPanel/BriefPanel";
 import { TranscriptPanel } from "./RightPanel/TranscriptPanel";
 import { NotesPanel } from "./RightPanel/NotesPanel";
+import { QATab } from "./RightPanel/QATab";
 import { useVideoDetailStore } from "./store";
 import type { Note, VideoJobRow } from "@/components/reader/ReaderPageWrapper";
 
@@ -28,10 +31,16 @@ export function VideoDetailLayout({
   note: Note;
   videoJob: VideoJobRow | null;
 }) {
+  const [filterOpen, setFilterOpen] = useState(false);
   const mobileSheetOpen = useVideoDetailStore((s) => s.mobileSheetOpen);
   const setMobileSheetOpen = useVideoDetailStore((s) => s.setMobileSheetOpen);
   const audioMode = useVideoDetailStore((s) => s.audioMode);
   const setAudioMode = useVideoDetailStore((s) => s.setAudioMode);
+  const showMarkedTranscriptOnly = useVideoDetailStore((s) => s.showMarkedTranscriptOnly);
+  const setActiveTab = useVideoDetailStore((s) => s.setActiveTab);
+  const audio = videoJob?.audio_result;
+  const canEnrichQa = videoJob?.audio_status === "done" && (audio?.transcript?.length ?? 0) > 0;
+  const jobId = videoJob?.id ?? null;
 
   return (
     <>
@@ -74,6 +83,30 @@ export function VideoDetailLayout({
               >
                 {audioMode ? <VideoIcon size={15} /> : <AudioLines size={15} />}
               </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("transcript");
+                    if (window.innerWidth < 1024) setMobileSheetOpen("transcript");
+                    setFilterOpen((v) => !v);
+                  }}
+                  className={
+                    showMarkedTranscriptOnly
+                      ? "w-8 h-8 rounded bg-blue-50/90 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 flex items-center justify-center"
+                      : "w-8 h-8 rounded hover:bg-blue-50/60 dark:hover:bg-blue-950/40 flex items-center justify-center"
+                  }
+                  title="筛选标记"
+                  aria-label="筛选标记"
+                  aria-expanded={filterOpen}
+                  aria-pressed={showMarkedTranscriptOnly}
+                >
+                  <Filter size={15} />
+                </button>
+                {filterOpen && (
+                  <TranscriptMarkerFilterPopover className="absolute right-0 top-10 z-50" />
+                )}
+              </div>
               <ExcerptButton noteId={note.id} audio={videoJob?.audio_result ?? null} />
               {videoJob && <SpeakerPopover speakers={videoJob.audio_result?.speakers ?? []} />}
               {videoJob && <AnalysisProgress jobId={videoJob.id} />}
@@ -117,6 +150,20 @@ export function VideoDetailLayout({
         title="原文"
       >
         <TranscriptPanel noteId={note.id} videoJob={videoJob} />
+      </MobileSheet>
+      <MobileSheet
+        open={mobileSheetOpen === "qa"}
+        onClose={() => setMobileSheetOpen(null)}
+        title="问答回顾"
+      >
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          <QATab
+            qaPairs={audio?.qaPairs}
+            jobId={jobId}
+            canEnrich={canEnrichQa}
+            noteId={note.id}
+          />
+        </div>
       </MobileSheet>
       <MobileSheet
         open={mobileSheetOpen === "notes"}
