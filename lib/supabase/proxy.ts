@@ -243,12 +243,14 @@ export async function updateSession(request: NextRequest) {
   // - /auth/error: 认证错误页面（用户可能需要查看错误信息）
   // - /auth/confirm: 邮箱确认页面（用户点击邮件中的链接后到达）
   // - /auth/update-password: 密码重置/更新页面（用户可能需要重置密码）
+  // - /auth/sso: 业务系统单点登录入口（需携带 login_id / login_tid）
   if (
     user &&
     request.nextUrl.pathname.startsWith("/auth") &&
     !request.nextUrl.pathname.startsWith("/auth/error") &&
     !request.nextUrl.pathname.startsWith("/auth/confirm") &&
-    !request.nextUrl.pathname.startsWith("/auth/update-password")
+    !request.nextUrl.pathname.startsWith("/auth/update-password") &&
+    !request.nextUrl.pathname.startsWith("/auth/sso")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
